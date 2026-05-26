@@ -92,7 +92,7 @@ digraph process {
     "Create implementation-notes.html + open in browser" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
-    "Surface implementation-notes.html + use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Surface implementation-notes.html + use my-superpower:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Create implementation-notes.html + open in browser";
     "Create implementation-notes.html + open in browser" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -112,7 +112,7 @@ digraph process {
     "Mark task complete in TodoWrite + flip task row to done·sha (subtasks flipped by implementer)" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Surface implementation-notes.html + use superpowers:finishing-a-development-branch";
+    "Dispatch final code reviewer subagent for entire implementation" -> "Surface implementation-notes.html + use my-superpower:finishing-a-development-branch";
 }
 ```
 
@@ -237,14 +237,14 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
+- **my-superpower:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
 - **writing-plans** - Creates the HTML plan this skill executes (after its browser-preview gate)
-- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **my-superpower:requesting-code-review** - Code review template for reviewer subagents
 - **frontend-design** - Initial structure/styling for implementation-notes.html
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **my-superpower:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
-- **superpowers:test-driven-development** - Subagents follow TDD for each task
+- **my-superpower:test-driven-development** - Subagents follow TDD for each task
 
 **Alternative workflow:**
 - **executing-plans** - Use for parallel session instead of same-session execution

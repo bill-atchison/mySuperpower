@@ -56,7 +56,7 @@ For each task:
 After all tasks complete and verified:
 - **Surface `implementation-notes.html` to the owner alongside the result.**
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
+- **REQUIRED SUB-SKILL:** Use my-superpower:finishing-a-development-branch
 - Follow that skill to verify tests, present options, execute choice
 
 ## When to Stop and Ask for Help
@@ -90,10 +90,10 @@ After all tasks complete and verified:
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
+- **my-superpower:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
 - **writing-plans** - Creates the HTML plan this skill executes (after its browser-preview gate)
 - **frontend-design** - Initial structure/styling for implementation-notes.html
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **my-superpower:finishing-a-development-branch** - Complete development after all tasks
 
 **Preferred alternative (if subagents available):**
 - **subagent-driven-development** - Same-session execution with fresh subagent per task and two-stage review
