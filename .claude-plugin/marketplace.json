@@ -1,20 +1,15 @@
 {
   "name": "my-superpower",
-  "description": "Development marketplace for Superpowers core skills library",
-  "owner": {
-    "name": "Jesse Vincent",
-    "email": "jesse@fsck.com"
-  },
+  "description": "Local marketplace for the mySuperpower plugin (personal fork of Superpowers).",
+  "owner": { "name": "William Atchison", "email": "william.e.atchison.jr@gmail.com" },
   "plugins": [
     {
       "name": "my-superpower",
-      "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques",
+      "displayName": "mySuperpower",
+      "description": "Personal HTML-native fork of Superpowers.",
       "version": "5.1.0",
       "source": "./",
-      "author": {
-        "name": "Jesse Vincent",
-        "email": "jesse@fsck.com"
-      }
+      "author": { "name": "William Atchison", "email": "william.e.atchison.jr@gmail.com" }
     }
   ]
 }
