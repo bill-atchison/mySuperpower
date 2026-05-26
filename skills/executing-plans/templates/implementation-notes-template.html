@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<!--
+  IMPLEMENTATION NOTES / REVIEW DOC — a LIVE doc with TWO regions, both updated in REAL
+  TIME as work happens:
+    1. TASK STATUS table — one task-row per plan task with its TDD SUBTASK rows beneath.
+       Flip each pill pending -> in progress -> done (done rows show commit short-SHA),
+       in sync with the TodoWrite list.
+    2. DECISIONS & DEVIATIONS — append a CARD whenever a real off-spec decision, a plan
+       deviation, an important fix, a cross-task interaction, a tradeoff, or anything else
+       the owner should know happens. Each
+       card has a maroon tag ("TASK N · DONE · <sha>" or "PRE-IMPL · CONTEXT"), a bold
+       title, and prose/bullets with inline <code> chips. This is the narrative record —
+       NOT a generic activity log; only substantive items go here.
+
+  FIXED MASTHEAD + PALETTE (per owner spec): header, palette, table, and card styles are
+  FIXED — reproduce as-is so this doc shares the editorial identity of the spec
+  (Spec · Design) and plan (Plan · Implementation). Stay on-palette.
+
+  HARD RULES: one self-contained .html; ALL CSS inline; web-safe/system fonts only;
+  NO external fonts/CDN/images/<link>/external <script>; renders from file:// offline.
+  An inline <meta refresh> is allowed for the live phase.
+
+  LIVE-VIEW: the <meta refresh> only fires when the tab is the ACTIVE/visible tab
+  (browsers throttle background tabs) — tell the owner to keep the notes tab visible.
+  At completion: flip Status pill to "Implementation — Complete" and REMOVE the <meta refresh>.
+
+  WHO UPDATES WHAT:
+    - subagent-driven-development: CONTROLLER builds the table (all rows pending) at
+      setup and flips each task's top-level row to done·<sha> after review; the IMPLEMENTER
+      subagent flips ITS subtask rows live AND appends a Decisions card for any off-spec
+      decision/deviation/tradeoff it makes (controller passes it the notes path).
+    - executing-plans: the agent flips rows AND appends Decisions cards itself, live.
+
+  PLACEHOLDERS: {{TITLE}} {{SUBTITLE}} {{DATE}} {{BRANCH}} {{SPEC}} {{PLAN}}
+    {{TASK_ROWS}}     -> task-row + sub rows per plan task (START all "pending")
+    {{DECISION_CARDS}}-> Decisions cards, appended as they happen (may start empty)
+  Eyebrow FIXED "Notes · Implementation". Status pill starts "Implementation — In Progress".
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="5">
+<title>{{TITLE}}</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b; --olive:#7a6a2e;
+    --rule:#ddd3bc; --subrule:#ece4d0; --green:#3f7d3f; --card:#faf7ef;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;margin:0 0 1.9rem;max-width:48ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;row-gap:.55rem;
+             align-items:baseline;background:var(--meta-bg);border-radius:14px;
+             border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);border-radius:999px;
+               padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
+               line-height:1.45;background:transparent;}
+  .section-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;font-size:.95rem;
+                 font-weight:700;color:var(--ink);border-bottom:2px solid var(--ink);
+                 padding-bottom:.5rem;margin:2.6rem 0 1.4rem;}
+  table.tasks{width:100%;border-collapse:collapse;}
+  table.tasks th{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;
+                 color:var(--label);text-align:left;font-weight:400;padding:.4rem .75rem;}
+  table.tasks td{padding:.6rem .75rem;vertical-align:middle;}
+  td.num{font-family:var(--mono);color:var(--label);width:3rem;}
+  td.st{width:1%;white-space:nowrap;text-align:right;}
+  tr.task-row td{border-top:2px solid var(--ink);font-size:1.05rem;}
+  tr.task-row td.desc{font-weight:700;}
+  tr.sub td{border-top:1px solid var(--subrule);}
+  td.subtask{padding-left:2.1rem;color:var(--label);font-size:.95rem;}
+  .tstatus{font-family:var(--mono);font-size:.78rem;padding:.22rem .65rem;border-radius:7px;white-space:nowrap;}
+  .tstatus.done{background:#d6e8cf;color:var(--green);}
+  .tstatus.inprogress{background:#ecdcbf;color:#9a6a1f;}
+  .tstatus.pending{background:#e7dfca;color:var(--label);}
+  .dd-card{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:14px;
+           padding:1.7rem 1.85rem 1.4rem;margin:1.7rem 0;}
+  .dd-tag{position:absolute;top:-0.75rem;left:1.5rem;background:var(--maroon);color:var(--paper);
+          font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;
+          font-weight:700;padding:.28rem .7rem;border-radius:6px;}
+  .dd-card h3{font-family:var(--serif);font-weight:700;font-size:1.3rem;margin:.3rem 0 .8rem;}
+  .dd-card p{font-size:1.05rem;line-height:1.55;margin:.5rem 0;}
+  .dd-card ul{margin:.6rem 0;padding-left:1.4rem;}
+  .dd-card li{margin:.5rem 0;line-height:1.55;}
+  code{font-family:var(--mono);background:var(--meta-bg);border:1px solid var(--rule);
+       padding:.05em .35em;border-radius:5px;font-size:.85em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Notes &middot; Implementation</p>
+      <h1>{{TITLE}}</h1>
+      <p class="subtitle">{{SUBTITLE}}</p>
+      <dl class="meta-card">
+        <dt>Started</dt><dd>{{DATE}}</dd>
+        <dt>Branch</dt><dd>{{BRANCH}}</dd>
+        <dt>Spec</dt><dd>{{SPEC}}</dd>
+        <dt>Plan</dt><dd>{{PLAN}}</dd>
+        <dt>Status</dt><dd><span class="status-pill">Implementation &mdash; In Progress</span></dd>
+      </dl>
+    </header>
+
+    <section class="task-status">
+      <h2 class="section-label">Task Status</h2>
+      <table class="tasks">
+        <thead><tr><th>Task</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          {{TASK_ROWS}}
+          <!-- One task-row per plan task + its subtask rows. START all "pending"; flip live:
+          <tr class="task-row"><td class="num">1</td><td class="desc">Task title</td><td class="st"><span class="tstatus done">&check; done &middot; abc1234</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write failing test (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; implement (green)</td><td class="st"><span class="tstatus inprogress">in progress</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          -->
+        </tbody>
+      </table>
+    </section>
+
+    <section class="decisions">
+      <h2 class="section-label">Decisions &amp; Deviations</h2>
+      {{DECISION_CARDS}}
+      <!-- Append a card per substantive item (off-spec decision, plan deviation, important
+           fix, cross-task interaction, tradeoff) — NOT routine progress. Insert before this
+           section's </section>. Tag = "TASK N · DONE · <sha>" or "PRE-IMPL · CONTEXT". Example:
+      <div class="dd-card">
+        <span class="dd-tag">Task 1 &middot; Done &middot; abc1234</span>
+        <h3>Short decision title</h3>
+        <p><strong>Decision (off-spec).</strong> What was decided and why; use inline <code>code</code> chips.</p>
+        <ul><li><strong>Rationale:</strong> …</li><li><strong>Interaction for Task N:</strong> …</li></ul>
+      </div>
+      -->
+    </section>
+  </div>
+</body>
+</html>
