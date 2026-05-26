@@ -138,7 +138,7 @@
         <h2>Overview</h2>
         <p class="lead">Make this repository <strong>mySuperpower</strong>: a single, locally-installed Claude Code plugin whose brainstorm → plan → execute → subagent-dev workflow produces self-contained HTML documents instead of markdown — while remaining a clean fork of <code>obra/superpowers</code> that can absorb upstream improvements.</p>
         <p>The repo currently mirrors upstream Superpowers <code>v5.1.0</code> exactly, plus four untracked HTML skill variants (<code>brainstorming-html</code>, <code>writing-plans-html</code>, <code>executing-plans-html</code>, <code>subagent-driven-development-html</code>) created in an earlier session. Those four are the heart of "your version" — they capture the same methodology but emit distinctive, offline HTML specs/plans/notes rather than markdown.</p>
-        <p>This design replaces the four upstream markdown skills with your HTML versions, renames the whole plugin to <code>mySuperpower</code>, sets it up for local installation, and establishes a low-friction workflow for pulling future changes from upstream.</p>
+        <p>This design replaces the four upstream markdown skills with your HTML versions, renames the whole plugin to <code>my-superpower</code> (branded <strong>mySuperpower</strong>), sets it up for local installation, and establishes a low-friction workflow for pulling future changes from upstream.</p>
       </section>
 
       <section>
@@ -146,15 +146,15 @@
         <p>Five decisions were settled during brainstorming. They are intentionally biased toward two goals at once: a genuinely personal plugin, and the smallest practical pain when merging from upstream.</p>
         <div class="decision-grid">
           <div class="decision"><p class="k">Replacement</p><p class="v">Strategy B — Takeover</p></div>
-          <div class="decision"><p class="k">Structure</p><p class="v">Single plugin: <code>mySuperpower</code></p></div>
-          <div class="decision"><p class="k">Namespace</p><p class="v">Full cascade → <code>mySuperpower:</code></p></div>
+          <div class="decision"><p class="k">Structure</p><p class="v">Single plugin: <code>my-superpower</code></p></div>
+          <div class="decision"><p class="k">Namespace</p><p class="v">Cascade → <code>my-superpower:</code></p></div>
           <div class="decision"><p class="k">Distribution</p><p class="v">Local marketplace install</p></div>
           <div class="decision"><p class="k">Upstream</p><p class="v">Remote + idempotent rebrand</p></div>
         </div>
         <h3>Why takeover over an overlay</h3>
         <p>The HTML content <em>occupies the canonical skill names</em> (<code>brainstorming</code>, <code>writing-plans</code>, <code>executing-plans</code>, <code>subagent-driven-development</code>) rather than living beside the originals. There is exactly one skill per name, so there is no trigger ambiguity and the existing bootstrap + chain work unchanged. Crucially, when upstream improves one of these skills, the merge conflict lands <em>on the file you forked</em> — resolving it <em>is</em> the act of porting their improvement into your HTML version, instead of having it silently bypass you.</p>
         <h3>Why one plugin, fully renamed</h3>
-        <p>In Claude Code the plugin's <code>name</code> field is also the skill namespace, and a namespace is per-plugin, not per-skill. To have every skill read as <code>mySuperpower:</code> we rename the single plugin and cascade-update the internal <code>superpowers:</code> references. The cascade cost is real but bounded (~10 files), and it is automated (see Components → Rebrand script) so it stays a one-command operation on every future merge.</p>
+        <p>In Claude Code the plugin's <code>name</code> field is also the skill namespace, and a namespace is per-plugin, not per-skill. Plugin names must be <strong>kebab-case</strong>, so the technical <code>name</code> is <code>my-superpower</code>, with <code>displayName: "mySuperpower"</code> carrying the brand in the <code>/plugin</code> UI (requires Claude Code v2.1.143+). To have every skill read as <code>my-superpower:</code> we rename the single plugin and cascade-update the internal <code>superpowers:</code> references. The cascade is bounded (~10 skill files plus the hooks bootstrap and the manifests) and automated (see Components → Rebrand script), so it stays a one-command operation on every future merge.</p>
       </section>
 
       <section>
@@ -162,9 +162,9 @@
         <p>The repo stays a single plugin with its existing layout — only its identity and the four workflow skills change. Nothing moves directories, so upstream's structure still aligns for clean merges of everything we do not touch.</p>
         <h3>Identity vs. mechanics</h3>
         <ul>
-          <li><strong>Plugin name / namespace:</strong> <code>superpowers</code> → <code>mySuperpower</code> (drives both the install id and the <code>mySuperpower:</code> skill prefix).</li>
+          <li><strong>Plugin name / namespace:</strong> <code>superpowers</code> → <code>my-superpower</code> (kebab-case; drives the install id and the <code>my-superpower:</code> skill prefix), with <code>displayName: "mySuperpower"</code> as the UI brand.</li>
           <li><strong>Skill set:</strong> the 4 workflow skills carry your HTML behavior; the ~10 others (TDD, debugging, writing-skills, code-review, git-worktrees, finishing, dispatching, using-superpowers, verification, receiving-review) stay byte-for-byte upstream.</li>
-          <li><strong>Hook:</strong> the SessionStart bootstrap is <code>${CLAUDE_PLUGIN_ROOT}</code>-based and name-agnostic — it works unchanged.</li>
+          <li><strong>Hook:</strong> the SessionStart <em>command path</em> is <code>${CLAUDE_PLUGIN_ROOT}</code>-based and unchanged — but the injected bootstrap text references <code>superpowers:using-superpowers</code>, so <code>hooks/session-start</code> is included in the namespace cascade.</li>
         </ul>
         <h3>Two classes of files</h3>
         <table>
@@ -172,8 +172,8 @@
           <thead><tr><th>Class</th><th>Files</th><th>Upstream-merge behavior</th></tr></thead>
           <tbody>
             <tr><td>Replaced skills</td><td>the 4 workflow skill folders</td><td>Content conflict only when upstream changes them — the signal you want</td></tr>
-            <tr><td>Cascaded refs</td><td>~6 other skill files with <code>superpowers:</code> lines + 5 manifests</td><td>Conflicts only if upstream edits those exact lines; auto-re-applied by the rebrand script</td></tr>
-            <tr><td>Untouched</td><td>everything else (hooks, TDD/debug content, assets, docs/superpowers)</td><td>Merges cleanly, always</td></tr>
+            <tr><td>Cascaded refs</td><td>~6 other skill files with <code>superpowers:</code> lines, the <code>hooks/session-start</code> bootstrap, + the manifests</td><td>Conflicts only if upstream edits those exact lines; auto-re-applied by the rebrand script</td></tr>
+            <tr><td>Untouched</td><td>everything else (hook command wiring, TDD/debug content, assets, docs/superpowers)</td><td>Merges cleanly, always</td></tr>
           </tbody>
         </table>
       </section>
@@ -196,23 +196,23 @@
         <p>Then two cleanup passes inside the now-canonical skills:</p>
         <ul>
           <li><strong>Frontmatter:</strong> <code>name: brainstorming-html</code> → <code>name: brainstorming</code> (and the other three). The <code>description:</code> fields already use canonical trigger phrasing, so auto-triggering is unchanged.</li>
-          <li><strong>Cross-references:</strong> rewrite every <code>-html</code> skill-name reference to its canonical name (e.g. "invoke <code>writing-plans-html</code>" → "invoke <code>writing-plans</code>").</li>
+          <li><strong>Cross-references (all files, not just SKILL.md):</strong> sweep every file in each skill directory — <code>SKILL.md</code>, <code>templates/*.html</code>, and the reviewer/implementer prompt files — rewriting every <code>-html</code> skill-name reference to its canonical name (e.g. "invoke <code>writing-plans-html</code>" → "invoke <code>writing-plans</code>"). The templates do reference <code>-html</code> names (the plan template points at <code>subagent-driven-development-html</code>), so a SKILL.md-only pass would leave dangling references.</li>
         </ul>
 
         <h3>2 — Rename + namespace cascade</h3>
         <ul>
-          <li><code>name: mySuperpower</code> in <code>.claude-plugin/plugin.json</code>, <code>.codex-plugin/plugin.json</code>, <code>.cursor-plugin/plugin.json</code>, <code>gemini-extension.json</code>, <code>package.json</code>; human fields (description/author/homepage/repository) branded to you and your fork.</li>
-          <li>Rewrite every <code>superpowers:&lt;skill&gt;</code> → <code>mySuperpower:&lt;skill&gt;</code> across all skill files. Bare-name references ("the writing-plans skill") need no change.</li>
+          <li><code>name: "my-superpower"</code> + <code>displayName: "mySuperpower"</code> in <code>.claude-plugin/plugin.json</code> (and <code>name</code> in <code>.codex-plugin/plugin.json</code>, <code>.cursor-plugin/plugin.json</code>, <code>gemini-extension.json</code>, <code>package.json</code>); human fields (description/author/homepage/repository) branded to you and your fork. The marketplace <code>name</code> also goes kebab-case (e.g. <code>my-superpower</code>).</li>
+          <li>Rewrite every <code>superpowers:&lt;skill&gt;</code> → <code>my-superpower:&lt;skill&gt;</code> across all skill files <em>and</em> <code>hooks/session-start</code>. Bare-name references ("the writing-plans skill") need no change. <strong>Preserve</strong> non-namespace occurrences: the legacy <code>~/.config/superpowers</code> migration path and <code>github.com/obra/superpowers</code> URLs are <em>not</em> rewritten.</li>
           <li><code>README.md</code> rewritten for mySuperpower, crediting <code>obra/superpowers</code> as upstream and documenting the HTML workflow + the update procedure.</li>
         </ul>
 
         <h3>3 — Idempotent rebrand script</h3>
-        <p>Add <code>scripts/apply-mysuperpower-brand.{sh,ps1}</code> — a targeted, repeatable rewrite of the namespace cascade (<code>superpowers:</code> → <code>mySuperpower:</code>) and the manifest <code>name</code> fields. Running it twice produces no diff. It is run once during conversion and again after every upstream merge, turning the cascade from a hand-merge chore into one command.</p>
+        <p>Add <code>scripts/apply-my-superpower-brand.{sh,ps1}</code> — a <em>targeted</em>, repeatable rewrite that operates only on (a) the <code>superpowers:&lt;skill&gt;</code> namespace pattern across skills + <code>hooks/session-start</code>, and (b) the manifest <code>name</code>/<code>displayName</code> fields. It deliberately does <strong>not</strong> do a blanket "superpowers" → "my-superpower" replace, so it never corrupts URLs or the legacy config path. It is idempotent (running it twice produces no diff) — run once during conversion and again after every upstream merge, turning the cascade from a hand-merge chore into one command.</p>
 
         <h3>4 — Local plugin install</h3>
-        <p>Point <code>.claude-plugin/marketplace.json</code> at this repo as a local marketplace (plugin <code>name: mySuperpower</code>, <code>source: "."</code>). Install flow:</p>
+        <p>Point <code>.claude-plugin/marketplace.json</code> at this repo as a local marketplace (marketplace <code>name: "my-superpower"</code>, plugin <code>name: "my-superpower"</code>, <code>source: "./"</code>). Install flow:</p>
         <pre><code>/plugin marketplace add C:\Projects\GitHub\mySuperpower
-/plugin install mySuperpower@mySuperpower</code></pre>
+/plugin install my-superpower@my-superpower</code></pre>
 
         <h3>5 — Docs path &amp; loose ends</h3>
         <ul>
@@ -228,12 +228,12 @@
         <div class="flow">
           <b>brainstorming</b> → using-git-worktrees → <b>writing-plans</b> → <b>subagent-driven-development</b> / <b>executing-plans</b> → test-driven-development → requesting-code-review → finishing-a-development-branch
         </div>
-        <p>Bold stages are now your HTML skills (namespaced <code>mySuperpower:</code>), emitting HTML to <code>docs/mySuperpower/</code>. The non-bold stages remain upstream skills, referenced by bare or <code>mySuperpower:</code> names.</p>
+        <p>Bold stages are now your HTML skills (namespaced <code>my-superpower:</code>), emitting HTML to <code>docs/mySuperpower/</code>. The non-bold stages remain upstream skills, referenced by bare or <code>my-superpower:</code> names.</p>
         <h3>The update-from-upstream flow</h3>
         <div class="flow">
-          git fetch <b>upstream</b> → git merge upstream/main → <b>run apply-mysuperpower-brand</b> → resolve any 4-skill content conflicts → commit
+          git fetch <b>upstream</b> → git merge upstream/main → <b>resolve all content conflicts (clean index)</b> → run apply-my-superpower-brand → verify idempotent → commit
         </div>
-        <p>The remote is added once: <code>git remote add upstream https://github.com/obra/superpowers.git</code>. The rebrand script re-applies the namespace cascade and manifest names automatically, so the only manual work is the occasional content conflict on the four skills you deliberately forked.</p>
+        <p>The remote is added once: <code>git remote add upstream https://github.com/obra/superpowers.git</code>. Critically, the rebrand script runs <em>after</em> all conflicts are resolved and no unmerged paths remain — never against a tree containing conflict markers (which it would rewrite on both sides). Once the index is clean, the script re-applies the namespace cascade and manifest names automatically, so the only manual work is the occasional content conflict on the four skills you deliberately forked.</p>
       </section>
 
       <section>
@@ -243,7 +243,7 @@
         <blockquote><p>Codex is primary; if Codex is unavailable or does not respond, dispatch a general-purpose subagent using the prompt file to perform the equivalent review. The ≤3-iteration cap applies either way.</p></blockquote>
         <h3>Merge resilience</h3>
         <ul>
-          <li>The rebrand script is <strong>idempotent</strong> — safe to run after any merge, any number of times.</li>
+          <li>The rebrand script is <strong>idempotent</strong> — safe to run any number of times — but runs only on a clean index (all conflicts resolved, no unmerged paths), never on a tree with conflict markers.</li>
           <li>The repo layout never diverges from upstream's, so only intentional changes ever conflict.</li>
           <li>Conflicts are concentrated and meaningful: the four forked skills (content) and any namespace lines upstream happens to edit (auto-handled by the script).</li>
         </ul>
@@ -253,10 +253,10 @@
         <h2>Verification</h2>
         <p>The conversion is considered done only when all of the following hold:</p>
         <ul>
-          <li>All four workflow skills load with correct canonical <code>name:</code> frontmatter and no leftover <code>-html</code> cross-references.</li>
-          <li>A repo-wide grep finds <strong>zero</strong> dangling <code>superpowers:</code> namespace references (all are <code>mySuperpower:</code>).</li>
+          <li>All four workflow skills load with correct canonical <code>name:</code> frontmatter and no leftover <code>-html</code> cross-references in any file (SKILL.md, templates, prompts).</li>
+          <li>A repo-wide grep finds <strong>zero</strong> dangling <code>superpowers:</code> namespace references (all are <code>my-superpower:</code>), excluding the intentionally-preserved <code>obra/superpowers</code> URLs and legacy config path.</li>
           <li>The rebrand script is idempotent — a second run yields no diff.</li>
-          <li>The plugin installs locally as <code>mySuperpower@mySuperpower</code>, and a clean session on "let's build X" auto-triggers <code>mySuperpower:brainstorming</code> before any code.</li>
+          <li>The plugin installs locally as <code>my-superpower@my-superpower</code>, shows as <strong>mySuperpower</strong> in the <code>/plugin</code> picker, and a clean session on "let's build X" auto-triggers <code>my-superpower:brainstorming</code> before any code.</li>
           <li>The HTML skills write specs/plans to <code>docs/mySuperpower/</code>.</li>
           <li>Per project workflow: <code>/simplify</code> is run over the changed files before the final commit.</li>
         </ul>
