@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!--
+  brainstorming DESIGN DOC.
+
+  FIXED MASTHEAD + PALETTE (per owner spec): the header block and the CSS palette
+  below are FIXED — reproduce them as-is so every spec shares the same editorial
+  identity (warm-paper background, Georgia display, maroon eyebrow "Spec · Design",
+  mono meta-card with an amber status pill). `frontend-design` does NOT restyle the
+  masthead. Instead it styles the BODY content (sections, headings, prose, tables,
+  code, spacing, tasteful CSS-only motion) USING the CSS variables defined here, so
+  the body harmonizes with the header. Do not introduce off-palette accent colors.
+
+  HARD RULES (unchanged): one self-contained .html; ALL CSS inline in this <style>;
+  web-safe/system fonts only; NO external fonts/Google Fonts/CDN/remote images/
+  <link>/external <script>; renders from file:// offline.
+
+  PLACEHOLDERS:
+    {{TITLE}}    -> short design title (oldstyle figures shine in Georgia)
+    {{SUBTITLE}} -> one-line scope summary (the bold-italic line)
+    {{DATE}}     -> today (YYYY-MM-DD)
+    {{BRANCH}}   -> intended feature/fix branch (e.g. feature/<topic>), or "TBD"
+    {{SOURCE}}   -> one line on what prompted this work
+  Eyebrow is FIXED: "Spec · Design". Status is FIXED for a fresh spec:
+  "Design — Awaiting Plan + Impl".
+
+  CONTENT SECTIONS (frontend-design styles these in <main>, scaled to complexity):
+    Overview · Chosen Approach · Architecture · Components ·
+    Data Flow · Error Handling · Testing
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  /* ---- FIXED masthead (do not restyle) ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:46ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);
+               border-radius:999px;padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;
+               text-transform:uppercase;line-height:1.45;background:transparent;}
+
+  /* ---- BODY: frontend-design adds styles here, using the vars above.
+     Style main h2/h3, p, ul/ol, table, pre/code, blockquote — stay on palette. ---- */
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Spec &middot; Design</p>
+      <h1>{{TITLE}}</h1>
+      <p class="subtitle">{{SUBTITLE}}</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>{{DATE}}</dd>
+        <dt>Branch</dt><dd>{{BRANCH}}</dd>
+        <dt>Status</dt><dd><span class="status-pill">Design &mdash; Awaiting Plan + Impl</span></dd>
+        <dt>Source</dt><dd>{{SOURCE}}</dd>
+      </dl>
+    </header>
+
+    <main>
+      <!-- Render the approved design here as semantic HTML, styled via frontend-design
+           using the palette vars. Sections: Overview, Chosen Approach, Architecture,
+           Components, Data Flow, Error Handling, Testing. Scale depth to complexity. -->
+    </main>
+  </div>
+</body>
+</html>
