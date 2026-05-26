@@ -4,7 +4,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="5">
 <title>mySuperpower Conversion — Implementation Notes</title>
 <style>
   :root{
@@ -72,7 +71,7 @@
         <dt>Branch</dt><dd>feature/mysuperpower-conversion</dd>
         <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-05-25-mysuperpower-conversion-design.html</dd>
         <dt>Plan</dt><dd>docs/mySuperpower/plans/2026-05-25-mysuperpower-conversion.html</dd>
-        <dt>Status</dt><dd><span class="status-pill">Implementation &mdash; In Progress</span></dd>
+        <dt>Status</dt><dd><span class="status-pill">Implementation &mdash; Complete</span></dd>
       </dl>
     </header>
 
@@ -95,39 +94,39 @@
           <tr class="sub"><td></td><td class="subtask">&#8627; verify gate</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
           <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">4</td><td class="desc">Takeover &mdash; executing-plans</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">4</td><td class="desc">Takeover &mdash; executing-plans</td><td class="st"><span class="tstatus done">&check; done &middot; dc83340</span></td></tr>
           <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, delete -html</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
           <tr class="sub"><td></td><td class="subtask">&#8627; verify gate + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">5</td><td class="desc">Takeover &mdash; subagent-driven-development</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, delete -html</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; verify gate + commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">5</td><td class="desc">Takeover &mdash; subagent-driven-development</td><td class="st"><span class="tstatus done">&check; done &middot; c8fb3d2</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, delete -html</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify gate + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">6</td><td class="desc">Create idempotent rebrand script</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; write apply-my-superpower-brand.ps1 + .sh</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; verify parse + commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">6</td><td class="desc">Create idempotent rebrand script</td><td class="st"><span class="tstatus done">&check; done &middot; a90974c</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write apply-my-superpower-brand.ps1 + .sh</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify parse + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">7</td><td class="desc">Apply rebrand (cascade + manifest names)</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; run script</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; verify cascade + preservation + names</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; prove idempotence + commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">7</td><td class="desc">Apply rebrand (cascade + manifest names)</td><td class="st"><span class="tstatus done">&check; done &middot; c1e7572</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; run script</td><td class="st"><span class="tstatus done">done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify cascade + preservation + names</td><td class="st"><span class="tstatus done">done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; prove idempotence + commit</td><td class="st"><span class="tstatus done">done</span></td></tr>
 
-          <tr class="task-row"><td class="num">8</td><td class="desc">Brand manifests + local marketplace</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; edit 5 manifests (displayName + human fields)</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; validate JSON + commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">8</td><td class="desc">Brand manifests + local marketplace</td><td class="st"><span class="tstatus done">&check; done &middot; 0a77c2a</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; edit 5 manifests (displayName + human fields)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; validate JSON + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">9</td><td class="desc">Rewrite README for mySuperpower</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; replace README.md</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; verify + commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">9</td><td class="desc">Rewrite README for mySuperpower</td><td class="st"><span class="tstatus done">&check; done &middot; 9e10c31</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; replace README.md</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">10</td><td class="desc">Replace project CLAUDE.md</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; replace CLAUDE.md</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; verify + commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">10</td><td class="desc">Replace project CLAUDE.md</td><td class="st"><span class="tstatus done">&check; done &middot; 7051ae7</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; replace CLAUDE.md</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
 
-          <tr class="task-row"><td class="num">11</td><td class="desc">Final verification, /simplify, final commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; whole-repo gates (namespace, no -html, idempotence)</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; run /simplify + apply fixes</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
-          <tr class="sub"><td></td><td class="subtask">&#8627; re-verify + FINAL commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          <tr class="task-row"><td class="num">11</td><td class="desc">Final verification, /simplify, final commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; whole-repo gates (namespace, no -html, idempotence)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; simplify-equivalent + final review</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; re-verify + FINAL commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
         </tbody>
       </table>
     </section>
@@ -141,6 +140,16 @@
         <ul>
           <li><strong>Kebab-name constraint:</strong> Claude Code requires kebab-case plugin names, so the technical name/namespace is <code>my-superpower</code> with <code>displayName: "mySuperpower"</code> as the brand. All <code>superpowers:&lt;skill&gt;</code> refs cascade to <code>my-superpower:</code>.</li>
           <li><strong>Two transforms, two lifetimes:</strong> the <code>-html</code>&rarr;canonical rename (Tasks 2&ndash;5) is one-time; the <code>superpowers:</code>&rarr;<code>my-superpower:</code> namespace cascade + manifest names (Task 7 script) is idempotent and re-run after every upstream merge.</li>
+        </ul>
+      </div>
+      <div class="dd-card">
+        <span class="dd-tag">Task 11 &middot; Done</span>
+        <h3>All gates green; final review &mdash; ready to merge</h3>
+        <p><strong>Verification.</strong> Whole-repo gates pass: <strong>zero</strong> <code>superpowers:</code> namespace refs in skills/hooks, no <code>*-html</code> skill folders, all four skills carry a <code>templates/</code> dir, the rebrand script is idempotent (re-run = no diff), and all six manifests are valid JSON named <code>my-superpower</code>.</p>
+        <ul>
+          <li><strong>/simplify:</strong> not an installed skill in this environment, so it was not invoked. The only real logic (the rebrand script) is already minimal and proven idempotent, so the equivalent simplification pass found nothing to change.</li>
+          <li><strong>Final review fix:</strong> the holistic reviewer flagged one residual brand word &mdash; <code>skills/executing-plans/SKILL.md</code> said "Superpowers works much better with subagents". Changed to "mySuperpower" before the final commit.</li>
+          <li><strong>Install:</strong> <code>/plugin marketplace add C:\Projects\GitHub\mySuperpower</code> then <code>/plugin install my-superpower@my-superpower</code> (user-run; auto-trigger of <code>my-superpower:brainstorming</code> verified by the owner in a fresh session).</li>
         </ul>
       </div>
     </section>
