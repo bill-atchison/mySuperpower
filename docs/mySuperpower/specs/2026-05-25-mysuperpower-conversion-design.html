@@ -163,7 +163,7 @@
         <h3>Identity vs. mechanics</h3>
         <ul>
           <li><strong>Plugin name / namespace:</strong> <code>superpowers</code> → <code>my-superpower</code> (kebab-case; drives the install id and the <code>my-superpower:</code> skill prefix), with <code>displayName: "mySuperpower"</code> as the UI brand.</li>
-          <li><strong>Skill set:</strong> the 4 workflow skills carry your HTML behavior; the ~10 others (TDD, debugging, writing-skills, code-review, git-worktrees, finishing, dispatching, using-superpowers, verification, receiving-review) stay byte-for-byte upstream.</li>
+          <li><strong>Skill set:</strong> the 4 workflow skills carry your HTML behavior; the ~10 others (TDD, debugging, writing-skills, code-review, git-worktrees, finishing, dispatching, using-superpowers, verification, receiving-review) keep their upstream content and behavior. The few of those that contain <code>superpowers:</code> references (e.g. <code>writing-skills</code>, <code>systematic-debugging</code>) get only that namespace prefix rewritten — everything else in them is untouched; the rest are byte-for-byte upstream.</li>
           <li><strong>Hook:</strong> the SessionStart <em>command path</em> is <code>${CLAUDE_PLUGIN_ROOT}</code>-based and unchanged — but the injected bootstrap text references <code>superpowers:using-superpowers</code>, so <code>hooks/session-start</code> is included in the namespace cascade.</li>
         </ul>
         <h3>Two classes of files</h3>
@@ -173,7 +173,7 @@
           <tbody>
             <tr><td>Replaced skills</td><td>the 4 workflow skill folders</td><td>Content conflict only when upstream changes them — the signal you want</td></tr>
             <tr><td>Cascaded refs</td><td>~6 other skill files with <code>superpowers:</code> lines, the <code>hooks/session-start</code> bootstrap, + the manifests</td><td>Conflicts only if upstream edits those exact lines; auto-re-applied by the rebrand script</td></tr>
-            <tr><td>Untouched</td><td>everything else (hook command wiring, TDD/debug content, assets, docs/superpowers)</td><td>Merges cleanly, always</td></tr>
+            <tr><td>Untouched</td><td>everything else (hook command wiring, skills with no <code>superpowers:</code> refs such as test-driven-development, assets, docs/superpowers)</td><td>Merges cleanly, always</td></tr>
           </tbody>
         </table>
       </section>
@@ -231,9 +231,9 @@
         <p>Bold stages are now your HTML skills (namespaced <code>my-superpower:</code>), emitting HTML to <code>docs/mySuperpower/</code>. The non-bold stages remain upstream skills, referenced by bare or <code>my-superpower:</code> names.</p>
         <h3>The update-from-upstream flow</h3>
         <div class="flow">
-          git fetch <b>upstream</b> → git merge upstream/main → <b>resolve all content conflicts (clean index)</b> → run apply-my-superpower-brand → verify idempotent → commit
+          git fetch <b>upstream</b> → git merge upstream/main → <b>resolve all content conflicts (clean index)</b> → run apply-my-superpower-brand → <b>git add -u</b> → verify idempotent → commit
         </div>
-        <p>The remote is added once: <code>git remote add upstream https://github.com/obra/superpowers.git</code>. Critically, the rebrand script runs <em>after</em> all conflicts are resolved and no unmerged paths remain — never against a tree containing conflict markers (which it would rewrite on both sides). Once the index is clean, the script re-applies the namespace cascade and manifest names automatically, so the only manual work is the occasional content conflict on the four skills you deliberately forked.</p>
+        <p>The remote is added once: <code>git remote add upstream https://github.com/obra/superpowers.git</code>. Critically, the rebrand script runs <em>after</em> all conflicts are resolved and no unmerged paths remain — never against a tree containing conflict markers (which it would rewrite on both sides). Once the index is clean, the script re-applies the namespace cascade and manifest names automatically; its edits are then staged with <code>git add -u</code> (otherwise they'd be silently left out of the merge commit), so the only manual work is the occasional content conflict on the four skills you deliberately forked.</p>
       </section>
 
       <section>
