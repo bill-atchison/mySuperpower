@@ -3,15 +3,35 @@ name: subagent-driven-development
 description: Use when executing implementation plans with independent tasks in the current session
 ---
 
-# Subagent-Driven Development
+# Subagent-Driven Development (HTML notes)
 
-Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review. Throughout, keep a running **implementation-notes.html** for the owner.
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
 **Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
+
+## Implementation Notes (HTML) — the running record
+
+Implementation begins **after the plan's browser-preview gate** — i.e., after the owner reviewed the HTML plan in a browser (in `writing-plans`) and accepted it. Kick off implementation with this intent — and honor it whether or not it is typed verbatim:
+
+> implement &lt;PLAN/SPEC&gt; and while you do, keep a running implementation-notes.html
+> file with decisions you had to make that weren't in the spec, things you had to
+> change, tradeoffs you had to make, or anything else I should know
+
+**Rules for the notes file:**
+- It MUST be **HTML** (`.html`), NOT Markdown — self-contained and styled in the same editorial identity as the spec/plan. Start from `templates/implementation-notes-template.html` in this skill directory: its **fixed masthead + palette** (warm paper, Georgia display, maroon eyebrow `Notes · Implementation`, mono meta-card, on-palette table pills + Decisions cards) are reproduced as-is; `frontend-design` may refine the card bodies within that palette (no off-palette accents).
+- Save to `docs/mySuperpower/implementation-notes/<YYYY-MM-DD>-<name>.html` (the folder already conveys "implementation-notes", so do NOT repeat it in the filename). Create the folder if it doesn't exist.
+- **Self-contained, no network:** all CSS inline, web-safe/system fonts only, no external fonts/CDN/images/`<link>`/external `<script>`. Must render from `file://` offline.
+- **Launch the browser as soon as the file is ready.** Use the file's **ABSOLUTE path** — a relative path makes the open silently fail (a likely cause of "it didn't open"). Do BOTH:
+  - **Print the clickable URL** on its own line — `file:///C:/…/<file>.html` (absolute, forward slashes). This is the guaranteed fallback.
+  - **Best-effort auto-open with a QUOTED ABSOLUTE path:** Windows `powershell -NoProfile -Command 'Start-Process "<abs path>"'` (or `cmd /c start "" "<abs path>"`), macOS `open "<abs path>"`, Linux `xdg-open "<abs path>"`. Don't rely on the bare `.html` association (it may point at the removed Internet Explorer).
+  - If you can't confirm a window opened, tell the owner to click the printed link. **Tell them to keep that tab VISIBLE (side-by-side, not backgrounded)** — browsers throttle background tabs, so the auto-refresh only fires when it's the active tab; otherwise they must refresh manually.
+- **The notes have TWO live regions** (no generic activity log): (1) a **Task Status table** — one task-row per plan task with its TDD **subtask** rows beneath (write failing test / implement / commit); and (2) a **Decisions & Deviations** card section — maroon-tagged cards for substantive off-spec decisions, plan deviations, important fixes, cross-task interactions, tradeoffs, or anything else the owner should know. At setup YOU (controller) build the table (all rows `pending`) and the empty Decisions section from the plan.
+- **Updated LIVE, in sync with the TodoWrite list:** since you're blocked while a subagent runs, the **implementer flips ITS task's SUBTASK rows** (pending → in progress → `&check; done`) the moment each TDD step lands, AND appends a **Decisions & Deviations** card for any substantive off-spec item — so fill the notes file path into the implementer's prompt. YOU (controller) flip that task's **top-level** row to `done · <short-sha>` after its two-stage review passes, confirm the implementer's cards landed (from its "Off-Spec Notes"), and may add your own context cards (e.g. a `Pre-impl · Context` card). Edit in place; never add `<style>`/fonts/scripts/external refs.
+- **Surface it to the owner alongside the final result** — re-point them to the open browser tab, flip the meta-card status pill to `Implementation — Complete`, and remove the `<meta refresh>` (the live phase is over).
 
 ## When to Use
 
@@ -41,6 +61,14 @@ digraph when_to_use {
 
 ## The Process
 
+**Setup — do this ONCE, before the per-task loop, in this order:**
+
+1. Read the plan once and extract ALL tasks with their full text + context.
+2. **Create a TodoWrite list containing every task.** This is the visible task list in the Claude terminal — create it **up front** so the user can watch progress. Mark each task `in_progress` when you start it and `completed` only after its two-stage review passes. **This is REQUIRED and is separate from the implementation-notes.html** — the notes file does NOT replace the TodoWrite list; you maintain both.
+3. Create the `implementation-notes.html` and open it in the browser (see "Implementation Notes (HTML)" above).
+
+Then run the per-task loop:
+
 ```dot
 digraph process {
     rankdir=TB;
@@ -57,15 +85,17 @@ digraph process {
         "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
         "Code quality reviewer subagent approves?" [shape=diamond];
         "Implementer subagent fixes quality issues" [shape=box];
-        "Mark task complete in TodoWrite" [shape=box];
+        "Mark task complete in TodoWrite + flip task row to done·sha (subtasks flipped by implementer)" [shape=box];
     }
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "Create implementation-notes.html + open in browser" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
-    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Surface implementation-notes.html + use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Create implementation-notes.html + open in browser";
+    "Create implementation-notes.html + open in browser" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -78,11 +108,11 @@ digraph process {
     "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
-    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite + flip task row to done·sha (subtasks flipped by implementer)" [label="yes"];
+    "Mark task complete in TodoWrite + flip task row to done·sha (subtasks flipped by implementer)" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+    "Dispatch final code reviewer subagent for entire implementation" -> "Surface implementation-notes.html + use superpowers:finishing-a-development-branch";
 }
 ```
 
@@ -119,85 +149,43 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
+**In every status**, confirm the implementer's live entries landed in `implementation-notes.html` and add anything missing from its "Off-Spec Notes" (decisions / deviations / tradeoffs / things-to-know) — even a BLOCKED task may have surfaced a decision worth recording.
+
 ## Prompt Templates
 
-- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./implementer-prompt.md` - Dispatch implementer subagent. **Fill in the implementation-notes.html path** in the prompt so the implementer updates the notes LIVE (progress + decisions) as it works; it also reports Off-Spec Notes for your verification.
 - `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
 - `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
 
 ## Example Workflow
 
 ```
-You: I'm using Subagent-Driven Development to execute this plan.
+You: I'm using Subagent-Driven Development (HTML notes) to execute this plan.
 
-[Read plan file once: docs/superpowers/plans/feature-plan.md]
+[Read plan file once: docs/mySuperpower/plans/2026-05-24-feature.html]
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks]
+[Create docs/mySuperpower/implementation-notes/2026-05-24-feature.html from the
+ template, styled via frontend-design, self-contained]
 
 Task 1: Hook installation script
 
-[Get Task 1 text and context (already extracted)]
 [Dispatch implementation subagent with full task text + context]
-
 Implementer: "Before I begin - should the hook be installed at user or system level?"
-
 You: "User level (~/.config/superpowers/hooks/)"
+Implementer: [implements, tests 5/5, self-review found missing --force flag, added, committed]
+  Off-Spec Notes: Decision — installed at user level per controller; chose ~/.config
+  over ~/.local/share (XDG config, not data). Tradeoff: none.
 
-Implementer: "Got it. Implementing now..."
-[Later] Implementer:
-  - Implemented install-hook command
-  - Added tests, 5/5 passing
-  - Self-review: Found I missed --force flag, added it
-  - Committed
+[Dispatch spec compliance reviewer] -> ✅ compliant
+[Dispatch code quality reviewer] -> ✅ approved
+[Mark Task 1 complete in TodoWrite]
+[Append Task 1 Off-Spec Notes as a "decision" entry in implementation-notes.html]
 
-[Dispatch spec compliance reviewer]
-Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+... (repeat per task) ...
 
-[Get git SHAs, dispatch code quality reviewer]
-Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
-
-[Mark Task 1 complete]
-
-Task 2: Recovery modes
-
-[Get Task 2 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
-
-Implementer: [No questions, proceeds]
-Implementer:
-  - Added verify/repair modes
-  - 8/8 tests passing
-  - Self-review: All good
-  - Committed
-
-[Dispatch spec compliance reviewer]
-Spec reviewer: ❌ Issues:
-  - Missing: Progress reporting (spec says "report every 100 items")
-  - Extra: Added --json flag (not requested)
-
-[Implementer fixes issues]
-Implementer: Removed --json flag, added progress reporting
-
-[Spec reviewer reviews again]
-Spec reviewer: ✅ Spec compliant now
-
-[Dispatch code quality reviewer]
-Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
-
-[Implementer fixes]
-Implementer: Extracted PROGRESS_INTERVAL constant
-
-[Code reviewer reviews again]
-Code reviewer: ✅ Approved
-
-[Mark Task 2 complete]
-
-...
-
-[After all tasks]
-[Dispatch final code-reviewer]
-Final reviewer: All requirements met, ready to merge
-
+[After all tasks] [Dispatch final code-reviewer] -> ready to merge
+[Surface implementation-notes.html to the owner alongside the result]
 Done!
 ```
 
@@ -214,24 +202,12 @@ Done!
 - Continuous progress (no waiting)
 - Review checkpoints automatic
 
-**Efficiency gains:**
-- No file reading overhead (controller provides full text)
-- Controller curates exactly what context is needed
-- Subagent gets complete information upfront
-- Questions surfaced before work begins (not after)
-
 **Quality gates:**
 - Self-review catches issues before handoff
 - Two-stage review: spec compliance, then code quality
 - Review loops ensure fixes actually work
 - Spec compliance prevents over/under-building
 - Code quality ensures implementation is well-built
-
-**Cost:**
-- More subagent invocations (implementer + 2 reviewers per task)
-- Controller does more prep work (extracting all tasks upfront)
-- Review loops add iterations
-- But catches issues early (cheaper than debugging later)
 
 ## Red Flags
 
@@ -248,32 +224,27 @@ Done!
 - Let implementer self-review replace actual review (both are needed)
 - **Start code quality review before spec compliance is ✅** (wrong order)
 - Move to next task while either review has open issues
+- **Skip the TodoWrite task list** (or let the implementation-notes.html stand in for it) — the TodoWrite list is the **visible terminal task list** and is REQUIRED; create it up front and keep it checked off. Both the task list AND the notes file are maintained.
+- **Let the implementation-notes.html go stale** — update it as each task lands, not at the end
+- **Write the notes as Markdown** — they MUST be self-contained HTML
 
-**If subagent asks questions:**
-- Answer clearly and completely
-- Provide additional context if needed
-- Don't rush them into implementation
+**If subagent asks questions:** Answer clearly and completely; provide context; don't rush them.
 
-**If reviewer finds issues:**
-- Implementer (same subagent) fixes them
-- Reviewer reviews again
-- Repeat until approved
-- Don't skip the re-review
+**If reviewer finds issues:** Implementer (same subagent) fixes them; reviewer reviews again; repeat until approved.
 
-**If subagent fails task:**
-- Dispatch fix subagent with specific instructions
-- Don't try to fix manually (context pollution)
+**If subagent fails task:** Dispatch fix subagent with specific instructions; don't fix manually (context pollution).
 
 ## Integration
 
 **Required workflow skills:**
 - **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
-- **superpowers:writing-plans** - Creates the plan this skill executes
+- **writing-plans** - Creates the HTML plan this skill executes (after its browser-preview gate)
 - **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **frontend-design** - Initial structure/styling for implementation-notes.html
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
 - **superpowers:test-driven-development** - Subagents follow TDD for each task
 
 **Alternative workflow:**
-- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+- **executing-plans** - Use for parallel session instead of same-session execution
