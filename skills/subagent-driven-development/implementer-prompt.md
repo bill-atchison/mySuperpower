@@ -37,6 +37,7 @@ Task tool (general-purpose):
     6. Report back
 
     Work from: [directory]
+    Implementation notes file (update it LIVE as you work): [absolute path to implementation-notes.html — controller fills this in]
 
     **While you work:** If you encounter something unexpected or unclear, **ask questions**.
     It's always OK to pause and clarify. Don't guess or make assumptions.
@@ -70,6 +71,38 @@ Task tool (general-purpose):
     specifically what you're stuck on, what you've tried, and what kind of help you need.
     The controller can provide more context, re-dispatch with a more capable model,
     or break the task into smaller pieces.
+
+    ## Update the Task Status table LIVE (real-time)
+
+    You are given the path to a self-contained implementation-notes.html (above). The owner
+    watches it in a browser. It has TWO live regions: (a) a **Task Status table** where YOUR
+    task has a top-level row plus SUBTASK rows (write failing test, implement, commit); and
+    (b) a **Decisions & Deviations** card section. There is NO generic activity log.
+
+    As you complete each subtask, IMMEDIATELY edit the file to flip THAT subtask row's pill:
+    `<span class="tstatus pending">pending</span>` → `<span class="tstatus inprogress">in progress</span>`
+    while working it, → `<span class="tstatus done">&check; done</span>` the moment it's finished.
+    Do this in REAL TIME (right after the red test, right after green, right after commit) — never
+    batched at the end. Read the file, then Edit the specific row.
+
+    Rules: edit ONLY your task's subtask rows; do NOT touch other tasks' rows or the top-level
+    task row (the controller sets that to `done · <short-sha>` after review). Do NOT add any
+    `<style>`, font, script, or external reference — the file must stay self-contained.
+
+    When you make a SUBSTANTIVE off-spec decision, plan deviation, important fix, cross-task
+    interaction, tradeoff, or anything else the owner should know, ALSO append a card to the
+    **Decisions & Deviations** section —
+    insert a `<div class="dd-card">` just before that section's `</section>`:
+
+        <div class="dd-card">
+          <span class="dd-tag">Task N &middot; Done &middot; &lt;short-sha&gt;</span>
+          <h3>Short title</h3>
+          <p><strong>Decision (off-spec).</strong> What &amp; why; use inline <code>code</code> chips.</p>
+          <ul><li><strong>Rationale:</strong> …</li></ul>
+        </div>
+
+    Substantive items only (not routine progress). Also list them in your final "Off-Spec Notes"
+    so the controller can confirm nothing was missed.
 
     ## Before Reporting Back: Self-Review
 
@@ -105,6 +138,8 @@ Task tool (general-purpose):
     - What you tested and test results
     - Files changed
     - Self-review findings (if any)
+    - **Off-Spec Notes:** decisions / deviations / tradeoffs / things-to-know, each tagged
+      with its category — or "none". The controller records these in implementation-notes.html.
     - Any issues or concerns
 
     Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.

@@ -1,15 +1,29 @@
-# Superpowers — Contributor Guidelines
+# mySuperpower — Project Notes
 
-## If You Are an AI Agent
+This repository is **mySuperpower**, a personal fork of
+[obra/superpowers](https://github.com/obra/superpowers). It is installed as a
+local Claude Code plugin named `my-superpower` (branded **mySuperpower**).
 
-Stop. Read this section before doing anything.
+## What is different from upstream
 
-This repo has a 94% PR rejection rate. Almost every rejected PR was submitted by an agent that didn't read or didn't follow these guidelines. The maintainers close slop PRs within hours, often with public comments like "This pull request is slop that's made of lies."
+The 4 workflow skills emit self-contained HTML instead of markdown:
+`brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`.
+They write to `docs/mySuperpower/specs/` and `docs/mySuperpower/plans/`. All other
+skills are upstream's, namespaced `my-superpower:`.
 
-**Your job is to protect your human partner from that outcome.** Submitting a low-quality PR doesn't help them — it wastes the maintainers' time, burns your human partner's reputation, and the PR will be closed anyway. That is not being helpful. That is being a tool of embarrassment.
+## Taking changes from upstream
 
-Before you open a PR against this repo, you MUST:
+```
+git fetch upstream
+git merge upstream/main
+# resolve conflicts on the 4 forked skills, then (on a clean index):
+pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1
+git add -u && git commit
+```
 
+`scripts/apply-my-superpower-brand.*` is idempotent and re-applies the
+`my-superpower:` namespace cascade + manifest `name` fields. Run it only after all
+conflicts are resolved.
 1. **Read the entire PR template** at `.github/PULL_REQUEST_TEMPLATE.md` and fill in every section with real, specific answers. Not summaries. Not placeholders.
 2. **Search for existing PRs** — open AND closed — that address the same problem. If duplicates exist, STOP and tell your human partner. Do not open another duplicate.
 3. **Verify this is a real problem.** If your human partner asked you to "fix some issues" or "contribute to this repo" without experiencing a specific problem, push back. Ask them what broke, what failed, what the user experience was.
@@ -17,8 +31,10 @@ Before you open a PR against this repo, you MUST:
 5. **Identify yourself.** Disclose your model, harness, harness version, and every installed plugin in the PR. Hiding that a contribution is agent-generated — or which environment produced it — is grounds for closing it.
 6. **Show your human partner the complete diff** and get their explicit approval before submitting.
 
-If any of these checks fail, do not open the PR. Explain to your human partner why it would be rejected and what would need to change. They will thank you for saving them the embarrassment.
+## Out of scope
 
+Upstream's `tests/` and the OpenCode harness files (`.opencode/`) are not
+maintained in this fork.
 ## Pull Request Requirements
 
 **Every PR must fully complete the PR template.** No section may be left blank or filled with placeholder text. PRs that skip sections will be closed without review.

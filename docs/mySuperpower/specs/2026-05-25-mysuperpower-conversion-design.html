@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<!--
+  mySuperpower DESIGN DOC — self-contained, offline, web-safe fonts only.
+  Masthead + palette reproduced from brainstorming-html template (FIXED).
+  frontend-design styles the BODY within the template palette variables.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mySuperpower — converting this fork into a personal HTML-native Superpowers plugin</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --paper-deep:#ece4d2; --rule:#d8ccb2; --code-bg:#efe7d4;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  /* ---- FIXED masthead (do not restyle) ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:46ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);
+               border-radius:999px;padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;
+               text-transform:uppercase;line-height:1.45;background:transparent;}
+
+  /* ---- BODY (frontend-design, on-palette) ---- */
+  main{counter-reset:sec;margin-top:3.25rem;}
+  main section{
+    border-top:1px solid var(--rule);padding-top:2.1rem;margin-top:2.6rem;
+    opacity:0;transform:translateY(14px);
+    animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  main section:first-of-type{border-top:none;margin-top:0;}
+  /* staggered reveal */
+  main section:nth-of-type(1){animation-delay:.05s}
+  main section:nth-of-type(2){animation-delay:.13s}
+  main section:nth-of-type(3){animation-delay:.21s}
+  main section:nth-of-type(4){animation-delay:.29s}
+  main section:nth-of-type(5){animation-delay:.37s}
+  main section:nth-of-type(6){animation-delay:.45s}
+  main section:nth-of-type(7){animation-delay:.53s}
+  main section:nth-of-type(8){animation-delay:.61s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    main section{animation:none;opacity:1;transform:none}
+  }
+
+  main h2{
+    font-family:var(--serif);font-weight:700;font-size:clamp(1.6rem,3vw,2.1rem);
+    line-height:1.12;letter-spacing:-.01em;margin:0 0 1rem;position:relative;
+  }
+  main h2::before{
+    counter-increment:sec;content:counter(sec,decimal-leading-zero);
+    font-family:var(--mono);font-size:.8rem;font-weight:700;color:var(--maroon);
+    letter-spacing:.2em;display:block;margin-bottom:.45rem;
+  }
+  main h3{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;
+          font-size:.92rem;color:var(--maroon);margin:1.9rem 0 .7rem;}
+  main p{font-size:1.08rem;line-height:1.62;margin:0 0 1.05rem;max-width:68ch;}
+  main ul,main ol{font-size:1.06rem;line-height:1.6;max-width:66ch;padding-left:1.3rem;}
+  main li{margin:.4rem 0;}
+  main li::marker{color:var(--maroon);}
+  main strong{font-weight:700;}
+  main em{font-style:italic;}
+
+  .lead{font-style:italic;font-size:1.2rem;line-height:1.5;color:var(--value);
+        border-left:4px solid var(--amber);padding-left:1.1rem;max-width:62ch;}
+
+  code{font-family:var(--mono);font-size:.86em;background:var(--code-bg);
+       border:1px solid var(--rule);border-radius:5px;padding:.08em .4em;color:#5a2420;}
+  pre{font-family:var(--mono);font-size:.86rem;line-height:1.55;background:var(--code-bg);
+      border:1px solid var(--rule);border-left:4px solid var(--maroon);border-radius:8px;
+      padding:1rem 1.2rem;overflow-x:auto;margin:0 0 1.2rem;}
+  pre code{background:none;border:none;padding:0;color:var(--ink);}
+
+  table{border-collapse:collapse;width:100%;margin:.4rem 0 1.4rem;font-size:.98rem;}
+  caption{font-family:var(--mono);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;
+          color:var(--label);text-align:left;margin-bottom:.55rem;}
+  thead th{background:var(--maroon);color:var(--paper);font-family:var(--mono);
+           font-weight:700;font-size:.82rem;letter-spacing:.05em;text-align:left;
+           padding:.6rem .85rem;}
+  tbody td{padding:.6rem .85rem;vertical-align:top;border-bottom:1px solid var(--rule);
+           line-height:1.45;}
+  tbody tr:nth-child(even){background:var(--paper-deep);}
+
+  blockquote{margin:0 0 1.2rem;padding:.9rem 1.2rem;background:var(--meta-bg);
+             border-left:5px solid var(--amber);border-radius:0 8px 8px 0;}
+  blockquote p{margin:0;font-style:italic;}
+
+  .decision-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+                 gap:1rem;margin:.4rem 0 1.4rem;}
+  .decision{background:var(--meta-bg);border-radius:10px;padding:1rem 1.15rem;
+            border-top:3px solid var(--maroon);}
+  .decision .k{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;
+               text-transform:uppercase;color:var(--label);margin:0 0 .35rem;}
+  .decision .v{font-weight:700;font-size:1.02rem;line-height:1.3;}
+
+  .flow{font-family:var(--mono);font-size:.86rem;line-height:1.7;background:var(--code-bg);
+        border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem;margin:0 0 1.2rem;
+        color:var(--value);}
+  .flow b{color:var(--maroon);}
+  hr.foot{border:none;border-top:1px solid var(--rule);margin:3.5rem 0 1.5rem;}
+  .foot-note{font-family:var(--mono);font-size:.78rem;color:var(--label);letter-spacing:.04em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Spec &middot; Design</p>
+      <h1>mySuperpower</h1>
+      <p class="subtitle">Turning this fork into a personal, HTML-native Superpowers plugin — your skills take over the workflow while the repo stays mergeable with upstream.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-05-25</dd>
+        <dt>Branch</dt><dd>feature/mysuperpower-conversion</dd>
+        <dt>Status</dt><dd><span class="status-pill">Design &mdash; Awaiting Plan + Impl</span></dd>
+        <dt>Source</dt><dd>Owner request: incorporate the previously-built HTML skills and make this repo their own version of Superpowers.</dd>
+      </dl>
+    </header>
+
+    <main>
+      <section>
+        <h2>Overview</h2>
+        <p class="lead">Make this repository <strong>mySuperpower</strong>: a single, locally-installed Claude Code plugin whose brainstorm → plan → execute → subagent-dev workflow produces self-contained HTML documents instead of markdown — while remaining a clean fork of <code>obra/superpowers</code> that can absorb upstream improvements.</p>
+        <p>The repo currently mirrors upstream Superpowers <code>v5.1.0</code> exactly, plus four untracked HTML skill variants (<code>brainstorming-html</code>, <code>writing-plans-html</code>, <code>executing-plans-html</code>, <code>subagent-driven-development-html</code>) created in an earlier session. Those four are the heart of "your version" — they capture the same methodology but emit distinctive, offline HTML specs/plans/notes rather than markdown.</p>
+        <p>This design replaces the four upstream markdown skills with your HTML versions, renames the whole plugin to <code>my-superpower</code> (branded <strong>mySuperpower</strong>), sets it up for local installation, and establishes a low-friction workflow for pulling future changes from upstream.</p>
+      </section>
+
+      <section>
+        <h2>Chosen Approach</h2>
+        <p>Five decisions were settled during brainstorming. They are intentionally biased toward two goals at once: a genuinely personal plugin, and the smallest practical pain when merging from upstream.</p>
+        <div class="decision-grid">
+          <div class="decision"><p class="k">Replacement</p><p class="v">Strategy B — Takeover</p></div>
+          <div class="decision"><p class="k">Structure</p><p class="v">Single plugin: <code>my-superpower</code></p></div>
+          <div class="decision"><p class="k">Namespace</p><p class="v">Cascade → <code>my-superpower:</code></p></div>
+          <div class="decision"><p class="k">Distribution</p><p class="v">Local marketplace install</p></div>
+          <div class="decision"><p class="k">Upstream</p><p class="v">Remote + idempotent rebrand</p></div>
+        </div>
+        <h3>Why takeover over an overlay</h3>
+        <p>The HTML content <em>occupies the canonical skill names</em> (<code>brainstorming</code>, <code>writing-plans</code>, <code>executing-plans</code>, <code>subagent-driven-development</code>) rather than living beside the originals. There is exactly one skill per name, so there is no trigger ambiguity and the existing bootstrap + chain work unchanged. Crucially, when upstream improves one of these skills, the merge conflict lands <em>on the file you forked</em> — resolving it <em>is</em> the act of porting their improvement into your HTML version, instead of having it silently bypass you.</p>
+        <h3>Why one plugin, fully renamed</h3>
+        <p>In Claude Code the plugin's <code>name</code> field is also the skill namespace, and a namespace is per-plugin, not per-skill. Plugin names must be <strong>kebab-case</strong>, so the technical <code>name</code> is <code>my-superpower</code>, with <code>displayName: "mySuperpower"</code> carrying the brand in the <code>/plugin</code> UI (requires Claude Code v2.1.143+). To have every skill read as <code>my-superpower:</code> we rename the single plugin and cascade-update the internal <code>superpowers:</code> references. The cascade is bounded (~10 skill files plus the hooks bootstrap and the manifests) and automated (see Components → Rebrand script), so it stays a one-command operation on every future merge.</p>
+      </section>
+
+      <section>
+        <h2>Architecture</h2>
+        <p>The repo stays a single plugin with its existing layout — only its identity and the four workflow skills change. Nothing moves directories, so upstream's structure still aligns for clean merges of everything we do not touch.</p>
+        <h3>Identity vs. mechanics</h3>
+        <ul>
+          <li><strong>Plugin name / namespace:</strong> <code>superpowers</code> → <code>my-superpower</code> (kebab-case; drives the install id and the <code>my-superpower:</code> skill prefix), with <code>displayName: "mySuperpower"</code> as the UI brand.</li>
+          <li><strong>Skill set:</strong> the 4 workflow skills carry your HTML behavior; the ~10 others (TDD, debugging, writing-skills, code-review, git-worktrees, finishing, dispatching, using-superpowers, verification, receiving-review) keep their upstream content and behavior. The few of those that contain <code>superpowers:</code> references (e.g. <code>writing-skills</code>, <code>systematic-debugging</code>) get only that namespace prefix rewritten — everything else in them is untouched; the rest are byte-for-byte upstream.</li>
+          <li><strong>Hook:</strong> the SessionStart <em>command path</em> is <code>${CLAUDE_PLUGIN_ROOT}</code>-based and unchanged — but the injected bootstrap text references <code>superpowers:using-superpowers</code>, so <code>hooks/session-start</code> is included in the namespace cascade.</li>
+        </ul>
+        <h3>Two classes of files</h3>
+        <table>
+          <caption>Merge-conflict surface by file class</caption>
+          <thead><tr><th>Class</th><th>Files</th><th>Upstream-merge behavior</th></tr></thead>
+          <tbody>
+            <tr><td>Replaced skills</td><td>the 4 workflow skill folders</td><td>Content conflict only when upstream changes them — the signal you want</td></tr>
+            <tr><td>Cascaded refs</td><td>~6 other skill files with <code>superpowers:</code> lines, the <code>hooks/session-start</code> bootstrap, + the manifests</td><td>Conflicts only if upstream edits those exact lines; auto-re-applied by the rebrand script</td></tr>
+            <tr><td>Untouched</td><td>everything else (hook command wiring, skills with no <code>superpowers:</code> refs such as test-driven-development, assets, docs/superpowers)</td><td>Merges cleanly, always</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Components</h2>
+
+        <h3>1 — Skill takeover (the 4 workflow skills)</h3>
+        <p>For each skill, the <code>-html</code> folder's content replaces the canonical skill in place, then the <code>-html</code> folder is removed.</p>
+        <table>
+          <caption>Per-skill reconciliation</caption>
+          <thead><tr><th>Skill</th><th>Action</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>brainstorming</code></td><td>Replace SKILL.md + visual-companion.md with HTML versions; add <code>templates/</code>; keep <code>scripts/</code></td><td>Keep <code>spec-document-reviewer-prompt.md</code> as a Codex fallback</td></tr>
+            <tr><td><code>writing-plans</code></td><td>Replace SKILL.md with HTML version; add <code>templates/</code></td><td>Keep <code>plan-document-reviewer-prompt.md</code> as a Codex fallback</td></tr>
+            <tr><td><code>executing-plans</code></td><td>Replace SKILL.md with HTML version; add <code>templates/</code></td><td>Clean 1:1</td></tr>
+            <tr><td><code>subagent-driven-development</code></td><td>Replace SKILL.md + 3 reviewer/implementer prompts with HTML versions; add <code>templates/</code></td><td>HTML is a clean superset</td></tr>
+          </tbody>
+        </table>
+        <p>Then two cleanup passes inside the now-canonical skills:</p>
+        <ul>
+          <li><strong>Frontmatter:</strong> <code>name: brainstorming-html</code> → <code>name: brainstorming</code> (and the other three). The <code>description:</code> fields already use canonical trigger phrasing, so auto-triggering is unchanged.</li>
+          <li><strong>Cross-references (all files, not just SKILL.md):</strong> sweep every file in each skill directory — <code>SKILL.md</code>, <code>templates/*.html</code>, and the reviewer/implementer prompt files — rewriting every <code>-html</code> skill-name reference to its canonical name (e.g. "invoke <code>writing-plans-html</code>" → "invoke <code>writing-plans</code>"). The templates do reference <code>-html</code> names (the plan template points at <code>subagent-driven-development-html</code>), so a SKILL.md-only pass would leave dangling references.</li>
+        </ul>
+
+        <h3>2 — Rename + namespace cascade</h3>
+        <ul>
+          <li><code>name: "my-superpower"</code> + <code>displayName: "mySuperpower"</code> in <code>.claude-plugin/plugin.json</code> (and <code>name</code> in <code>.codex-plugin/plugin.json</code>, <code>.cursor-plugin/plugin.json</code>, <code>gemini-extension.json</code>, <code>package.json</code>); human fields (description/author/homepage/repository) branded to you and your fork. The marketplace <code>name</code> also goes kebab-case (e.g. <code>my-superpower</code>).</li>
+          <li>Rewrite every <code>superpowers:&lt;skill&gt;</code> → <code>my-superpower:&lt;skill&gt;</code> across all skill files <em>and</em> <code>hooks/session-start</code>. Bare-name references ("the writing-plans skill") need no change. <strong>Preserve</strong> non-namespace occurrences: the legacy <code>~/.config/superpowers</code> migration path and <code>github.com/obra/superpowers</code> URLs are <em>not</em> rewritten.</li>
+          <li><code>README.md</code> rewritten for mySuperpower, crediting <code>obra/superpowers</code> as upstream and documenting the HTML workflow + the update procedure.</li>
+        </ul>
+
+        <h3>3 — Idempotent rebrand script</h3>
+        <p>Add <code>scripts/apply-my-superpower-brand.{sh,ps1}</code> — a <em>targeted</em>, repeatable rewrite that operates only on (a) the <code>superpowers:&lt;skill&gt;</code> namespace pattern across skills + <code>hooks/session-start</code>, and (b) the manifest <code>name</code>/<code>displayName</code> fields. It deliberately does <strong>not</strong> do a blanket "superpowers" → "my-superpower" replace, so it never corrupts URLs or the legacy config path. It is idempotent (running it twice produces no diff) — run once during conversion and again after every upstream merge, turning the cascade from a hand-merge chore into one command.</p>
+
+        <h3>4 — Local plugin install</h3>
+        <p>Point <code>.claude-plugin/marketplace.json</code> at this repo as a local marketplace (marketplace <code>name: "my-superpower"</code>, plugin <code>name: "my-superpower"</code>, <code>source: "./"</code>). Install flow:</p>
+        <pre><code>/plugin marketplace add C:\Projects\GitHub\mySuperpower
+/plugin install my-superpower@my-superpower</code></pre>
+
+        <h3>5 — Docs path &amp; loose ends</h3>
+        <ul>
+          <li><strong>Docs output:</strong> the HTML skills write to <code>docs/mySuperpower/{specs,plans}/</code> (now created). Upstream's <code>docs/superpowers/</code> is left untouched.</li>
+          <li><strong>Tests:</strong> upstream's <code>tests/</code> are left <em>out of scope</em> and marked known-divergent — not ported.</li>
+          <li><strong>Project <code>CLAUDE.md</code>:</strong> replaced with a short mySuperpower note (what this fork is, the HTML workflow, the upstream-merge steps).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Data Flow</h2>
+        <h3>The authoring workflow (unchanged shape, HTML output)</h3>
+        <div class="flow">
+          <b>brainstorming</b> → using-git-worktrees → <b>writing-plans</b> → <b>subagent-driven-development</b> / <b>executing-plans</b> → test-driven-development → requesting-code-review → finishing-a-development-branch
+        </div>
+        <p>Bold stages are now your HTML skills (namespaced <code>my-superpower:</code>), emitting HTML to <code>docs/mySuperpower/</code>. The non-bold stages remain upstream skills, referenced by bare or <code>my-superpower:</code> names.</p>
+        <h3>The update-from-upstream flow</h3>
+        <div class="flow">
+          git fetch <b>upstream</b> → git merge upstream/main → <b>resolve all content conflicts (clean index)</b> → run apply-my-superpower-brand → <b>git add -u</b> → verify idempotent → commit
+        </div>
+        <p>The remote is added once: <code>git remote add upstream https://github.com/obra/superpowers.git</code>. Critically, the rebrand script runs <em>after</em> all conflicts are resolved and no unmerged paths remain — never against a tree containing conflict markers (which it would rewrite on both sides). Once the index is clean, the script re-applies the namespace cascade and manifest names automatically; its edits are then staged with <code>git add -u</code> (otherwise they'd be silently left out of the merge commit), so the only manual work is the occasional content conflict on the four skills you deliberately forked.</p>
+      </section>
+
+      <section>
+        <h2>Error Handling &amp; Resilience</h2>
+        <h3>Codex review fallback</h3>
+        <p>The HTML <code>brainstorming</code> and <code>writing-plans</code> skills use Codex (<code>codex:rescue</code>) as the primary document reviewer. Because Codex can be unavailable or unresponsive, the kept reviewer-prompt files become an explicit fallback:</p>
+        <blockquote><p>Codex is primary; if Codex is unavailable or does not respond, dispatch a general-purpose subagent using the prompt file to perform the equivalent review. The ≤3-iteration cap applies either way.</p></blockquote>
+        <h3>Merge resilience</h3>
+        <ul>
+          <li>The rebrand script is <strong>idempotent</strong> — safe to run any number of times — but runs only on a clean index (all conflicts resolved, no unmerged paths), never on a tree with conflict markers.</li>
+          <li>The repo layout never diverges from upstream's, so only intentional changes ever conflict.</li>
+          <li>Conflicts are concentrated and meaningful: the four forked skills (content) and any namespace lines upstream happens to edit (auto-handled by the script).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Verification</h2>
+        <p>The conversion is considered done only when all of the following hold:</p>
+        <ul>
+          <li>All four workflow skills load with correct canonical <code>name:</code> frontmatter and no leftover <code>-html</code> cross-references in any file (SKILL.md, templates, prompts).</li>
+          <li>A repo-wide grep finds <strong>zero</strong> dangling <code>superpowers:</code> namespace references (all are <code>my-superpower:</code>), excluding the intentionally-preserved <code>obra/superpowers</code> URLs and legacy config path.</li>
+          <li>The rebrand script is idempotent — a second run yields no diff.</li>
+          <li>The plugin installs locally as <code>my-superpower@my-superpower</code>, shows as <strong>mySuperpower</strong> in the <code>/plugin</code> picker, and a clean session on "let's build X" auto-triggers <code>my-superpower:brainstorming</code> before any code.</li>
+          <li>The HTML skills write specs/plans to <code>docs/mySuperpower/</code>.</li>
+          <li>Per project workflow: <code>/simplify</code> is run over the changed files before the final commit.</li>
+        </ul>
+      </section>
+
+      <hr class="foot">
+      <p class="foot-note">mySuperpower &middot; design spec &middot; fork of obra/superpowers &middot; self-contained HTML</p>
+    </main>
+  </div>
+</body>
+</html>

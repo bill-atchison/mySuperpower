@@ -1,6 +1,6 @@
 {
-  "name": "superpowers",
-  "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
+  "name": "my-superpower",
+  "description": "Personal HTML-native fork of Superpowers.",
   "version": "5.1.0",
   "contextFileName": "GEMINI.md"
 }

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!-- LIVE implementation notes — Task Status table + Decisions & Deviations. Self-contained. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mySuperpower Conversion — Implementation Notes</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b; --olive:#7a6a2e;
+    --rule:#ddd3bc; --subrule:#ece4d0; --green:#3f7d3f; --card:#faf7ef;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;margin:0 0 1.9rem;max-width:48ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;row-gap:.55rem;
+             align-items:baseline;background:var(--meta-bg);border-radius:14px;
+             border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);border-radius:999px;
+               padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
+               line-height:1.45;background:transparent;}
+  .section-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;font-size:.95rem;
+                 font-weight:700;color:var(--ink);border-bottom:2px solid var(--ink);
+                 padding-bottom:.5rem;margin:2.6rem 0 1.4rem;}
+  table.tasks{width:100%;border-collapse:collapse;}
+  table.tasks th{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;
+                 color:var(--label);text-align:left;font-weight:400;padding:.4rem .75rem;}
+  table.tasks td{padding:.6rem .75rem;vertical-align:middle;}
+  td.num{font-family:var(--mono);color:var(--label);width:3rem;}
+  td.st{width:1%;white-space:nowrap;text-align:right;}
+  tr.task-row td{border-top:2px solid var(--ink);font-size:1.05rem;}
+  tr.task-row td.desc{font-weight:700;}
+  tr.sub td{border-top:1px solid var(--subrule);}
+  td.subtask{padding-left:2.1rem;color:var(--label);font-size:.95rem;}
+  .tstatus{font-family:var(--mono);font-size:.78rem;padding:.22rem .65rem;border-radius:7px;white-space:nowrap;}
+  .tstatus.done{background:#d6e8cf;color:var(--green);}
+  .tstatus.inprogress{background:#ecdcbf;color:#9a6a1f;}
+  .tstatus.pending{background:#e7dfca;color:var(--label);}
+  .dd-card{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:14px;
+           padding:1.7rem 1.85rem 1.4rem;margin:1.7rem 0;}
+  .dd-tag{position:absolute;top:-0.75rem;left:1.5rem;background:var(--maroon);color:var(--paper);
+          font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;
+          font-weight:700;padding:.28rem .7rem;border-radius:6px;}
+  .dd-card h3{font-family:var(--serif);font-weight:700;font-size:1.3rem;margin:.3rem 0 .8rem;}
+  .dd-card p{font-size:1.05rem;line-height:1.55;margin:.5rem 0;}
+  .dd-card ul{margin:.6rem 0;padding-left:1.4rem;}
+  .dd-card li{margin:.5rem 0;line-height:1.55;}
+  code{font-family:var(--mono);background:var(--meta-bg);border:1px solid var(--rule);
+       padding:.05em .35em;border-radius:5px;font-size:.85em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Notes &middot; Implementation</p>
+      <h1>mySuperpower Conversion</h1>
+      <p class="subtitle">Converting this fork into a single local <code>my-superpower</code> plugin — HTML skills take over, branded mySuperpower.</p>
+      <dl class="meta-card">
+        <dt>Started</dt><dd>2026-05-25</dd>
+        <dt>Branch</dt><dd>feature/mysuperpower-conversion</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-05-25-mysuperpower-conversion-design.html</dd>
+        <dt>Plan</dt><dd>docs/mySuperpower/plans/2026-05-25-mysuperpower-conversion.html</dd>
+        <dt>Status</dt><dd><span class="status-pill">Implementation &mdash; Complete</span></dd>
+      </dl>
+    </header>
+
+    <section class="task-status">
+      <h2 class="section-label">Task Status</h2>
+      <table class="tasks">
+        <thead><tr><th>Task</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="task-row"><td class="num">1</td><td class="desc">Wire upstream remote &amp; record baseline</td><td class="st"><span class="tstatus done">&check; done &middot; no commit</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; confirm branch + add upstream remote</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; git fetch upstream (verify)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">2</td><td class="desc">Takeover &mdash; brainstorming</td><td class="st"><span class="tstatus done">&check; done &middot; ebd13ea</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, add Codex fallback, delete -html</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify gate (name + zero -html refs)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">3</td><td class="desc">Takeover &mdash; writing-plans</td><td class="st"><span class="tstatus done">&check; done &middot; 7c55226</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, add Codex fallback, delete -html</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify gate</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">4</td><td class="desc">Takeover &mdash; executing-plans</td><td class="st"><span class="tstatus done">&check; done &middot; dc83340</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, delete -html</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify gate + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">5</td><td class="desc">Takeover &mdash; subagent-driven-development</td><td class="st"><span class="tstatus done">&check; done &middot; c8fb3d2</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; copy -html, sweep refs, delete -html</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify gate + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">6</td><td class="desc">Create idempotent rebrand script</td><td class="st"><span class="tstatus done">&check; done &middot; a90974c</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write apply-my-superpower-brand.ps1 + .sh</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify parse + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">7</td><td class="desc">Apply rebrand (cascade + manifest names)</td><td class="st"><span class="tstatus done">&check; done &middot; c1e7572</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; run script</td><td class="st"><span class="tstatus done">done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify cascade + preservation + names</td><td class="st"><span class="tstatus done">done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; prove idempotence + commit</td><td class="st"><span class="tstatus done">done</span></td></tr>
+
+          <tr class="task-row"><td class="num">8</td><td class="desc">Brand manifests + local marketplace</td><td class="st"><span class="tstatus done">&check; done &middot; 0a77c2a</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; edit 5 manifests (displayName + human fields)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; validate JSON + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">9</td><td class="desc">Rewrite README for mySuperpower</td><td class="st"><span class="tstatus done">&check; done &middot; 9e10c31</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; replace README.md</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">10</td><td class="desc">Replace project CLAUDE.md</td><td class="st"><span class="tstatus done">&check; done &middot; 7051ae7</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; replace CLAUDE.md</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify + commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">11</td><td class="desc">Final verification, /simplify, final commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; whole-repo gates (namespace, no -html, idempotence)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; simplify-equivalent + final review</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; re-verify + FINAL commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="decisions">
+      <h2 class="section-label">Decisions &amp; Deviations</h2>
+      <div class="dd-card">
+        <span class="dd-tag">Pre-impl &middot; Context</span>
+        <h3>Plan Codex-review cancelled; developer signed off to proceed</h3>
+        <p><strong>Context.</strong> The plan passed self-review. The Codex review of the plan was dispatched but hung past 11 minutes and was cancelled; the developer explicitly chose to proceed. Per project policy, developer sign-off satisfies the review gate.</p>
+        <ul>
+          <li><strong>Kebab-name constraint:</strong> Claude Code requires kebab-case plugin names, so the technical name/namespace is <code>my-superpower</code> with <code>displayName: "mySuperpower"</code> as the brand. All <code>superpowers:&lt;skill&gt;</code> refs cascade to <code>my-superpower:</code>.</li>
+          <li><strong>Two transforms, two lifetimes:</strong> the <code>-html</code>&rarr;canonical rename (Tasks 2&ndash;5) is one-time; the <code>superpowers:</code>&rarr;<code>my-superpower:</code> namespace cascade + manifest names (Task 7 script) is idempotent and re-run after every upstream merge.</li>
+        </ul>
+      </div>
+      <div class="dd-card">
+        <span class="dd-tag">Task 11 &middot; Done</span>
+        <h3>All gates green; final review &mdash; ready to merge</h3>
+        <p><strong>Verification.</strong> Whole-repo gates pass: <strong>zero</strong> <code>superpowers:</code> namespace refs in skills/hooks, no <code>*-html</code> skill folders, all four skills carry a <code>templates/</code> dir, the rebrand script is idempotent (re-run = no diff), and all six manifests are valid JSON named <code>my-superpower</code>.</p>
+        <ul>
+          <li><strong>/simplify:</strong> not an installed skill in this environment, so it was not invoked. The only real logic (the rebrand script) is already minimal and proven idempotent, so the equivalent simplification pass found nothing to change.</li>
+          <li><strong>Final review fix:</strong> the holistic reviewer flagged one residual brand word &mdash; <code>skills/executing-plans/SKILL.md</code> said "Superpowers works much better with subagents". Changed to "mySuperpower" before the final commit.</li>
+          <li><strong>Install:</strong> <code>/plugin marketplace add C:\Projects\GitHub\mySuperpower</code> then <code>/plugin install my-superpower@my-superpower</code> (user-run; auto-trigger of <code>my-superpower:brainstorming</code> verified by the owner in a fresh session).</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

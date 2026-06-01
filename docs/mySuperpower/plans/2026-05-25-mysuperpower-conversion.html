@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<!--
+  mySuperpower Conversion — implementation plan. Self-contained, offline, web-safe fonts.
+  Masthead + palette reproduced from writing-plans-html template (FIXED).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mySuperpower Conversion — Implementation Plan</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --paper-deep:#ece4d2; --rule:#d8ccb2; --code-bg:#26221b; --code-ink:#efe7d4;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  /* ---- FIXED masthead (do not restyle) ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:52ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .agentic-note{background:var(--meta-bg);border-radius:14px;padding:1.25rem 1.85rem;
+                margin-top:1rem;font-family:var(--mono);color:var(--value);
+                font-size:.92rem;line-height:1.6;}
+
+  /* ---- BODY (frontend-design, on-palette) ---- */
+  main{margin-top:3rem;counter-reset:task;}
+  main > section.overview{border-top:3px double var(--maroon);padding-top:2rem;}
+  main h2{font-family:var(--serif);font-weight:700;font-size:clamp(1.5rem,2.8vw,2rem);
+          line-height:1.12;margin:0 0 1rem;}
+  main h3{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;
+          font-size:.88rem;color:var(--maroon);margin:1.6rem 0 .6rem;}
+  main p{font-size:1.06rem;line-height:1.6;margin:0 0 1rem;max-width:70ch;}
+  main p.dim{color:var(--label);font-style:italic;}
+  strong{font-weight:700;} em{font-style:italic;}
+
+  .kv{margin:0 0 1.1rem;}
+  .kv b{font-family:var(--mono);color:var(--maroon);font-size:.85rem;
+        text-transform:uppercase;letter-spacing:.08em;}
+
+  section.task{border:1px solid var(--rule);border-radius:12px;background:var(--paper-deep);
+               padding:1.6rem 1.8rem;margin:1.6rem 0;}
+  section.task > h2{display:flex;align-items:baseline;gap:.7rem;margin-bottom:.3rem;}
+  section.task > h2::before{counter-increment:task;content:"Task " counter(task);
+      font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.12em;
+      color:var(--paper);background:var(--maroon);padding:.2rem .6rem;border-radius:6px;
+      text-transform:uppercase;white-space:nowrap;align-self:center;}
+
+  .files{font-family:var(--mono);font-size:.85rem;line-height:1.65;background:var(--meta-bg);
+         border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:.8rem 1.1rem;
+         margin:.6rem 0 1.2rem;}
+  .files .tag{color:var(--maroon);font-weight:700;}
+
+  ol.steps{list-style:none;counter-reset:step;padding:0;margin:0;}
+  ol.steps > li.step{counter-increment:step;position:relative;padding:.2rem 0 1rem 2.2rem;}
+  ol.steps > li.step::before{content:"";position:absolute;left:0;top:.15rem;width:1.15rem;
+      height:1.15rem;border:2px solid var(--maroon);border-radius:4px;background:var(--paper);}
+  ol.steps > li.step::after{content:counter(step);position:absolute;left:.34rem;top:.05rem;
+      font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--maroon);}
+  li.step .t{font-weight:700;font-size:1.04rem;}
+  li.step .t.commit{color:var(--maroon);}
+
+  pre{font-family:var(--mono);font-size:.82rem;line-height:1.5;background:var(--code-bg);
+      color:var(--code-ink);border-radius:8px;padding:.9rem 1.1rem;overflow-x:auto;
+      margin:.55rem 0 .2rem;}
+  pre code{background:none;color:inherit;padding:0;}
+  code{font-family:var(--mono);font-size:.85em;background:var(--meta-bg);
+       border:1px solid var(--rule);border-radius:5px;padding:.06em .38em;color:#5a2420;}
+  .expect{font-family:var(--mono);font-size:.8rem;color:var(--label);margin:.35rem 0 0;}
+  .expect b{color:var(--amber);text-transform:uppercase;letter-spacing:.06em;}
+
+  blockquote{margin:0 0 1rem;padding:.8rem 1.1rem;background:var(--meta-bg);
+             border-left:5px solid var(--amber);border-radius:0 8px 8px 0;}
+  blockquote p{margin:0;font-style:italic;}
+  hr.foot{border:none;border-top:1px solid var(--rule);margin:3rem 0 1.4rem;}
+  .foot-note{font-family:var(--mono);font-size:.78rem;color:var(--label);letter-spacing:.04em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Plan &middot; Implementation</p>
+      <h1>mySuperpower Conversion</h1>
+      <p class="subtitle">TDD-style: each task gates on a grep / idempotence / JSON-validity check before its commit — converting this fork into a single local <code>my-superpower</code> plugin.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-05-25</dd>
+        <dt>Branch</dt><dd>feature/mysuperpower-conversion</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-05-25-mysuperpower-conversion-design.html</dd>
+      </dl>
+      <p class="agentic-note">REQUIRED SUB-SKILL: execute task-by-task with TDD (red &rarr; green &rarr; commit) using subagent-driven-development-html (recommended) or executing-plans-html. Codex review of this plan + spec before implementation; per-task two-stage review. Steps are checkbox-styled; track progress with your task tools, not by editing this file.</p>
+    </header>
+
+    <main>
+      <section class="overview">
+        <h2>Overview</h2>
+        <div class="kv"><b>Goal</b> — Convert this <code>obra/superpowers</code> fork into a single, locally-installed Claude Code plugin named <code>my-superpower</code> (branded <strong>mySuperpower</strong>) whose 4 workflow skills emit HTML, while keeping the repo cleanly mergeable from upstream.</div>
+        <div class="kv"><b>Architecture</b> — The 4 HTML skill variants take over the canonical skill names in place. A targeted, idempotent rebrand script performs the recurring transforms (<code>superpowers:</code>&nbsp;namespace cascade + manifest <code>name</code> fields) so future upstream merges are one command. Branding, README, and the project CLAUDE.md are one-time edits.</div>
+        <div class="kv"><b>Tech Stack</b> — Git (with an <code>upstream</code> remote), PowerShell 7 + Bash for file ops, JSON plugin manifests, Claude Code plugin/marketplace schema. No build system; "tests" are verification commands (grep assertions, idempotence re-runs, <code>node</code>/<code>python</code> JSON parse) with expected output.</div>
+        <p class="dim">Out of scope (left untouched, like upstream's <code>tests/</code>): the OpenCode harness files (<code>.opencode/</code>, <code>package.json</code>'s <code>main</code> pointer to <code>superpowers.js</code>) and upstream's <code>tests/</code> suite.</p>
+        <p class="dim">Commit convention: every commit message ends with the trailer <code>Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</code> (omitted from the short commands below for brevity — include it).</p>
+      </section>
+
+      <!-- ============================ TASK 1 ============================ -->
+      <section class="task">
+        <h2>Wire the upstream remote &amp; record baseline</h2>
+        <p>Establishes the mechanism for pulling future <code>obra/superpowers</code> changes. Confirms we are on the feature branch created during brainstorming.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>.git/config</code> (remote only — not tracked, no commit)
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Confirm the current branch is the feature branch</span>
+            <pre><code>git branch --show-current</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>feature/mysuperpower-conversion</code></p>
+          </li>
+          <li class="step"><span class="t">Add the upstream remote (skip if it already exists)</span>
+            <pre><code>git remote add upstream https://github.com/obra/superpowers.git 2&gt;$null
+git remote -v</code></pre>
+            <p class="expect"><b>expect</b> &rarr; lists both <code>origin … bill-atchison/mySuperpower</code> and <code>upstream … obra/superpowers</code></p>
+          </li>
+          <li class="step"><span class="t">Fetch upstream so the merge base is available later</span>
+            <pre><code>git fetch upstream</code></pre>
+            <p class="expect"><b>expect</b> &rarr; fetches branches from upstream (e.g. <code>* [new branch] main -&gt; upstream/main</code>); no error</p>
+          </li>
+        </ol>
+        <p class="dim">No commit — remote configuration lives in <code>.git/config</code>, which is not tracked.</p>
+      </section>
+
+      <!-- ============================ TASK 2 ============================ -->
+      <section class="task">
+        <h2>Takeover — <code>brainstorming</code></h2>
+        <p>Replace the canonical <code>brainstorming</code> skill with the HTML variant's content; keep <code>spec-document-reviewer-prompt.md</code> as a Codex fallback; rewrite <code>-html</code> cross-references to canonical names.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>skills/brainstorming/SKILL.md</code>, <code>skills/brainstorming/visual-companion.md</code>, <code>skills/brainstorming/scripts/*</code><br>
+          <span class="tag">Create:</span> <code>skills/brainstorming/templates/design-doc-template.html</code><br>
+          <span class="tag">Keep:</span> <code>skills/brainstorming/spec-document-reviewer-prompt.md</code><br>
+          <span class="tag">Delete:</span> <code>skills/brainstorming-html/</code> (whole folder)
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Copy the HTML variant's content over the canonical skill (overwrites SKILL.md, scripts, visual-companion; adds templates; leaves the reviewer prompt intact)</span>
+            <pre><code>Copy-Item -Path "skills/brainstorming-html/*" -Destination "skills/brainstorming/" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">Rewrite every <code>-html</code> skill-name reference to its canonical name across all files in the skill (this also fixes the frontmatter <code>name:</code>)</span>
+            <pre><code>Get-ChildItem "skills/brainstorming" -Recurse -File | ForEach-Object {
+  $p = $_.FullName
+  (Get-Content $p -Raw) `
+    -replace 'subagent-driven-development-html','subagent-driven-development' `
+    -replace 'writing-plans-html','writing-plans' `
+    -replace 'executing-plans-html','executing-plans' `
+    -replace 'brainstorming-html','brainstorming' |
+    Set-Content $p -NoNewline
+}</code></pre>
+          </li>
+          <li class="step"><span class="t">Add the Codex-unavailable fallback to the review step (open <code>skills/brainstorming/SKILL.md</code>, find the line that begins "Dispatch Codex via the <code>codex:rescue</code> skill" in the <strong>Codex Review</strong> section, and insert this line immediately after it)</span>
+            <pre><code>   - **Fallback when Codex is unavailable:** if Codex cannot be reached or does not respond, dispatch a general-purpose subagent using `spec-document-reviewer-prompt.md` (in this skill directory) to perform the equivalent review instead. The 3-iteration cap applies either way.</code></pre>
+          </li>
+          <li class="step"><span class="t">Delete the now-consumed HTML variant folder</span>
+            <pre><code>Remove-Item -Path "skills/brainstorming-html" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test): frontmatter is canonical, no dangling <code>-html</code> skill refs, the prompt fallback exists</span>
+            <pre><code>Select-String -Path "skills/brainstorming/SKILL.md" -Pattern '^name: brainstorming$'
+Select-String -Path "skills/brainstorming/*","skills/brainstorming/templates/*" `
+  -Pattern 'brainstorming-html|writing-plans-html|executing-plans-html|subagent-driven-development-html'
+Test-Path "skills/brainstorming/spec-document-reviewer-prompt.md"
+Test-Path "skills/brainstorming/templates/design-doc-template.html"</code></pre>
+            <p class="expect"><b>expect</b> &rarr; line 1 matches <code>name: brainstorming</code>; the second command prints <strong>nothing</strong> (zero matches); both <code>Test-Path</code> print <code>True</code></p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add skills/brainstorming skills/brainstorming-html
+git commit -m "Takeover: brainstorming now uses the HTML variant (canonical name)"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 3 ============================ -->
+      <section class="task">
+        <h2>Takeover — <code>writing-plans</code></h2>
+        <p>Replace the canonical <code>writing-plans</code> skill with the HTML variant; keep <code>plan-document-reviewer-prompt.md</code> as a Codex fallback.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>skills/writing-plans/SKILL.md</code><br>
+          <span class="tag">Create:</span> <code>skills/writing-plans/templates/plan-doc-template.html</code><br>
+          <span class="tag">Keep:</span> <code>skills/writing-plans/plan-document-reviewer-prompt.md</code><br>
+          <span class="tag">Delete:</span> <code>skills/writing-plans-html/</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Copy the HTML variant's content over the canonical skill</span>
+            <pre><code>Copy-Item -Path "skills/writing-plans-html/*" -Destination "skills/writing-plans/" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">Rewrite <code>-html</code> skill-name references to canonical across all files</span>
+            <pre><code>Get-ChildItem "skills/writing-plans" -Recurse -File | ForEach-Object {
+  $p = $_.FullName
+  (Get-Content $p -Raw) `
+    -replace 'subagent-driven-development-html','subagent-driven-development' `
+    -replace 'writing-plans-html','writing-plans' `
+    -replace 'executing-plans-html','executing-plans' `
+    -replace 'brainstorming-html','brainstorming' |
+    Set-Content $p -NoNewline
+}</code></pre>
+          </li>
+          <li class="step"><span class="t">Add the Codex-unavailable fallback to the review step (in <code>skills/writing-plans/SKILL.md</code>, find the line beginning "Dispatch Codex via the <code>codex:rescue</code> skill" under <strong>## Codex Review</strong> and insert this line right after it)</span>
+            <pre><code>   - **Fallback when Codex is unavailable:** if Codex cannot be reached or does not respond, dispatch a general-purpose subagent using `plan-document-reviewer-prompt.md` (in this skill directory) to perform the equivalent review instead. The 3-iteration cap applies either way.</code></pre>
+          </li>
+          <li class="step"><span class="t">Delete the consumed HTML variant folder</span>
+            <pre><code>Remove-Item -Path "skills/writing-plans-html" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test)</span>
+            <pre><code>Select-String -Path "skills/writing-plans/SKILL.md" -Pattern '^name: writing-plans$'
+Select-String -Path "skills/writing-plans/*","skills/writing-plans/templates/*" `
+  -Pattern 'brainstorming-html|writing-plans-html|executing-plans-html|subagent-driven-development-html'
+Test-Path "skills/writing-plans/plan-document-reviewer-prompt.md"
+Test-Path "skills/writing-plans/templates/plan-doc-template.html"</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>name: writing-plans</code> matches; second command prints nothing; both <code>Test-Path</code> print <code>True</code></p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add skills/writing-plans skills/writing-plans-html
+git commit -m "Takeover: writing-plans now uses the HTML variant (canonical name)"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 4 ============================ -->
+      <section class="task">
+        <h2>Takeover — <code>executing-plans</code></h2>
+        <p>Replace the canonical <code>executing-plans</code> skill (SKILL.md only) with the HTML variant and add its templates.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>skills/executing-plans/SKILL.md</code><br>
+          <span class="tag">Create:</span> <code>skills/executing-plans/templates/*</code><br>
+          <span class="tag">Delete:</span> <code>skills/executing-plans-html/</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Copy the HTML variant's content over the canonical skill</span>
+            <pre><code>Copy-Item -Path "skills/executing-plans-html/*" -Destination "skills/executing-plans/" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">Rewrite <code>-html</code> skill-name references to canonical across all files</span>
+            <pre><code>Get-ChildItem "skills/executing-plans" -Recurse -File | ForEach-Object {
+  $p = $_.FullName
+  (Get-Content $p -Raw) `
+    -replace 'subagent-driven-development-html','subagent-driven-development' `
+    -replace 'writing-plans-html','writing-plans' `
+    -replace 'executing-plans-html','executing-plans' `
+    -replace 'brainstorming-html','brainstorming' |
+    Set-Content $p -NoNewline
+}</code></pre>
+          </li>
+          <li class="step"><span class="t">Delete the consumed HTML variant folder</span>
+            <pre><code>Remove-Item -Path "skills/executing-plans-html" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test)</span>
+            <pre><code>Select-String -Path "skills/executing-plans/SKILL.md" -Pattern '^name: executing-plans$'
+Select-String -Path "skills/executing-plans/*","skills/executing-plans/templates/*" `
+  -Pattern 'brainstorming-html|writing-plans-html|executing-plans-html|subagent-driven-development-html'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>name: executing-plans</code> matches; second command prints nothing</p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add skills/executing-plans skills/executing-plans-html
+git commit -m "Takeover: executing-plans now uses the HTML variant (canonical name)"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 5 ============================ -->
+      <section class="task">
+        <h2>Takeover — <code>subagent-driven-development</code></h2>
+        <p>Replace the canonical <code>subagent-driven-development</code> skill (SKILL.md + the 3 reviewer/implementer prompts are a clean superset in the HTML variant) and add its templates.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>skills/subagent-driven-development/SKILL.md</code>, <code>code-quality-reviewer-prompt.md</code>, <code>implementer-prompt.md</code>, <code>spec-reviewer-prompt.md</code><br>
+          <span class="tag">Create:</span> <code>skills/subagent-driven-development/templates/*</code><br>
+          <span class="tag">Delete:</span> <code>skills/subagent-driven-development-html/</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Copy the HTML variant's content over the canonical skill</span>
+            <pre><code>Copy-Item -Path "skills/subagent-driven-development-html/*" -Destination "skills/subagent-driven-development/" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">Rewrite <code>-html</code> skill-name references to canonical across all files</span>
+            <pre><code>Get-ChildItem "skills/subagent-driven-development" -Recurse -File | ForEach-Object {
+  $p = $_.FullName
+  (Get-Content $p -Raw) `
+    -replace 'subagent-driven-development-html','subagent-driven-development' `
+    -replace 'writing-plans-html','writing-plans' `
+    -replace 'executing-plans-html','executing-plans' `
+    -replace 'brainstorming-html','brainstorming' |
+    Set-Content $p -NoNewline
+}</code></pre>
+          </li>
+          <li class="step"><span class="t">Delete the consumed HTML variant folder</span>
+            <pre><code>Remove-Item -Path "skills/subagent-driven-development-html" -Recurse -Force</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test)</span>
+            <pre><code>Select-String -Path "skills/subagent-driven-development/SKILL.md" -Pattern '^name: subagent-driven-development$'
+Select-String -Path "skills/subagent-driven-development/*","skills/subagent-driven-development/templates/*" `
+  -Pattern 'brainstorming-html|writing-plans-html|executing-plans-html|subagent-driven-development-html'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>name: subagent-driven-development</code> matches; second command prints nothing</p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add skills/subagent-driven-development skills/subagent-driven-development-html
+git commit -m "Takeover: subagent-driven-development now uses the HTML variant (canonical name)"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 6 ============================ -->
+      <section class="task">
+        <h2>Create the idempotent rebrand script</h2>
+        <p>Author (do not yet run) the targeted rebrand tool in both PowerShell and Bash. It performs ONLY two transforms: the <code>superpowers:</code> namespace cascade over <code>skills/</code> + <code>hooks/session-start</code>, and the manifest <code>name</code> rewrite. It deliberately avoids a blanket "superpowers"&rarr;"my-superpower" replace, so <code>obra/superpowers</code> URLs and the legacy <code>~/.config/superpowers</code> path are preserved.</p>
+        <div class="files">
+          <span class="tag">Create:</span> <code>scripts/apply-my-superpower-brand.ps1</code>, <code>scripts/apply-my-superpower-brand.sh</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Write <code>scripts/apply-my-superpower-brand.ps1</code> with exactly this content</span>
+            <pre><code>#!/usr/bin/env pwsh
+# Re-apply the my-superpower brand. Idempotent. Run on a CLEAN index only
+# (never against files containing git conflict markers).
+# Transform 1: namespace cascade  superpowers:&lt;skill&gt; -> my-superpower:&lt;skill&gt;
+# Transform 2: manifest name       "name": "superpowers[-dev]" -> "name": "my-superpower"
+$ErrorActionPreference = "Stop"
+$root = Split-Path -Parent $PSScriptRoot
+
+# --- Transform 1: namespace cascade over skills/ and the session-start hook ---
+$nsTargets = @()
+$nsTargets += Get-ChildItem (Join-Path $root "skills") -Recurse -File
+$hook = Join-Path $root "hooks/session-start"
+if (Test-Path $hook) { $nsTargets += Get-Item $hook }
+foreach ($f in $nsTargets) {
+  $orig = Get-Content $f.FullName -Raw
+  $new  = $orig -replace 'superpowers:', 'my-superpower:'
+  if ($new -ne $orig) { Set-Content $f.FullName $new -NoNewline }
+}
+
+# --- Transform 2: manifest name fields ---
+$manifests = @(
+  ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json",
+  ".codex-plugin/plugin.json", ".cursor-plugin/plugin.json",
+  "gemini-extension.json", "package.json"
+)
+foreach ($rel in $manifests) {
+  $p = Join-Path $root $rel
+  if (-not (Test-Path $p)) { continue }
+  $orig = Get-Content $p -Raw
+  $new  = $orig -replace '"name":\s*"superpowers-dev"', '"name": "my-superpower"'
+  $new  = $new  -replace '"name":\s*"superpowers"',     '"name": "my-superpower"'
+  if ($new -ne $orig) { Set-Content $p $new -NoNewline }
+}
+Write-Host "apply-my-superpower-brand: done."</code></pre>
+          </li>
+          <li class="step"><span class="t">Write <code>scripts/apply-my-superpower-brand.sh</code> with exactly this content</span>
+            <pre><code>#!/usr/bin/env bash
+# Re-apply the my-superpower brand. Idempotent. Run on a CLEAN index only.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." &amp;&amp; pwd)"
+
+# Transform 1: namespace cascade over skills/ and the session-start hook
+while IFS= read -r -d '' f; do
+  perl -pi -e 's/superpowers:/my-superpower:/g' "$f"
+done &lt; &lt;(find "$root/skills" -type f -print0)
+[ -f "$root/hooks/session-start" ] &amp;&amp; perl -pi -e 's/superpowers:/my-superpower:/g' "$root/hooks/session-start"
+
+# Transform 2: manifest name fields
+for rel in .claude-plugin/plugin.json .claude-plugin/marketplace.json \
+           .codex-plugin/plugin.json .cursor-plugin/plugin.json \
+           gemini-extension.json package.json; do
+  p="$root/$rel"
+  [ -f "$p" ] || continue
+  perl -pi -e 's/"name":\s*"superpowers-dev"/"name": "my-superpower"/g; s/"name":\s*"superpowers"/"name": "my-superpower"/g' "$p"
+done
+echo "apply-my-superpower-brand: done."</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test): both files exist and the PowerShell script parses without error</span>
+            <pre><code>Test-Path scripts/apply-my-superpower-brand.ps1
+Test-Path scripts/apply-my-superpower-brand.sh
+pwsh -NoProfile -Command "[ScriptBlock]::Create((Get-Content scripts/apply-my-superpower-brand.ps1 -Raw)) | Out-Null; 'parse-ok'"</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>True</code>, <code>True</code>, <code>parse-ok</code> (no parse exception)</p>
+          </li>
+          <li class="step"><span class="t commit">Commit (scripts authored, not yet applied)</span>
+            <pre><code>git add scripts/apply-my-superpower-brand.ps1 scripts/apply-my-superpower-brand.sh
+git commit -m "Add idempotent apply-my-superpower-brand rebrand script (ps1 + sh)"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 7 ============================ -->
+      <section class="task">
+        <h2>Apply the rebrand script (namespace cascade + manifest names)</h2>
+        <p>Run the script against the repo, then prove it is idempotent (a second run changes nothing) and non-destructive (URLs / legacy path preserved).</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>skills/**</code> (namespace refs), <code>hooks/session-start</code>, all 6 manifests (<code>name</code>)
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Run the rebrand script once</span>
+            <pre><code>pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>apply-my-superpower-brand: done.</code></p>
+          </li>
+          <li class="step"><span class="t">VERIFY namespace cascade: zero remaining <code>superpowers:</code> refs in skills/hooks (RED before this task, GREEN now)</span>
+            <pre><code>Get-ChildItem skills -Recurse -File | Select-String -Pattern 'superpowers:'
+Select-String -Path "hooks/session-start" -Pattern 'superpowers:'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; prints <strong>nothing</strong> (all are now <code>my-superpower:</code>)</p>
+          </li>
+          <li class="step"><span class="t">VERIFY preservation: the legacy path and upstream URLs are untouched</span>
+            <pre><code>Select-String -Path "hooks/session-start" -Pattern 'config/superpowers|obra/superpowers'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; still matches <code>~/.config/superpowers/skills</code> and the <code>github.com/obra/superpowers</code> URL (NOT rewritten)</p>
+          </li>
+          <li class="step"><span class="t">VERIFY manifest names</span>
+            <pre><code>Select-String -Path ".claude-plugin/plugin.json",".claude-plugin/marketplace.json",".codex-plugin/plugin.json",".cursor-plugin/plugin.json","gemini-extension.json","package.json" -Pattern '"name": "my-superpower"'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; each manifest reports a <code>"name": "my-superpower"</code> match (marketplace.json reports two: marketplace + plugin entry)</p>
+          </li>
+          <li class="step"><span class="t">Prove idempotence: stage, run again, confirm no new changes</span>
+            <pre><code>git add -A
+pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1
+git status --porcelain</code></pre>
+            <p class="expect"><b>expect</b> &rarr; <code>git status --porcelain</code> prints <strong>nothing</strong> (second run produced no diff)</p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git commit -m "Apply my-superpower namespace cascade + manifest name rebrand"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 8 ============================ -->
+      <section class="task">
+        <h2>Brand manifests (displayName + human fields) &amp; local marketplace</h2>
+        <p>The script set the <code>name</code> fields; now add the human-facing brand. Edit each manifest by hand (these are one-time values upstream does not re-add). The Claude Code manifest is the critical one.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>.claude-plugin/plugin.json</code>, <code>.claude-plugin/marketplace.json</code>, <code>.codex-plugin/plugin.json</code>, <code>.cursor-plugin/plugin.json</code>, <code>gemini-extension.json</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Edit <code>.claude-plugin/plugin.json</code> — add <code>displayName</code> and rebrand human fields. Result should read:</span>
+            <pre><code>{
+  "name": "my-superpower",
+  "displayName": "mySuperpower",
+  "description": "Personal HTML-native fork of Superpowers: brainstorming, planning, TDD, debugging, and delivery workflows that emit self-contained HTML docs.",
+  "version": "5.1.0",
+  "author": {
+    "name": "William Atchison",
+    "email": "william.e.atchison.jr@gmail.com"
+  },
+  "homepage": "https://github.com/bill-atchison/mySuperpower",
+  "repository": "https://github.com/bill-atchison/mySuperpower",
+  "license": "MIT",
+  "keywords": ["skills","tdd","debugging","collaboration","best-practices","workflows","html"]
+}</code></pre>
+          </li>
+          <li class="step"><span class="t">Edit <code>.claude-plugin/marketplace.json</code> — brand the marketplace + plugin entry (the script already set both <code>name</code> values to <code>my-superpower</code>; set <code>source</code> to <code>"./"</code> and rebrand owner/description). Result:</span>
+            <pre><code>{
+  "name": "my-superpower",
+  "description": "Local marketplace for the mySuperpower plugin (personal fork of Superpowers).",
+  "owner": { "name": "William Atchison", "email": "william.e.atchison.jr@gmail.com" },
+  "plugins": [
+    {
+      "name": "my-superpower",
+      "displayName": "mySuperpower",
+      "description": "Personal HTML-native fork of Superpowers.",
+      "version": "5.1.0",
+      "source": "./",
+      "author": { "name": "William Atchison", "email": "william.e.atchison.jr@gmail.com" }
+    }
+  ]
+}</code></pre>
+          </li>
+          <li class="step"><span class="t">Edit <code>.cursor-plugin/plugin.json</code> — set <code>displayName</code> to <code>mySuperpower</code> (the <code>name</code> is already <code>my-superpower</code>); update <code>description</code>/<code>author</code>/<code>homepage</code>/<code>repository</code> to the mySuperpower values. Leave the <code>skills</code>/<code>agents</code>/<code>commands</code>/<code>hooks</code> path fields unchanged.</span>
+          </li>
+          <li class="step"><span class="t">Edit <code>.codex-plugin/plugin.json</code> — set <code>interface.displayName</code> to <code>mySuperpower</code>, <code>interface.developerName</code> and <code>author.name</code> to <code>William Atchison</code>; update <code>homepage</code>/<code>repository</code>/<code>author.url</code>/<code>interface.websiteURL</code> to <code>https://github.com/bill-atchison/mySuperpower</code>. Leave asset paths and <code>brandColor</code> unchanged.</span>
+          </li>
+          <li class="step"><span class="t">Edit <code>gemini-extension.json</code> — update <code>description</code> to the mySuperpower description (the <code>name</code> is already <code>my-superpower</code>; keep <code>contextFileName: "GEMINI.md"</code>).</span>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test): every manifest is still valid JSON and carries the brand</span>
+            <pre><code>$m = ".claude-plugin/plugin.json",".claude-plugin/marketplace.json",".codex-plugin/plugin.json",".cursor-plugin/plugin.json","gemini-extension.json"
+$m | ForEach-Object { Get-Content $_ -Raw | ConvertFrom-Json | Out-Null; "$_ : valid" }
+Select-String -Path ".claude-plugin/plugin.json" -Pattern '"displayName": "mySuperpower"'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; each manifest prints <code>… : valid</code> (no JSON exception); the displayName line matches</p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add .claude-plugin .codex-plugin .cursor-plugin gemini-extension.json
+git commit -m "Brand manifests as mySuperpower (displayName + author/urls) and local marketplace"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 9 ============================ -->
+      <section class="task">
+        <h2>Rewrite the README for mySuperpower</h2>
+        <p>Replace the upstream README with a mySuperpower one: what this fork is, the HTML workflow, local install, and the upstream-update procedure. Credit <code>obra/superpowers</code>.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>README.md</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Replace <code>README.md</code> with this content</span>
+            <pre><code># mySuperpower
+
+A personal, HTML-native fork of [Superpowers](https://github.com/obra/superpowers)
+by Jesse Vincent. Same brainstorm &rarr; plan &rarr; execute methodology — but the
+brainstorming, writing-plans, executing-plans, and subagent-driven-development
+skills produce **self-contained HTML** design docs, plans, and implementation
+notes instead of markdown.
+
+## Install (local plugin)
+
+```
+/plugin marketplace add C:\Projects\GitHub\mySuperpower
+/plugin install my-superpower@my-superpower
+```
+
+The plugin's technical name/namespace is `my-superpower` (kebab-case, required by
+Claude Code); it shows as **mySuperpower** in the `/plugin` picker via `displayName`.
+
+## HTML workflow output
+
+Skills write to `docs/mySuperpower/specs/` (designs) and `docs/mySuperpower/plans/`
+(plans), as distinctive, offline HTML documents.
+
+## Updating from upstream
+
+This repo tracks `obra/superpowers` as the `upstream` remote:
+
+```
+git fetch upstream
+git merge upstream/main
+# resolve any content conflicts on the 4 forked skills, then:
+pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1   # or the .sh
+git add -u
+git commit
+```
+
+The rebrand script (`scripts/apply-my-superpower-brand.*`) is idempotent and
+re-applies the `my-superpower:` namespace cascade + manifest names. Run it only
+after all merge conflicts are resolved (never on a tree with conflict markers).
+
+## Credit
+
+Built on [Superpowers](https://github.com/obra/superpowers) (MIT) by Jesse Vincent.
+See `LICENSE`.</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test)</span>
+            <pre><code>Select-String -Path "README.md" -Pattern '^# mySuperpower$','my-superpower@my-superpower','obra/superpowers'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; matches the title, the install line, and the upstream credit</p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add README.md
+git commit -m "Rewrite README for mySuperpower (install + upstream-update workflow)"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 10 ============================ -->
+      <section class="task">
+        <h2>Replace the project <code>CLAUDE.md</code></h2>
+        <p>Upstream's <code>CLAUDE.md</code> is its contributor guide (PR rules for <code>obra/superpowers</code>) — irrelevant to a personal local plugin. Replace it with a short mySuperpower note.</p>
+        <div class="files">
+          <span class="tag">Modify:</span> <code>CLAUDE.md</code>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Replace <code>CLAUDE.md</code> with this content</span>
+            <pre><code># mySuperpower — Project Notes
+
+This repository is **mySuperpower**, a personal fork of
+[obra/superpowers](https://github.com/obra/superpowers). It is installed as a
+local Claude Code plugin named `my-superpower` (branded **mySuperpower**).
+
+## What is different from upstream
+
+The 4 workflow skills emit self-contained HTML instead of markdown:
+`brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`.
+They write to `docs/mySuperpower/specs/` and `docs/mySuperpower/plans/`. All other
+skills are upstream's, namespaced `my-superpower:`.
+
+## Taking changes from upstream
+
+```
+git fetch upstream
+git merge upstream/main
+# resolve conflicts on the 4 forked skills, then (on a clean index):
+pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1
+git add -u && git commit
+```
+
+`scripts/apply-my-superpower-brand.*` is idempotent and re-applies the
+`my-superpower:` namespace cascade + manifest `name` fields. Run it only after all
+conflicts are resolved.
+
+## Out of scope
+
+Upstream's `tests/` and the OpenCode harness files (`.opencode/`) are not
+maintained in this fork.</code></pre>
+          </li>
+          <li class="step"><span class="t">VERIFY (the test)</span>
+            <pre><code>Select-String -Path "CLAUDE.md" -Pattern '^# mySuperpower'
+Select-String -Path "CLAUDE.md" -Pattern '94% PR rejection'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; first matches the new title; second prints <strong>nothing</strong> (the upstream contributor text is gone)</p>
+          </li>
+          <li class="step"><span class="t commit">Commit</span>
+            <pre><code>git add CLAUDE.md
+git commit -m "Replace project CLAUDE.md with mySuperpower notes"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============================ TASK 11 ============================ -->
+      <section class="task">
+        <h2>Final verification, <code>/simplify</code>, and final commit</h2>
+        <p>Whole-repo gate, then the mandatory <code>/simplify</code> pass <strong>before</strong> the last commit (project policy), then install + auto-trigger checks.</p>
+        <div class="files">
+          <span class="tag">Verify:</span> whole repo &nbsp; <span class="tag">Modify:</span> any files <code>/simplify</code> flags
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="t">Whole-repo namespace gate: zero dangling <code>superpowers:</code> refs anywhere in skills/hooks</span>
+            <pre><code>Get-ChildItem skills -Recurse -File | Select-String -Pattern 'superpowers:'
+Select-String -Path "hooks/session-start" -Pattern 'superpowers:'</code></pre>
+            <p class="expect"><b>expect</b> &rarr; prints <strong>nothing</strong></p>
+          </li>
+          <li class="step"><span class="t">No <code>-html</code> skill folders remain; all 4 canonical skills have templates</span>
+            <pre><code>Get-ChildItem skills -Directory -Filter "*-html"
+@("brainstorming","writing-plans","executing-plans","subagent-driven-development") |
+  ForEach-Object { Test-Path "skills/$_/templates" }</code></pre>
+            <p class="expect"><b>expect</b> &rarr; first prints nothing (no <code>*-html</code> dirs); four <code>True</code></p>
+          </li>
+          <li class="step"><span class="t">Idempotence re-check: rebrand script still no-ops on the clean tree</span>
+            <pre><code>git status --porcelain
+pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1
+git status --porcelain</code></pre>
+            <p class="expect"><b>expect</b> &rarr; both <code>git status --porcelain</code> print nothing (clean before and after)</p>
+          </li>
+          <li class="step"><span class="t">Run <code>/simplify</code> over the changed code (scripts + manifests + skill edits) and apply any fixes it identifies</span>
+            <pre><code>/simplify</code></pre>
+            <p class="expect"><b>expect</b> &rarr; review completes; apply its accepted fixes (e.g. script dedup, command simplification) inline</p>
+          </li>
+          <li class="step"><span class="t">Re-run the verification gates after <code>/simplify</code> edits</span>
+            <pre><code>Get-ChildItem skills -Recurse -File | Select-String -Pattern 'superpowers:'
+pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1; git status --porcelain</code></pre>
+            <p class="expect"><b>expect</b> &rarr; first prints nothing; status clean (idempotent) after the script run</p>
+          </li>
+          <li class="step"><span class="t">Manual install check (user runs these slash commands in Claude Code)</span>
+            <pre><code>/plugin marketplace add C:\Projects\GitHub\mySuperpower
+/plugin install my-superpower@my-superpower</code></pre>
+            <p class="expect"><b>expect</b> &rarr; plugin installs; shows as <strong>mySuperpower</strong> in <code>/plugin</code>; a fresh session on "let's build X" auto-triggers <code>my-superpower:brainstorming</code> before any code</p>
+          </li>
+          <li class="step"><span class="t commit">FINAL commit (after the <code>/simplify</code> pass)</span>
+            <pre><code>git add -A
+git commit -m "mySuperpower conversion: final verification + simplify pass"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <hr class="foot">
+      <p class="foot-note">mySuperpower &middot; implementation plan &middot; spec: docs/mySuperpower/specs/2026-05-25-mysuperpower-conversion-design.html</p>
+    </main>
+  </div>
+</body>
+</html>
