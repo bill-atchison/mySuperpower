@@ -11,7 +11,7 @@
       "displayName": "mySuperpower",
       "description": "Personal HTML-native fork of Superpowers.",
       "version": "5.1.1",
-      "source": "./",
+      "source": "./dist",
       "author": {
         "name": "William Atchison",
         "email": "william.e.atchison.jr@gmail.com"

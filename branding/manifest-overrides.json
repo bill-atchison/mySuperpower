@@ -1,0 +1,24 @@
+{
+  "_comment": "Identity overrides applied by scripts/build-mysuperpower.ps1 onto the pristine upstream manifests when assembling dist/. Source manifests stay pristine so upstream merges remain clean. Version is intentionally NOT overridden so dist/ inherits the upstream base version.",
+  "pluginManifests": [
+    ".claude-plugin/plugin.json",
+    ".codex-plugin/plugin.json",
+    ".cursor-plugin/plugin.json"
+  ],
+  "plugin": {
+    "name": "my-superpower",
+    "displayName": "mySuperpower",
+    "description": "Personal HTML-native fork of Superpowers: brainstorming, planning, TDD, debugging, and delivery workflows that emit self-contained HTML docs.",
+    "author": { "name": "William Atchison", "email": "william.e.atchison.jr@gmail.com" },
+    "homepage": "https://github.com/bill-atchison/mySuperpower",
+    "repository": "https://github.com/bill-atchison/mySuperpower",
+    "keywords": ["skills", "tdd", "debugging", "collaboration", "best-practices", "workflows", "html"]
+  },
+  "packageJson": {
+    "name": "my-superpower",
+    "description": "Personal HTML-native fork of Superpowers."
+  },
+  "geminiExtension": {
+    "name": "my-superpower"
+  }
+}

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Low-Conflict Fork Maintenance via Build-Overlay — mySuperpower Plan</title>
+<style>
+  :root {
+    --paper: #f4efe1;
+    --ink: #2b2622;
+    --muted: #6b6157;
+    --maroon: #8a2b27;
+    --maroon-soft: #b4524d;
+    --rule: #d9cfba;
+    --card: #fbf8f0;
+    --code-bg: #efe7d4;
+    --good: #3f6b3f;
+    --warn: #9a6a1c;
+    --serif: Georgia, "Times New Roman", serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.6;
+    font-size: 18px;
+  }
+  .masthead {
+    background: var(--maroon);
+    color: #f7efe0;
+    padding: 14px 28px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 3px solid #5f1b18;
+  }
+  .masthead .brand {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    font-size: 18px;
+  }
+  .masthead .brand .lo { color: #f2c9a0; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 28px 96px; }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 12px;
+    color: var(--maroon);
+    font-family: var(--mono);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 40px;
+    line-height: 1.15;
+    margin: 0 0 10px;
+    color: var(--ink);
+  }
+  .subtitle { font-size: 20px; color: var(--muted); font-style: italic; margin: 0 0 28px; }
+  h2 {
+    font-size: 26px;
+    margin: 40px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--rule);
+    color: var(--maroon);
+  }
+  h3 { font-size: 20px; margin: 26px 0 6px; color: var(--ink); }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0; padding-left: 26px; }
+  li { margin: 6px 0; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  pre {
+    background: #28231f;
+    color: #efe7d4;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .meta-card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-left: 5px solid var(--maroon);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 0 0 26px;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 18px;
+    font-size: 16px;
+  }
+  .meta-card .k {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 12px;
+    color: var(--muted);
+    align-self: center;
+  }
+  .meta-card .v { color: var(--ink); }
+  .callout {
+    background: #f6edd9;
+    border: 1px solid #e3d4ad;
+    border-left: 5px solid var(--warn);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 22px 0;
+    font-size: 16px;
+  }
+  .callout .lbl {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 12px;
+    color: var(--warn);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--code-bg);
+    color: var(--maroon);
+    border: 1px solid var(--rule);
+  }
+  .good { color: var(--good); font-weight: bold; }
+  table.footprint {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 15px;
+  }
+  table.footprint th, table.footprint td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.footprint th {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+  footer {
+    margin-top: 56px;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule);
+    color: var(--muted);
+    font-size: 14px;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+  <div class="masthead">
+    <span class="brand">my<span class="lo">Superpower</span></span>
+  </div>
+  <div class="wrap">
+    <p class="eyebrow">Plan · Implementation</p>
+    <h1>Low-Conflict Fork Maintenance via Build-Overlay</h1>
+    <p class="subtitle">Keep upstream syncs near conflict-free while preserving canonical, HTML-native skills.</p>
+
+    <div class="meta-card">
+      <div class="k">Date</div><div class="v">2026-06-19</div>
+      <div class="k">Branch</div><div class="v"><code>mysuperpower</code></div>
+      <div class="k">Upstream</div><div class="v"><code>obra/superpowers</code> @ v6.0.3</div>
+      <div class="k">Spec</div><div class="v">Fork-maintenance design discussion (Warp plan <code>435eb0c1</code>)</div>
+      <div class="k">Status</div><div class="v"><span class="pill">Awaiting approval</span></div>
+    </div>
+
+    <div class="callout">
+      <span class="lbl">Agentic note</span>
+      This is a structural refactor of how the fork is assembled, not a behavior change to any skill.
+      Validate with a real upstream merge dry-run and a functional install from <code>dist/</code> before
+      declaring done. Treat each overlay transform as testable: it must assert its anchor exists and fail loudly otherwise.
+    </div>
+
+    <h2>Problem</h2>
+    <p>
+      Every upstream sync of the mySuperpower fork is conflict-heavy because customizations edit
+      upstream-owned files <em>in place</em>. The recurring pain is the four HTML-variant skills and the
+      namespace cascade, plus the manifest / <code>README.md</code> / <code>CLAUDE.md</code> replacements.
+    </p>
+
+    <h2>Current state</h2>
+    <ul>
+      <li><code>main</code> is now a clean mirror of <code>upstream/main</code> (v6.0.3); future upstream pulls fast-forward.</li>
+      <li><code>mysuperpower</code> holds the customizations (built on v5.1.0; tip commit v5.1.1) and is the new rolling branch.</li>
+      <li>Consumption: local install via <code>/plugin marketplace add C:\Projects\GitHub\mySuperpower</code> (marketplace <code>source: "./"</code>), namespace <code>my-superpower</code>, HTML-native output under <code>docs/mySuperpower/{specs,plans,implementation-notes}</code>.</li>
+      <li><code>scripts/apply-my-superpower-brand.ps1</code> already performs two idempotent transforms: the namespace cascade over <code>skills/</code> + <code>hooks/session-start</code>, and the manifest <code>name</code> fields.</li>
+    </ul>
+    <p>Conflict footprint of the customizations relative to the upstream base:</p>
+    <table class="footprint">
+      <tr><th>Kind</th><th>Files</th><th>Conflict risk</th></tr>
+      <tr>
+        <td>Namespace cascade</td>
+        <td><code>superpowers:</code> → <code>my-superpower:</code> across skill bodies</td>
+        <td>High (pervasive, but mechanical)</td>
+      </tr>
+      <tr>
+        <td>Manifest rebrand</td>
+        <td><code>.claude-plugin/*.json</code>, <code>.codex-plugin/plugin.json</code>, <code>.cursor-plugin/plugin.json</code>, <code>gemini-extension.json</code>, <code>package.json</code></td>
+        <td>Medium (mechanical)</td>
+      </tr>
+      <tr>
+        <td>Full replacements</td>
+        <td><code>README.md</code>, <code>CLAUDE.md</code></td>
+        <td>Medium (always ours)</td>
+      </tr>
+      <tr>
+        <td>Deep HTML rewrites</td>
+        <td><code>skills/{brainstorming,writing-plans,executing-plans,subagent-driven-development}/SKILL.md</code></td>
+        <td>High (interwoven authored content)</td>
+      </tr>
+      <tr>
+        <td>Additive <span class="good">(safe)</span></td>
+        <td><code>templates/*.html</code>, <code>docs/mySuperpower/*</code>, brand scripts</td>
+        <td>None</td>
+      </tr>
+    </table>
+
+    <h2>Goal</h2>
+    <p>
+      Make upstream syncs near conflict-free while preserving: canonical skill names that fire the HTML
+      behavior, HTML-native output, direct local install, and automatic inheritance of upstream improvements.
+    </p>
+
+    <h2>Approach — pristine source + generated <code>dist/</code></h2>
+    <p>
+      Keep the git-tracked tree as <strong>pristine upstream</strong> plus small owned assets. A build step
+      assembles a branded, HTML-native plugin into <code>dist/</code>, which the marketplace points at.
+      Because <code>dist/</code> ships exactly <em>one</em> skill per canonical name, the HTML behavior fires
+      under the canonical trigger with no collision; because source skills stay pristine, merges from upstream
+      are clean and base improvements flow in automatically. The output stays a standard, self-contained Claude
+      Code plugin (with branded <code>.codex-plugin</code>/<code>.cursor-plugin</code>/<code>.opencode</code>
+      manifests emitted too), assembled by a build rather than hand-edited.
+    </p>
+
+    <h3>1. Keep upstream files pristine in source</h3>
+    <p>
+      Restore upstream versions of the four HTML skills, <code>systematic-debugging</code> references,
+      manifests, <code>README.md</code>, and <code>CLAUDE.md</code> in the working source. Stop committing
+      in-place edits to upstream-owned files.
+    </p>
+
+    <h3>2. Move owned content out of upstream files</h3>
+    <p>Add a <code>branding/</code> directory:</p>
+    <ul>
+      <li><code>branding/README.md</code>, <code>branding/CLAUDE.md</code> — your full replacements, copied into <code>dist/</code> by the build.</li>
+      <li><code>branding/manifest-overrides.json</code> — name / displayName / author / urls applied to manifests at build time.</li>
+    </ul>
+
+    <h3>3. Express HTML skills as overlays <span class="pill">core</span></h3>
+    <p>For each of the four skills, add <code>overlays/&lt;skill&gt;/</code>:</p>
+    <ul>
+      <li><code>overlay.yml</code> — output dir + <code>.html</code> extension, title suffix, template reference, and an ordered list of mechanical transforms.</li>
+      <li><code>additions.md</code> — the new process expressed as an appended <code>## mySuperpower additions</code> section (Codex-review loop, browser-preview gate), appended at the end so upstream reordering does not break it.</li>
+    </ul>
+    <p>The build composes each output skill:</p>
+    <pre><code>dist/skills/&lt;skill&gt;/SKILL.md =
+    pristine upstream body
+  + mechanical transforms (namespace; docs/superpowers→docs/mySuperpower; .md→.html in output steps)
+  + appended "## mySuperpower additions"</code></pre>
+    <p>Each transform asserts its anchor exists and fails loudly if upstream removed it, surfacing the rare genuine change.</p>
+
+    <h3>4. Build script</h3>
+    <p>Add <code>scripts/build-mysuperpower.ps1</code> (plus a <code>.sh</code> twin), reusing the transforms from <code>apply-my-superpower-brand.ps1</code>:</p>
+    <pre><code>clean dist/  →  copy pristine plugin tree into dist/
+   (exclude overlays/ branding/ scripts/ docs/ tests/ .github/ .git/ dist/)
+  →  namespace cascade over dist/  →  apply manifest overrides
+  →  copy branding/ README + CLAUDE into dist/  →  apply HTML overlays  →  emit dist/</code></pre>
+    <p>Idempotent; run directly with <code>pwsh ./scripts/build-mysuperpower.ps1</code> (no <code>package.json</code> edit, so that file stays pristine).</p>
+
+    <h3>5. Wire the marketplace at the repo root</h3>
+    <p>
+      Keep <code>.claude-plugin/marketplace.json</code> at the repo root and set its plugin <code>source</code> to
+      <code>"./dist"</code>. A relative string <code>source</code> resolves from the marketplace root (the dir holding
+      <code>.claude-plugin/</code>), so <code>/plugin marketplace add C:\Projects\GitHub\mySuperpower</code> keeps
+      working and loads the plugin from <code>&lt;repo&gt;/dist</code>. Install copies the <code>source</code> dir to a
+      cache and plugins can't reference files outside it, so the build emits a fully self-contained <code>dist/</code>
+      (its own <code>.claude-plugin/plugin.json</code> + <code>skills/</code>, <code>hooks/</code>, <code>assets/</code>,
+      and the Codex / Cursor / opencode manifests).
+    </p>
+    <ul>
+      <li>Add <code>/dist/</code> to <code>.gitignore</code> (build locally before install).</li>
+      <li>Commit <code>dist/</code> instead only if you later want remote GitHub install.</li>
+      <li>After each rebuild: <code>/plugin marketplace update</code> (or quick-test <code>claude --plugin-dir ./dist</code>).</li>
+    </ul>
+
+    <h3>6. Safety net — <code>.gitattributes merge=ours</code> for the root marketplace file</h3>
+    <p>
+      <code>.claude-plugin/marketplace.json</code> is the one owned file kept at the repo root (it carries your
+      marketplace identity and the <code>source</code> pointer). Mark it <code>merge=ours</code> and register the driver
+      with <code>git config merge.ours.driver true</code> so upstream edits never conflict there. Everything else owned
+      lives under <code>branding/</code>/<code>overlays/</code> and is assembled by the build.
+    </p>
+
+    <h3>7. Update sync workflow (README)</h3>
+    <pre><code>git checkout main &amp;&amp; git fetch upstream &amp;&amp; git merge --ff-only upstream/main &amp;&amp; git push origin main
+git checkout mysuperpower &amp;&amp; git merge main      # pristine bodies → clean
+pwsh ./scripts/build-mysuperpower.ps1             # regenerate dist/
+# /plugin marketplace update   (or reinstall from dist/)</code></pre>
+
+    <h2>Detailed implementation steps (execute later)</h2>
+    <p>Assumes you are on <code>mysuperpower</code> with a clean tree and <code>main</code> as the pristine upstream mirror. Commands are PowerShell.</p>
+    <h3>Phase 0 — Snapshot &amp; capture references</h3>
+    <ul>
+      <li>Tag the current branded state: <code>git switch mysuperpower; git tag pre-overlay-mysuperpower</code>.</li>
+      <li>Copy the current branded <code>skills/</code> into <code>.baseline-skills/</code> (keep out of git) for a later diff.</li>
+      <li>Compute the upstream base: <code>$BASE = git merge-base mysuperpower main</code>.</li>
+      <li>Per skill, save the legacy delta: <code>git diff $BASE mysuperpower -- skills/&lt;skill&gt;/SKILL.md &gt; overlays/&lt;skill&gt;/legacy.diff</code>.</li>
+    </ul>
+    <h3>Phase 1 — Restore pristine upstream sources</h3>
+    <pre><code>git checkout main -- skills/brainstorming/SKILL.md skills/writing-plans/SKILL.md `
+  skills/executing-plans/SKILL.md skills/subagent-driven-development/SKILL.md `
+  skills/subagent-driven-development/implementer-prompt.md skills/systematic-debugging/SKILL.md `
+  skills/writing-skills/SKILL.md skills/writing-skills/testing-skills-with-subagents.md `
+  skills/using-superpowers/references/gemini-tools.md
+git checkout main -- .claude-plugin/plugin.json .codex-plugin/plugin.json .cursor-plugin/plugin.json `
+  gemini-extension.json package.json README.md CLAUDE.md</code></pre>
+    <p>Inspect <code>hooks/session-start</code>: if it only carries the namespace cascade, restore pristine and let the build re-apply it; if it has functional edits, move those into <code>branding/</code> first. Leave additive assets (<code>templates/*.html</code>, <code>docs/mySuperpower/*</code>, <code>scripts/*</code>) untouched.</p>
+    <h3>Phase 2 — Create <code>branding/</code> and <code>overlays/</code></h3>
+    <ul>
+      <li><code>branding/README.md</code>, <code>branding/CLAUDE.md</code> — your replacements (e.g. <code>git show pre-overlay-mysuperpower:README.md &gt; branding/README.md</code>).</li>
+      <li><code>branding/manifest-overrides.json</code> — name / displayName / description / version / author / homepage / repository / license / keywords.</li>
+      <li>Per skill: <code>overlays/&lt;skill&gt;/overlay.yml</code> (output dir, <code>.html</code> ext, title suffix, template path, ordered mechanical transforms + anchors) and <code>overlays/&lt;skill&gt;/additions.md</code> (the <code>## mySuperpower additions</code> block). Derive from <code>legacy.diff</code>, then delete the diffs.</li>
+    </ul>
+    <h3>Phase 3 — Write the build script</h3>
+    <p><code>scripts/build-mysuperpower.ps1</code> (+ <code>.sh</code>): clean <code>dist/</code> → copy the pristine plugin tree into <code>dist/</code> excluding <code>overlays/ branding/ scripts/ docs/ tests/ .github/ .git/ dist/</code> → namespace cascade over <code>dist/</code> → apply <code>manifest-overrides.json</code> → copy <code>branding/</code> README + CLAUDE into <code>dist/</code> → apply overlays to <code>dist/skills/&lt;skill&gt;/SKILL.md</code> (assert anchors; append additions) → print summary. Idempotent and fail-loud.</p>
+    <h3>Phase 4 — Wire marketplace &amp; ignore <code>dist/</code></h3>
+    <ul>
+      <li>Set <code>.claude-plugin/marketplace.json</code> → <code>plugins[0].source = "./dist"</code>.</li>
+      <li>Add <code>/dist/</code> to <code>.gitignore</code>.</li>
+      <li>Add <code>.gitattributes</code>: <code>.claude-plugin/marketplace.json merge=ours</code>; run <code>git config merge.ours.driver true</code>.</li>
+    </ul>
+    <h3>Phase 5 — Build, validate, install</h3>
+    <pre><code>pwsh ./scripts/build-mysuperpower.ps1
+git --no-pager diff --no-index .baseline-skills dist/skills   # expect only intended diffs
+# in Claude Code:
+/plugin marketplace add C:\Projects\GitHub\mySuperpower
+/plugin install my-superpower@my-superpower                    # or: claude --plugin-dir ./dist</code></pre>
+    <p>Functional smoke test: trigger <code>brainstorming</code>; confirm the canonical skill fires the HTML design-doc flow into <code>docs/mySuperpower/specs/</code>.</p>
+    <h3>Phase 6 — Conflict test, docs, commit</h3>
+    <pre><code>git checkout main; git fetch upstream; git merge --ff-only upstream/main
+git checkout mysuperpower; git merge main      # expect ~zero conflicts
+pwsh ./scripts/build-mysuperpower.ps1          # rebuild dist/</code></pre>
+    <p>Update <code>branding/README.md</code> with the new sync + build workflow, then commit on <code>mysuperpower</code>.</p>
+
+    <h2>Validation</h2>
+    <ul>
+      <li><strong>Parity:</strong> <code>dist/</code> skills match prior behavior (intended differences only).</li>
+      <li><strong>Conflict test:</strong> merging <code>main</code> (v6.0.3) into <code>mysuperpower</code> yields ~zero source conflicts.</li>
+      <li><strong>Functional:</strong> install <code>dist/</code>, trigger an HTML skill, confirm the canonical name fires HTML output.</li>
+    </ul>
+
+    <h2>Risks &amp; trade-offs</h2>
+    <ul>
+      <li>Overlay transforms can miss if upstream rewrites the exact lines they target — mitigated by fail-loud anchor assertions.</li>
+      <li>Adds a build step and a generated <code>dist/</code> to the workflow.</li>
+      <li>One-time migration effort to extract overlays and restore pristine sources.</li>
+    </ul>
+
+    <h2>Out of scope</h2>
+    <p>
+      No changes to upstream behavior; no automation of the GitHub ruleset; the first big
+      <code>main</code> → <code>mysuperpower</code> reconciliation is tracked separately and is independent of this restructuring.
+    </p>
+
+    <footer>
+      mySuperpower · Plan · generated 2026-06-19 · branch mysuperpower · companion to Warp plan 435eb0c1
+    </footer>
+  </div>
+</body>
+</html>

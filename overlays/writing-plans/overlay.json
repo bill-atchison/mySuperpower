@@ -1,0 +1,8 @@
+{
+  "skill": "writing-plans",
+  "replaces": [
+    { "find": "YYYY-MM-DD-<feature-name>.md", "replace": "YYYY-MM-DD-<feature-name>.html", "required": true },
+    { "find": "plans/<filename>.md", "replace": "plans/<filename>.html", "required": false }
+  ],
+  "append": "additions.md"
+}

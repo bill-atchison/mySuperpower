@@ -5,3 +5,7 @@
 node_modules/
 inspo
 triage/
+
+# mySuperpower: generated build output and local scratch (built locally before install)
+/dist/
+/.baseline-skills/

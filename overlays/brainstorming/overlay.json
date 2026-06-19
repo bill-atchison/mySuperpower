@@ -1,0 +1,8 @@
+{
+  "skill": "brainstorming",
+  "replaces": [
+    { "find": "# Brainstorming Ideas Into Designs", "replace": "# Brainstorming Ideas Into HTML Designs", "required": false },
+    { "find": "-design.md", "replace": "-design.html", "required": true }
+  ],
+  "append": "additions.md"
+}
