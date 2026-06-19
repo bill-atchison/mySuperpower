@@ -1,0 +1,21 @@
+{
+  "name": "my-superpower",
+  "description": "Local marketplace for the mySuperpower plugin (personal fork of Superpowers).",
+  "owner": {
+    "name": "William Atchison",
+    "email": "william.e.atchison.jr@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "my-superpower",
+      "displayName": "mySuperpower",
+      "description": "Personal HTML-native fork of Superpowers.",
+      "version": "6.0.3",
+      "source": "./",
+      "author": {
+        "name": "William Atchison",
+        "email": "william.e.atchison.jr@gmail.com"
+      }
+    }
+  ]
+}
