@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<!--
+  brainstorming DESIGN DOC — dt-pos-skills plugin.
+  Self-contained, offline (file://). All CSS inline. System fonts only.
+  FIXED masthead + palette reproduced as-is; body styled within the palette.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dt-pos-skills — Multi-Harness Plugin Design</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  /* ---- FIXED masthead (do not restyle) ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:46ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);
+               border-radius:999px;padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;
+               text-transform:uppercase;line-height:1.45;background:transparent;}
+
+  /* ---- BODY (on-palette) ---- */
+  main{margin-top:2.6rem;}
+  main section{padding:1.6rem 0;border-top:1px solid #d9cfb6;}
+  main section:first-of-type{border-top:none;}
+  main h2{font-family:var(--serif);font-size:1.9rem;letter-spacing:-.01em;color:var(--maroon);
+          margin:.2rem 0 1rem;}
+  main h3{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.92rem;
+          color:var(--label);margin:1.4rem 0 .6rem;}
+  main p,main li{font-size:1.06rem;line-height:1.62;}
+  main ul,main ol{padding-left:1.3rem;}
+  main li{margin:.3rem 0;}
+  code{font-family:var(--mono);font-size:.88em;background:var(--meta-bg);
+       border-radius:5px;padding:.08em .38em;}
+  pre{font-family:var(--mono);font-size:.85rem;line-height:1.5;background:#efe7d3;
+      border-left:4px solid var(--maroon);border-radius:8px;padding:1rem 1.2rem;overflow:auto;}
+  pre code{background:none;padding:0;font-size:inherit;}
+  table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.98rem;}
+  th,td{text-align:left;vertical-align:top;padding:.55rem .7rem;border-bottom:1px solid #d9cfb6;}
+  th{font-family:var(--mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;
+     color:var(--label);}
+  blockquote{margin:1rem 0;padding:.6rem 1.1rem;border-left:4px solid var(--amber);
+             background:#efe7d3;border-radius:0 8px 8px 0;font-style:italic;}
+  .tag{font-family:var(--mono);font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;
+       border:1px solid var(--amber);color:var(--amber);border-radius:999px;padding:.05rem .55rem;}
+  .note{font-size:.96rem;color:var(--label);}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Spec &middot; Design</p>
+      <h1>dt-pos-skills</h1>
+      <p class="subtitle">A self-contained, multi-harness plugin for Dollar Tree POS documentation, release, and QA skills.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-06-19</dd>
+        <dt>Branch</dt><dd>TBD &mdash; new repo at C:\Projects\GitLab\personal\dt-pos-skills</dd>
+        <dt>Status</dt><dd><span class="status-pill">Design &mdash; Awaiting Plan + Impl</span></dd>
+        <dt>Source</dt><dd>Extracting DT POS doc/QA skills out of the mySuperpower fork into their own plugin.</dd>
+      </dl>
+    </header>
+
+    <main>
+      <section>
+        <h2>Overview</h2>
+        <p><strong>dt-pos-skills</strong> is a new, standalone coding-agent plugin that bundles the Dollar Tree
+        Point-of-Sale documentation toolkit so it can be installed independently of the
+        <code>mySuperpower</code> fork and shared with the DT team across multiple harnesses. It packages
+        four skills, six convenience slash commands, and a slim bootstrap, with per-harness manifests for
+        <strong>Claude Code, Codex, and Gemini CLI</strong>.</p>
+        <p>These skills currently live (uncommitted) inside <code>mySuperpower/skills/</code>. Leaving them
+        there would leak them into the mySuperpower plugin build and tangle DT-specific tooling with a
+        general-purpose fork. This plugin gives them a clean, purpose-built home.</p>
+        <h3>Goals</h3>
+        <ul>
+          <li>One installable plugin that delivers the DT feature-docs, release-info, and release-QA skills plus their <code>/</code> commands.</li>
+          <li>Self-contained: works even when no other Superpowers plugin is present.</li>
+          <li>Multi-harness from day one (Claude Code, Codex, Gemini CLI).</li>
+          <li>No build pipeline &mdash; skills committed in final form.</li>
+        </ul>
+        <h3>Non-goals (YAGNI)</h3>
+        <ul>
+          <li>No pristine-source mirror / build-overlay / release branch (mySuperpower needs those to absorb
+          upstream merges; this plugin has <em>no upstream</em>).</li>
+          <li>No Cursor / Kimi / OpenCode / Pi support at launch.</li>
+          <li>No public/open-source distribution &mdash; internal DT tooling only.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Chosen Approach</h2>
+        <p><span class="tag">Approach A</span> &nbsp;<strong>No-build, distribution-only multi-harness plugin.</strong>
+        Because there is no upstream to track and no rebrand to apply, skills are authored directly with their
+        final <code>dt-pos-skills:</code> namespace and committed as-is. The plugin ships per-harness manifests,
+        a marketplace catalog, and its own slim session-start bootstrap, served straight from the GitLab repo root.</p>
+        <p class="note">Rejected: <strong>B</strong> &mdash; mirror mySuperpower's pristine-source + build-overlay + release-branch
+        machinery (pure ceremony with no upstream); <strong>C</strong> &mdash; Claude-Code-only (the team chose multi-harness).</p>
+      </section>
+
+      <section>
+        <h2>Architecture</h2>
+        <h3>Repository layout</h3>
+<pre><code>dt-pos-skills/
+├── .claude-plugin/
+│   ├── plugin.json          # name: dt-pos-skills, version, author
+│   └── marketplace.json     # catalog, source "./" (served from repo root)
+├── .codex-plugin/
+│   └── plugin.json
+├── .agents/plugins/
+│   └── marketplace.json     # Codex catalog
+├── gemini-extension.json    # Gemini CLI manifest
+├── GEMINI.md                # Gemini tool-mapping + bootstrap
+├── AGENTS.md                # Codex / generic agents pointer
+├── hooks/
+│   ├── hooks.json           # Claude Code SessionStart -> run-hook.cmd session-start
+│   ├── hooks-codex.json
+│   ├── run-hook.cmd         # cmd/bash polyglot wrapper (from mySuperpower)
+│   ├── session-start
+│   └── session-start-codex
+├── commands/                # Claude Code convenience layer (6)
+│   ├── feature-docs.md   user-guide.md   qa-tests.md
+│   ├── unit-tests.md     release-info.md release-qa-tests.md
+├── skills/
+│   ├── using-dt-pos-skills/    # NEW slim bootstrap
+│   ├── dollar-tree-branding/   # bundled copy (SKILL.md + brand.css)
+│   ├── creating-feature-docs/  # SKILL.md + 2 html + templates/ (3)
+│   ├── release-info/           # SKILL.md + templates/ (1)
+│   └── release-qa-tests/       # SKILL.md + templates/ (1)
+├── README.md                # incl. "Internal DT tooling" note (no OSS LICENSE)
+├── package.json             # version source for the bump helper
+├── .version-bump.json       # keeps the 4 manifest versions in sync
+├── scripts/bump-version.sh  # copied from mySuperpower
+└── .gitignore</code></pre>
+        <h3>Why no build</h3>
+        <p>mySuperpower's build exists to keep a byte-pristine upstream mirror and apply HTML/namespace overlays
+        at build time. dt-pos-skills authors everything in final form, so the filesystem <em>is</em> the plugin.
+        The marketplace is served from the repo root (<code>source: "./"</code>) &mdash; no <code>dist/</code>, no
+        release branch.</p>
+      </section>
+
+      <section>
+        <h2>Components</h2>
+        <h3>Skills (4)</h3>
+        <table>
+          <tr><th>Skill</th><th>Purpose</th><th>Assets</th></tr>
+          <tr><td><code>creating-feature-docs</code></td><td>Produce/refresh the 3-doc set for a feature: IT Support User Guide, QA Test Guide, interactive Unit Test instrument.</td><td>SKILL.md, SKILL-md.html, SKILL-review.html, 3 templates</td></tr>
+          <tr><td><code>release-info</code></td><td>Interactive Release Information doc for a release line; seeds from CHANGELOG; DT-branded PDF.</td><td>SKILL.md, 1 template</td></tr>
+          <tr><td><code>release-qa-tests</code></td><td>One release-wide QA guide spanning every Jira ticket; cases derived from merged diffs.</td><td>SKILL.md, 1 template</td></tr>
+          <tr><td><code>dollar-tree-branding</code></td><td>Bundled REQUIRED SUB-SKILL: official palette, Calibri, warm off-white.</td><td>SKILL.md, brand.css</td></tr>
+        </table>
+        <h3>Commands (6)</h3>
+        <p>Thin 9-line wrappers (Claude Code) that invoke the underlying skills, scoped per document.</p>
+        <table>
+          <tr><th>Command</th><th>Scope</th><th>Skill</th></tr>
+          <tr><td><code>/feature-docs</code></td><td>All three docs</td><td>creating-feature-docs</td></tr>
+          <tr><td><code>/user-guide</code></td><td>User guide only</td><td>creating-feature-docs (scoped)</td></tr>
+          <tr><td><code>/qa-tests</code></td><td>QA guide only</td><td>creating-feature-docs (scoped)</td></tr>
+          <tr><td><code>/unit-tests</code></td><td>Unit-test instrument only</td><td>creating-feature-docs (scoped)</td></tr>
+          <tr><td><code>/release-info</code></td><td>Release Information doc</td><td>release-info</td></tr>
+          <tr><td><code>/release-qa-tests</code></td><td>Release-wide QA guide</td><td>release-qa-tests</td></tr>
+        </table>
+        <h3>Bootstrap (<code>using-dt-pos-skills</code>)</h3>
+        <p>A <em>slim</em> skill (not a copy of the heavy <code>using-superpowers</code>). The session-start hook injects it:</p>
+        <blockquote>You have Dollar Tree POS documentation skills. When work involves producing or refreshing a
+        feature's docs, a release-information document, or release-wide QA tests, invoke the relevant
+        <code>dt-pos-skills</code> skill first.</blockquote>
+        <p class="note">Harmless if mySuperpower's bootstrap also fires.</p>
+        <h3>Per-harness manifests &amp; hooks</h3>
+        <ul>
+          <li><strong>Claude Code:</strong> <code>.claude-plugin/plugin.json</code>, <code>.claude-plugin/marketplace.json</code>, <code>hooks/hooks.json</code> + <code>run-hook.cmd</code> + <code>session-start</code>.</li>
+          <li><strong>Codex:</strong> <code>.codex-plugin/plugin.json</code>, <code>.agents/plugins/marketplace.json</code>, <code>hooks/hooks-codex.json</code> + <code>session-start-codex</code>, <code>AGENTS.md</code>.</li>
+          <li><strong>Gemini CLI:</strong> <code>gemini-extension.json</code> + <code>GEMINI.md</code> (tool-mapping + bootstrap).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Data Flow &amp; Cross-References</h2>
+        <h3>Namespace rewrites (once, at authoring)</h3>
+        <p>Every <code>my-superpower:creating-feature-docs</code> / <code>release-info</code> / <code>release-qa-tests</code>
+        reference &mdash; in the 6 commands and the skills' internal cross-links &mdash; is rewritten to
+        <code>dt-pos-skills:</code>.</p>
+        <h3>External-dependency softening</h3>
+        <p><code>release-qa-tests</code> references <code>my-superpower:dispatching-parallel-agents</code>, which is
+        <strong>core Superpowers and is NOT bundled</strong>. It is softened to harness-neutral guidance
+        ("dispatch parallel agents, ~4 tickets per batch") with an optional "use your platform's parallel-agents
+        skill if available" note, so standalone users are not broken.</p>
+        <h3>Branding</h3>
+        <p>All five templates already inline the DT <code>brand.css</code> (palette, Calibri, off-white) and render
+        offline from <code>file://</code>. The bundled <code>dollar-tree-branding</code> skill is the canonical
+        source the skills cite; copied from <code>team-claude/plugins/dollar-tree-branding</code> (reconciled
+        against <code>~/.claude/skills/dollar-tree-branding</code> at copy time).</p>
+        <h3>Install flow (team)</h3>
+<pre><code># Claude Code
+/plugin marketplace add &lt;gitlab-git-url-for-dt-pos-skills&gt;
+/plugin install dt-pos-skills@dt-pos-skills</code></pre>
+      </section>
+
+      <section>
+        <h2>Error Handling &amp; Risks</h2>
+        <table>
+          <tr><th>Risk</th><th>Mitigation</th></tr>
+          <tr><td>Dangling namespace refs after move</td><td>Grep-verify zero residual <code>my-superpower:</code> / <code>superpowers:</code> refs in <code>skills/</code> + <code>commands/</code> (except the intentionally-softened parallel-agents note).</td></tr>
+          <tr><td>Branding copy drifts from team-claude original</td><td>Accepted trade-off for self-containment; README notes the canonical upstream and copy date.</td></tr>
+          <tr><td>Manifest version drift (the bug just fixed in mySuperpower)</td><td><code>.version-bump.json</code> + <code>bump-version.sh</code> keep all 4 version fields in sync; <code>--check</code> in verification.</td></tr>
+          <tr><td>Skills leak into mySuperpower build</td><td>After the move, the 3 skill dirs are deleted from <code>mySuperpower/skills/</code>; verify mySuperpower build no longer copies them.</td></tr>
+          <tr><td>GitLab marketplace install (not GitHub shorthand)</td><td>Use full git URL with <code>/plugin marketplace add</code>; document in README.</td></tr>
+          <tr><td>Double bootstrap injection (mySuperpower + dt-pos-skills)</td><td>Slim bootstrap is idempotent guidance; redundant injection is harmless.</td></tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Testing &amp; Verification</h2>
+        <ul>
+          <li><strong>Manifest validity:</strong> each <code>plugin.json</code> / <code>marketplace.json</code> / <code>gemini-extension.json</code> parses as JSON; <code>bump-version.sh --check</code> reports all in sync.</li>
+          <li><strong>Namespace sweep:</strong> no residual <code>my-superpower:</code> / <code>superpowers:</code> in <code>skills/</code> or <code>commands/</code> beyond the softened note.</li>
+          <li><strong>Self-containment:</strong> the 5 templates render offline from <code>file://</code> with correct DT branding.</li>
+          <li><strong>Acceptance test (Claude Code):</strong> fresh session &rarr; <code>/feature-docs &lt;ticket&gt;</code> resolves the <code>dt-pos-skills:creating-feature-docs</code> skill and follows it; <code>/release-qa-tests</code> and <code>/release-info</code> resolve their skills.</li>
+          <li><strong>Source cleanup:</strong> mySuperpower working tree clean; its build no longer emits the 3 DT skills.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
