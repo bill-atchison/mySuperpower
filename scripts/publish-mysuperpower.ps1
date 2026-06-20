@@ -69,6 +69,24 @@ $relMarketPath = Join-Path $wt '.claude-plugin/marketplace.json'
 New-Item -ItemType Directory -Force -Path (Split-Path $relMarketPath) | Out-Null
 $releaseMarket | Set-Content -LiteralPath $relMarketPath
 
+# Codex reads a different catalog: .agents/plugins/marketplace.json (plus each
+# plugin's .codex-plugin/plugin.json, which is already at the branch root).
+$codexMarket = [ordered]@{
+  name      = $mk.name
+  interface = [ordered]@{ displayName = $mk.plugins[0].displayName }
+  plugins   = @(
+    [ordered]@{
+      name     = $mk.plugins[0].name
+      source   = [ordered]@{ source = 'local'; path = './' }
+      policy   = [ordered]@{ installation = 'AVAILABLE'; authentication = 'ON_INSTALL' }
+      category = 'Coding'
+    }
+  )
+} | ConvertTo-Json -Depth 20
+$agentsMarketPath = Join-Path $wt '.agents/plugins/marketplace.json'
+New-Item -ItemType Directory -Force -Path (Split-Path $agentsMarketPath) | Out-Null
+$codexMarket | Set-Content -LiteralPath $agentsMarketPath
+
 # --- 5. Commit (and optionally push) ---
 Push-Location $wt
 git add -A
