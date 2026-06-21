@@ -8,7 +8,7 @@
       "name": "my-superpower",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/my-superpower"
       },
       "policy": {
         "installation": "AVAILABLE",
