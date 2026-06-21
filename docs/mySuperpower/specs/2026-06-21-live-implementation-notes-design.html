@@ -120,16 +120,27 @@
           <li><strong>If a task is BLOCKED</strong> — mark it <em>blocked</em> with the reason; the doc reflects the stall instead of going silent.</li>
           <li><strong>At the end</strong> — after the final whole-branch review, one final rewrite adds the outcome and any minor-findings roll-up, <strong>removes the auto-refresh block</strong>, and commits.</li>
         </ol>
+        <p><strong>Terminal states:</strong> <em>done</em> (review clean — accepted minor findings are recorded on the row but do not block it), <em>blocked</em> (an unresolved blocker), and <em>aborted</em> (branch abandoned). A task with must-fix (Critical/Important) findings stays <em>running</em> through the fix and re-review loop — that is not a terminal state.</p>
 
         <h3>What the live doc looks like mid-run</h3>
         <div class="mock" aria-hidden="true">
           <div class="bar"><span>Implementation &mdash; feature/&hellip;</span><span class="dot">&#10227; auto-refreshing &middot; every 3s</span></div>
           <div class="row"><span class="ic s-done">&#9989;</span><span>Task 1</span><span class="meta">done &middot; <code>a1b2&hellip;c3d4</code> &middot; 5/5 tests &middot; spec &#10003; quality &#10003;</span></div>
-          <div class="row"><span class="ic s-run">&#9203;</span><span class="s-run">Task 2</span><span class="meta">running&hellip; implementer dispatched</span></div>
+          <div class="row running"><span class="ic s-run">&#9203;</span><span class="s-run">Task 2</span><span class="meta">running&hellip; implementer dispatched</span></div>
           <div class="row"><span class="ic s-pend">&#11036;</span><span class="s-pend">Task 3</span><span class="s-pend">pending</span></div>
           <div class="row"><span class="ic s-pend">&#11036;</span><span class="s-pend">Task 4</span><span class="s-pend">pending</span></div>
         </div>
         <p class="legend">&#9989; done &nbsp;&middot;&nbsp; &#9203; running &nbsp;&middot;&nbsp; &#11036; pending &nbsp;&middot;&nbsp; &#9940; blocked. The running task is scrolled into view on each reload.</p>
+      </section>
+
+      <section>
+        <h2>executing-plans specifics</h2>
+        <p><code>executing-plans</code> runs in batches with human checkpoints and often in a separate session, so the lifecycle binds to its rhythm:</p>
+        <ul>
+          <li><strong>At most one task is <em>running</em> at a time</strong> — tasks are worked sequentially, as in SDD; the doc never shows two running rows.</li>
+          <li><strong>Rows flip to <em>done</em> as each task completes within a batch</strong>, not deferred to the checkpoint — the checkpoint is where you review, not where the doc catches up.</li>
+          <li><strong>A resumed session rebuilds the table from the ledger</strong> — every task the ledger marks complete renders <em>done</em>, the first unfinished task becomes the next <em>running</em>, and the rest <em>pending</em>. The doc is reconstructed from ledger state, never appended to, so a fresh session needs no prior HTML.</li>
+        </ul>
       </section>
 
       <section>
@@ -159,20 +170,26 @@
         <p>A small inline script, delimited so the finalize rewrite can drop it cleanly:</p>
         <pre><code>&lt;!-- AUTO-REFRESH:START (removed on finalize) --&gt;
 &lt;script&gt;
-  // restore scroll, then reload on an interval over file://
-  const y = sessionStorage.getItem('implScroll');
-  if (y) window.scrollTo(0, +y);
-  addEventListener('beforeunload', () =&gt;
-    sessionStorage.setItem('implScroll', String(scrollY)));
+  // Storage can be denied on file:// (opaque origin) — never let it block reload.
+  try {
+    const y = sessionStorage.getItem('implScroll');
+    if (y) window.scrollTo(0, +y);
+    addEventListener('beforeunload', () =&gt;
+      sessionStorage.setItem('implScroll', String(scrollY)));
+  } catch (_) { /* storage unavailable; ignore */ }
+  // Keep the active task in view.
+  const run = document.querySelector('.row.running');
+  if (run) run.scrollIntoView({ block: 'center' });
+  // Reload on an interval, independent of the above.
   setTimeout(() =&gt; location.reload(), 3000);
 &lt;/script&gt;
 &lt;!-- AUTO-REFRESH:END --&gt;</code></pre>
-        <p>3-second interval; scroll position preserved across reloads via <code>sessionStorage</code>; the running task is anchored so the view stays where the action is. The finalized document contains none of this — it is a plain static file.</p>
+        <p>3-second interval. Scroll continuity is best-effort via <code>sessionStorage</code>, wrapped in <code>try/catch</code> because a <code>file://</code> page can be denied storage; the reload is scheduled regardless. The running row (<code>.row.running</code>) is scrolled into view so the view stays where the action is. The finalized document contains none of this — it is a plain static file.</p>
       </section>
 
       <section>
         <h2>Data flow</h2>
-        <p>The controller never reads the document back into its context. It holds the task list and per-task results in the progress ledger it already maintains, and regenerates the whole HTML from that state on each update — a single write, template plus current rows. The browser is a passive viewer: it reloads the file from disk on its timer. This one-way flow (ledger &rarr; rewrite file &rarr; browser reload) means the doc can always be rebuilt from the ledger after a compaction or resume.</p>
+        <p>The controller never reads the document back into its context. It holds the task list and per-task results in the progress ledger it already maintains, and regenerates the whole HTML from that state on each update — template plus current rows. Each rewrite is written to a temporary file and renamed into place (atomic replace), so a reload that lands mid-write never sees a truncated document. The browser is a passive viewer: it reloads the file from disk on its timer. This one-way flow (ledger &rarr; rewrite file &rarr; browser reload) means the doc can always be rebuilt from the ledger after a compaction or resume.</p>
       </section>
 
       <section>
@@ -189,8 +206,8 @@
         <ul>
           <li><strong>Browser won't open</strong> (headless / no default handler) &mdash; non-fatal: the controller prints the file path and proceeds. Execution never blocks on the viewer.</li>
           <li><strong>Compaction / resume</strong> &mdash; the doc is regenerated from the progress ledger, so it survives a lost context exactly like the ledger does. No state lives only in the HTML.</li>
-          <li><strong>Cross-platform open</strong> &mdash; the skill speaks in actions ("open in the default browser") with a per-OS note: Windows <code>start "" &lt;file&gt;</code>, macOS <code>open &lt;file&gt;</code>, Linux <code>xdg-open &lt;file&gt;</code>. Opened once, at start; never reopened (the tab self-refreshes).</li>
-          <li><strong>Finalize is mandatory</strong> &mdash; even on a blocked/aborted branch the finalize pass runs so no delivered doc is left auto-refreshing against a file that has stopped changing.</li>
+          <li><strong>Cross-platform open</strong> &mdash; the skill speaks in actions ("open in the default browser") with a per-OS note: Windows (PowerShell) <code>Start-Process &lt;file&gt;</code> or <code>cmd /c start "" "&lt;file&gt;"</code>, macOS <code>open &lt;file&gt;</code>, Linux <code>xdg-open &lt;file&gt;</code>. Opened once, at start; never reopened (the tab self-refreshes).</li>
+          <li><strong>Finalize, with a crash safety net</strong> &mdash; on every normal exit (including a blocked/aborted branch) the finalize pass strips the auto-refresh so no delivered doc keeps reloading a file that has stopped changing. Because a hard crash, kill, or shutdown can skip finalize, execution start also runs a repair pass: if the existing doc still carries an <code>AUTO-REFRESH</code> block from a dead session, strip it before creating and opening the new one.</li>
         </ul>
       </section>
 
