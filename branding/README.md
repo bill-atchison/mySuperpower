@@ -18,9 +18,32 @@ conflict-free.
 - `scripts/build-mysuperpower.ps1` (or `.sh`) assembles `dist/`.
 - `dist/` is git-ignored; build it locally before installing.
 
-## Install (local plugin)
+## Installing the plugin
 
-Build, then add the marketplace at the repo root and install:
+Every harness installs the **same built plugin**; only the location of the
+marketplace catalog differs. There are two repo installation options:
+
+| Option | What it is | Best for |
+|---|---|---|
+| **GitHub `release` branch** | The built plugin and its marketplace catalogs sit at the root of the `release` branch — no local checkout required. | Normal use |
+| **Local checkout** | Build `dist/` yourself and point the harness at this working copy. | Developing overlays / branding |
+
+`main` (the default branch) is a pristine upstream mirror with **no** built
+plugin, so every GitHub install must pin the `release` branch. The technical
+name/namespace is `my-superpower` (kebab-case, required by the harnesses); it
+shows as **mySuperpower** in the picker via `displayName`.
+
+### Claude Code
+
+From GitHub — pin the `release` branch with `#`:
+
+```
+/plugin marketplace add bill-atchison/mySuperpower#release
+/plugin install my-superpower@my-superpower
+```
+
+From a local checkout — build first; the marketplace at the repo root loads the
+plugin from `./dist`:
 
 ```
 pwsh -NoProfile -File scripts/build-mysuperpower.ps1
@@ -28,26 +51,31 @@ pwsh -NoProfile -File scripts/build-mysuperpower.ps1
 /plugin install my-superpower@my-superpower
 ```
 
-The marketplace at the repo root loads the plugin from `./dist`. The technical
-name/namespace is `my-superpower` (kebab-case, required by Claude Code); it shows
-as **mySuperpower** in the `/plugin` picker via `displayName`.
-
 After rebuilding, refresh the installed copy with `/plugin marketplace update`
 (or quick-test directly with `claude --plugin-dir ./dist`).
 
-## Install from GitHub (release branch)
+### Codex
 
-The built plugin is published to the `release` branch (plugin at the branch root).
-Install it directly from GitHub by pinning that branch with `#`:
+Codex installs from the **`release` branch**, which also carries a Codex
+marketplace catalog (`.agents/plugins/marketplace.json`) next to the Claude one.
+Register the marketplace, then add the plugin (verified on `codex-cli 0.141.0`):
 
 ```
-/plugin marketplace add bill-atchison/mySuperpower#release
-/plugin install my-superpower@my-superpower
+codex plugin marketplace add bill-atchison/mySuperpower --ref release
+codex plugin add my-superpower@my-superpower
 ```
 
-`main` (the default branch) is a pristine upstream mirror, so the `#release` ref is
-required. The plugin version is pinned (currently `6.0.3`); `/plugin marketplace update`
-pulls a new build only after the version is bumped on a release.
+`codex plugin marketplace add` accepts an `owner/repo`, an HTTPS/SSH Git URL, or
+a local path; `--ref release` pins the published branch. Both the marketplace
+and the plugin are named `my-superpower`. Pull a newer build with
+`codex plugin marketplace upgrade`.
+
+> Codex must install from the GitHub `release` branch — the local `dist/` build
+> does not contain the Codex catalog (`.agents/plugins/...`), which is emitted
+> only when the `release` branch is published.
+
+The plugin version is pinned per release (currently `6.0.3`); a marketplace
+refresh pulls a new build only after the version is bumped on a release.
 
 ## HTML workflow output
 
@@ -87,8 +115,10 @@ pwsh -NoProfile -File scripts/publish-mysuperpower.ps1 -Push
 ```
 
 This builds `dist/`, mirrors it to the root of the `release` branch (via a throwaway
-worktree), stamps the plugin version into the release `marketplace.json`, commits, and
-pushes `origin/release`. The `mysuperpower` branch stays free of generated artifacts.
+worktree), stamps the plugin version into both release marketplace catalogs — Claude
+Code's `.claude-plugin/marketplace.json` and Codex's `.agents/plugins/marketplace.json` —
+commits, and pushes `origin/release`. The `mysuperpower` branch stays free of generated
+artifacts.
 
 ## Credit
 
