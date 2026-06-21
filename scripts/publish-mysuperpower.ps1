@@ -65,19 +65,31 @@ Pop-Location
 Get-ChildItem -Force -Path $dist |
   ForEach-Object { Copy-Item -Recurse -Force -Path $_.FullName -Destination (Join-Path $wt $_.Name) }
 
+# Codex requires each plugin in its OWN SUBDIRECTORY — a plugin at the marketplace
+# root (path './') is not resolved by `codex plugin add` (verified on codex-cli
+# 0.141.0). Claude Code installs the plugin from the branch root (source './'),
+# while Codex installs it from ./plugins/<name>/. So mirror the built plugin into
+# a subdirectory for Codex; the root copy stays for Claude.
+$pluginName = $mk.plugins[0].name
+$codexPluginRel = "plugins/$pluginName"
+$codexPluginDir = Join-Path $wt $codexPluginRel
+New-Item -ItemType Directory -Force -Path $codexPluginDir | Out-Null
+Get-ChildItem -Force -Path $dist |
+  ForEach-Object { Copy-Item -Recurse -Force -Path $_.FullName -Destination (Join-Path $codexPluginDir $_.Name) }
+
 $relMarketPath = Join-Path $wt '.claude-plugin/marketplace.json'
 New-Item -ItemType Directory -Force -Path (Split-Path $relMarketPath) | Out-Null
 $releaseMarket | Set-Content -LiteralPath $relMarketPath
 
-# Codex reads a different catalog: .agents/plugins/marketplace.json (plus each
-# plugin's .codex-plugin/plugin.json, which is already at the branch root).
+# Codex reads a different catalog: .agents/plugins/marketplace.json, pointing at
+# the plugin's subdirectory (NOT the branch root — see note above).
 $codexMarket = [ordered]@{
   name      = $mk.name
   interface = [ordered]@{ displayName = $mk.plugins[0].displayName }
   plugins   = @(
     [ordered]@{
-      name     = $mk.plugins[0].name
-      source   = [ordered]@{ source = 'local'; path = './' }
+      name     = $pluginName
+      source   = [ordered]@{ source = 'local'; path = "./$codexPluginRel" }
       policy   = [ordered]@{ installation = 'AVAILABLE'; authentication = 'ON_INSTALL' }
       category = 'Coding'
     }
