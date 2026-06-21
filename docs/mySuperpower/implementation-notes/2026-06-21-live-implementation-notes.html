@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- Implementation notes — created at completion (status Complete, no meta refresh). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Implementation Notes — Implementation</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b; --olive:#7a6a2e;
+    --rule:#ddd3bc; --subrule:#ece4d0; --green:#3f7d3f; --card:#faf7ef;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;margin:0 0 1.9rem;max-width:48ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;row-gap:.55rem;
+             align-items:baseline;background:var(--meta-bg);border-radius:14px;
+             border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--green);color:var(--green);border-radius:999px;
+               padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
+               line-height:1.45;background:transparent;}
+  .section-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;font-size:.95rem;
+                 font-weight:700;color:var(--ink);border-bottom:2px solid var(--ink);
+                 padding-bottom:.5rem;margin:2.6rem 0 1.4rem;}
+  table.tasks{width:100%;border-collapse:collapse;}
+  table.tasks th{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;
+                 color:var(--label);text-align:left;font-weight:400;padding:.4rem .75rem;}
+  table.tasks td{padding:.6rem .75rem;vertical-align:middle;}
+  td.num{font-family:var(--mono);color:var(--label);width:3rem;}
+  td.st{width:1%;white-space:nowrap;text-align:right;}
+  tr.task-row td{border-top:2px solid var(--ink);font-size:1.05rem;}
+  tr.task-row td.desc{font-weight:700;}
+  tr.sub td{border-top:1px solid var(--subrule);}
+  td.subtask{padding-left:2.1rem;color:var(--label);font-size:.95rem;}
+  .tstatus{font-family:var(--mono);font-size:.78rem;padding:.22rem .65rem;border-radius:7px;white-space:nowrap;}
+  .tstatus.done{background:#d6e8cf;color:var(--green);}
+  .dd-card{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:14px;
+           padding:1.7rem 1.85rem 1.4rem;margin:1.7rem 0;}
+  .dd-tag{position:absolute;top:-0.75rem;left:1.5rem;background:var(--maroon);color:var(--paper);
+          font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;
+          font-weight:700;padding:.28rem .7rem;border-radius:6px;}
+  .dd-card h3{font-family:var(--serif);font-weight:700;font-size:1.3rem;margin:.3rem 0 .8rem;}
+  .dd-card p{font-size:1.05rem;line-height:1.55;margin:.5rem 0;}
+  .dd-card ul{margin:.6rem 0;padding-left:1.4rem;}
+  .dd-card li{margin:.5rem 0;line-height:1.55;}
+  code{font-family:var(--mono);background:var(--meta-bg);border:1px solid var(--rule);
+       padding:.05em .35em;border-radius:5px;font-size:.85em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Notes &middot; Implementation</p>
+      <h1>Live Implementation Notes</h1>
+      <p class="subtitle">Wire the SDD and executing-plans overlays to drive the live implementation-notes document the template already supports, and open it in the browser.</p>
+      <dl class="meta-card">
+        <dt>Started</dt><dd>2026-06-21</dd>
+        <dt>Branch</dt><dd>feature/live-implementation-notes</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-06-21-live-implementation-notes-design.html</dd>
+        <dt>Plan</dt><dd>docs/mySuperpower/plans/2026-06-21-live-implementation-notes.html</dd>
+        <dt>Status</dt><dd><span class="status-pill">Implementation &mdash; Complete</span></dd>
+      </dl>
+    </header>
+
+    <section class="task-status">
+      <h2 class="section-label">Task Status</h2>
+      <table class="tasks">
+        <thead><tr><th>Task</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="task-row"><td class="num">1</td><td class="desc">Rewrite the subagent-driven-development overlay</td><td class="st"><span class="tstatus done">&check; done &middot; 5aa099f</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; replace additions.md with the live lifecycle</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; rebuild dist + grep verify</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">2</td><td class="desc">Rewrite the executing-plans overlay</td><td class="st"><span class="tstatus done">&check; done &middot; 8cfc856</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; replace additions.md (agent updates doc itself; resume from ledger)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; rebuild dist + grep verify</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+
+          <tr class="task-row"><td class="num">3</td><td class="desc">Align template comment &amp; final verification</td><td class="st"><span class="tstatus done">&check; done &middot; fdef9ff</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; swap WHO-UPDATES-WHAT comment in both template copies</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; /simplify (clean, no changes) + diff-identical + offline check</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="decisions">
+      <h2 class="section-label">Decisions &amp; Deviations</h2>
+
+      <div class="dd-card">
+        <span class="dd-tag">Pre-Impl &middot; Context</span>
+        <h3>Rescoped to reuse the already-live template</h3>
+        <p>While writing the plan we found <code>implementation-notes-template.html</code> was <strong>already built for live updates</strong> (a <code>&lt;meta refresh&gt;</code>, a task/subtask status table, and a Decisions &amp; Deviations card stream), but both overlays only invoked it <em>after</em> the work finished — so the capability was never exercised.</p>
+        <ul>
+          <li><strong>Deviation from the first spec:</strong> the original draft proposed a from-scratch inline-JS refresh and simpler rows. We discarded that and rescoped to "reuse the template unchanged; fix the overlays." Smaller change, keeps the richer features.</li>
+          <li><strong>Mechanism:</strong> the template's existing <code>&lt;meta refresh content="5"&gt;</code> drives the live view; finalize removes it.</li>
+        </ul>
+      </div>
+
+      <div class="dd-card">
+        <span class="dd-tag">Decision &middot; Off-Spec Simplification</span>
+        <h3>Controller/agent owns every write</h3>
+        <p>All writes to the live document stay in the <strong>controller</strong> (SDD) or the <strong>agent</strong> (executing-plans); implementer subagents remain report-only. This avoids concurrent writers to the shared HTML and keeps dispatch prompts clean — a deliberate simplification of the template's original "implementer subagent flips its own subtask rows" protocol. Task 3 (<code>fdef9ff</code>) updated the template's WHO-UPDATES-WHAT comment to match.</p>
+      </div>
+
+      <div class="dd-card">
+        <span class="dd-tag">Process &middot; Worktree Base</span>
+        <h3>Worktree based on <code>mysuperpower</code>, not <code>main</code></h3>
+        <p>The native worktree default branches from <code>origin/main</code>, but this fork keeps <code>main</code> as a pristine upstream mirror — <code>overlays/</code> exists only on <code>mysuperpower</code>. The worktree was created from <code>mysuperpower</code> HEAD so the edited overlays were present; branching from <code>main</code> would have yielded an empty <code>overlays/</code>.</p>
+      </div>
+
+      <div class="dd-card">
+        <span class="dd-tag">Final Review &middot; Clean</span>
+        <h3>Whole-branch review: ready to merge</h3>
+        <p>0 Critical / 0 Important / 0 Minor. Full spec coverage, both overlays mutually consistent and consistent with the template comment, template change confirmed comment-only, offline/zero-dependency preserved. The two template copies are byte-identical. <strong>Note:</strong> the new live behavior takes effect only after a <code>build-mysuperpower</code> rebuild and reinstall of the plugin.</p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
