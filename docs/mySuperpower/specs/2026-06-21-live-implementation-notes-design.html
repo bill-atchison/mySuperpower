@@ -59,24 +59,22 @@
   .note .k{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;
            font-size:.72rem;color:var(--amber);font-weight:700;display:block;margin-bottom:.35rem;}
 
-  /* mock of the live doc */
+  /* mock of the live doc (mirrors the existing template's table) */
   .mock{background:#fbf7ec;border:1px solid #d8cdb3;border-radius:12px;
         padding:1.1rem 1.3rem;margin:1rem 0;}
   .mock .bar{font-family:var(--mono);font-size:.74rem;color:var(--label);
              letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem;
              display:flex;justify-content:space-between;}
   .mock .dot{color:var(--maroon);}
-  .row{display:grid;grid-template-columns:1.6rem 8.5rem 1fr;align-items:baseline;
-       gap:.6rem;font-family:var(--mono);font-size:.9rem;padding:.32rem 0;
-       border-bottom:1px dotted #d8cdb3;}
-  .row:last-child{border-bottom:none;}
-  .row .ic{font-size:1rem;}
-  .row .meta{color:var(--label);}
-  .s-run{color:var(--amber);font-weight:700;}
-  .s-done{color:#3f6f3f;}
-  .s-pend{color:#9b9079;}
-  .s-block{color:var(--maroon);font-weight:700;}
-  .legend{font-family:var(--mono);font-size:.82rem;color:var(--label);margin:.4rem 0 0;}
+  .trow{display:grid;grid-template-columns:1fr 6.5rem;align-items:baseline;gap:.6rem;
+        font-family:var(--mono);font-size:.9rem;padding:.3rem 0;border-bottom:1px dotted #d8cdb3;}
+  .trow:last-child{border-bottom:none;}
+  .trow.task{font-weight:700;border-top:2px solid var(--ink);}
+  .trow.sub{color:var(--label);font-size:.84rem;padding-left:1.4rem;}
+  .pill{font-family:var(--mono);font-size:.72rem;padding:.16rem .55rem;border-radius:7px;text-align:center;}
+  .p-done{background:#d6e8cf;color:#3f7d3f;}
+  .p-prog{background:#ecdcbf;color:#9a6a1f;}
+  .p-pend{background:#e7dfca;color:var(--label);}
   table{border-collapse:collapse;width:100%;font-size:.96rem;margin:1rem 0;}
   th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid #d8cdb3;vertical-align:top;}
   th{font-family:var(--mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--label);}
@@ -88,7 +86,7 @@
     <header>
       <p class="eyebrow">Spec &middot; Design</p>
       <h1>Live Implementation Notes</h1>
-      <p class="subtitle">The implementation-notes document fills in as each task runs, opens itself in your browser, and self-refreshes until the branch is done.</p>
+      <p class="subtitle">Wire the overlays to drive the live implementation-notes document the template already supports, and open it in the browser.</p>
       <dl class="meta-card">
         <dt>Date</dt><dd>2026-06-21</dd>
         <dt>Branch</dt><dd>feature/live-implementation-notes</dd>
@@ -100,124 +98,109 @@
     <main>
       <section>
         <h2>Overview</h2>
-        <p>Today the mySuperpower execution skills write the implementation-notes HTML <strong>once, at the very end</strong> of a branch — after the final whole-branch review. You never see it form, and nothing shows progress while the run is underway.</p>
-        <p>This change makes the document a <strong>live artifact</strong>: it is created at the start of execution with one row per planned task, opened once in your default browser, and rewritten on disk as each task moves <em>pending &rarr; running &rarr; done</em>. The open tab refreshes itself every few seconds, so you watch the branch build in real time. A final pass at the end writes the outcome and strips the auto-refresh, leaving a clean static record. The behavior applies to both <code>subagent-driven-development</code> and <code>executing-plans</code>.</p>
+        <p>The implementation-notes HTML template (<code>implementation-notes-template.html</code>, identical copies under <code>skills/subagent-driven-development/templates/</code> and <code>skills/executing-plans/templates/</code>) is <strong>already built as a live document</strong>: it carries a <code>&lt;meta http-equiv="refresh"&gt;</code>, a Task Status table (task rows with TDD subtask rows and <em>done / in&nbsp;progress / pending</em> pills), and a Decisions &amp; Deviations card stream, and its header documents a finalize step that removes the refresh.</p>
+        <p>But both overlays today tell the agent to create that document <strong>once, after the work is done</strong> — so the live capability is never exercised; you get a static file at the end. This change <strong>wires the overlays to drive the document live</strong> — create and open it at the start, update it as the run progresses, finalize it at the end — and adds the missing step of opening it in the browser. The template itself is reused as-is.</p>
       </section>
 
       <section>
         <h2>Chosen Approach</h2>
-        <p>The document drives its own refresh — no server, no watcher, no new dependency. The controller (the inline orchestrating agent) rewrites the whole file from the task state it already tracks in its progress ledger; the browser reads that file over <code>file://</code> and an embedded script reloads the page on an interval. This keeps the zero-dependency promise and works fully offline.</p>
-        <p>Two alternatives were set aside: a local web server with websocket push (adds a dependency and a long-lived process), and opening the doc only at the end (doesn't meet the "while tasks run" goal). A plain <code>&lt;meta http-equiv="refresh"&gt;</code> remains the fallback if inline JS is ever undesirable, at the cost of losing scroll position.</p>
+        <p>Reuse the existing template unchanged and rewrite the two overlay instruction files so the controlling agent treats the notes document as a live artifact. No new mechanism is invented: refresh is the template's existing <code>&lt;meta http-equiv="refresh"&gt;</code>, and the doc's structure (task/subtask table, decision cards, finalize-removes-refresh) is what the template already provides.</p>
+        <p><strong>One deliberate simplification:</strong> all writes to the document stay in the <em>controller</em> (subagent-driven-development) or the <em>agent</em> (executing-plans). Implementer subagents remain report-only — they never write the shared HTML. This avoids concurrent writers and keeps dispatch prompts clean; the controller already holds the per-task results it needs (from the implementer's report and the progress ledger) to update the rows and append cards itself.</p>
       </section>
 
       <section>
-        <h2>Lifecycle</h2>
-        <p>The controller hooks the document writes into bookkeeping it already performs, so no new orchestration phase is introduced:</p>
+        <h2>Lifecycle (subagent-driven-development)</h2>
+        <p>The controller hooks the document writes into bookkeeping it already performs:</p>
         <ol>
-          <li><strong>At execution start</strong> — create the doc from the template with one row per planned task (all <em>pending</em>), then open it once in the default browser.</li>
-          <li><strong>Before dispatching a task's implementer</strong> — rewrite the doc marking that task <em>running</em>.</li>
-          <li><strong>When that task's review comes back clean</strong> — in the same step that appends the ledger line, rewrite marking it <em>done</em> with its commit range, one-line test summary, and review verdict.</li>
-          <li><strong>If a task is BLOCKED</strong> — mark it <em>blocked</em> with the reason; the doc reflects the stall instead of going silent.</li>
-          <li><strong>At the end</strong> — after the final whole-branch review, one final rewrite adds the outcome and any minor-findings roll-up, <strong>removes the auto-refresh block</strong>, and commits.</li>
+          <li><strong>At execution start</strong> — render the template into <code>docs/mySuperpower/implementation-notes/YYYY-MM-DD-&lt;feature&gt;.html</code> with one task row (plus its TDD subtask rows) per plan task, all <em>pending</em>, then <strong>open it once</strong> in the default browser.</li>
+          <li><strong>Before dispatching a task's implementer</strong> — flip that task's row to <em>in progress</em>.</li>
+          <li><strong>When that task's review comes back clean</strong> — in the same step that appends the ledger line, flip the task row (and its subtask rows) to <em>done&nbsp;&middot;&nbsp;&lt;sha&gt;</em> from the implementer's report, and append a Decisions card for any substantive off-spec decision, deviation, or tradeoff the report surfaced.</li>
+          <li><strong>If a task is BLOCKED</strong> — leave its row <em>in progress</em> and append a card describing the blocker, so the doc reflects the stall instead of going silent.</li>
+          <li><strong>At the end</strong> — after the final whole-branch review, flip the status pill to <em>Complete</em>, add any minor-findings roll-up, <strong>remove the <code>&lt;meta refresh&gt;</code></strong>, and commit once.</li>
         </ol>
-        <p><strong>Terminal states:</strong> <em>done</em> (review clean — accepted minor findings are recorded on the row but do not block it), <em>blocked</em> (an unresolved blocker), and <em>aborted</em> (branch abandoned). A task with must-fix (Critical/Important) findings stays <em>running</em> through the fix and re-review loop — that is not a terminal state.</p>
+        <p><strong>Terminal states:</strong> <em>done</em> (review clean — accepted minor findings are recorded on the row/cards but do not block it), <em>blocked</em> (an unresolved blocker), and <em>aborted</em> (branch abandoned). A task with must-fix (Critical/Important) findings stays <em>in progress</em> through the fix and re-review loop — that is not a terminal state.</p>
 
         <h3>What the live doc looks like mid-run</h3>
         <div class="mock" aria-hidden="true">
-          <div class="bar"><span>Implementation &mdash; feature/&hellip;</span><span class="dot">&#10227; auto-refreshing &middot; every 3s</span></div>
-          <div class="row"><span class="ic s-done">&#9989;</span><span>Task 1</span><span class="meta">done &middot; <code>a1b2&hellip;c3d4</code> &middot; 5/5 tests &middot; spec &#10003; quality &#10003;</span></div>
-          <div class="row running"><span class="ic s-run">&#9203;</span><span class="s-run">Task 2</span><span class="meta">running&hellip; implementer dispatched</span></div>
-          <div class="row"><span class="ic s-pend">&#11036;</span><span class="s-pend">Task 3</span><span class="s-pend">pending</span></div>
-          <div class="row"><span class="ic s-pend">&#11036;</span><span class="s-pend">Task 4</span><span class="s-pend">pending</span></div>
+          <div class="bar"><span>Notes &middot; Implementation</span><span class="dot">&#10227; meta refresh &middot; 5s &middot; keep tab visible</span></div>
+          <div class="trow task"><span>Task 1 &mdash; rewrite SDD overlay</span><span class="pill p-done">&check; done &middot; a1b2c3d</span></div>
+          <div class="trow task"><span>Task 2 &mdash; rewrite executing-plans overlay</span><span class="pill p-prog">in progress</span></div>
+          <div class="trow sub"><span>&#8627; edit additions.md (red)</span><span class="pill p-done">done</span></div>
+          <div class="trow sub"><span>&#8627; rebuild dist + verify (green)</span><span class="pill p-prog">in progress</span></div>
+          <div class="trow sub"><span>&#8627; commit</span><span class="pill p-pend">pending</span></div>
+          <div class="trow task"><span>Task 3 &mdash; verification pass</span><span class="pill p-pend">pending</span></div>
         </div>
-        <p class="legend">&#9989; done &nbsp;&middot;&nbsp; &#9203; running &nbsp;&middot;&nbsp; &#11036; pending &nbsp;&middot;&nbsp; &#9940; blocked. The running task is scrolled into view on each reload.</p>
+        <p class="note" style="font-size:.95rem;"><span class="k">Note</span>The <code>&lt;meta refresh&gt;</code> only fires while the tab is the active/visible one (browsers throttle background tabs) — the start step tells the owner to keep the notes tab visible.</p>
       </section>
 
       <section>
         <h2>executing-plans specifics</h2>
-        <p><code>executing-plans</code> runs in batches with human checkpoints and often in a separate session, so the lifecycle binds to its rhythm:</p>
+        <p><code>executing-plans</code> runs in batches with human checkpoints and often in a separate session. There is no implementer subagent, so the inline agent flips rows and appends cards itself, live:</p>
         <ul>
-          <li><strong>At most one task is <em>running</em> at a time</strong> — tasks are worked sequentially, as in SDD; the doc never shows two running rows.</li>
+          <li><strong>At most one task is <em>in progress</em> at a time</strong> — tasks are worked sequentially; the doc never shows two in-progress task rows.</li>
           <li><strong>Rows flip to <em>done</em> as each task completes within a batch</strong>, not deferred to the checkpoint — the checkpoint is where you review, not where the doc catches up.</li>
-          <li><strong>A resumed session rebuilds the table from the ledger</strong> — every task the ledger marks complete renders <em>done</em>, the first unfinished task becomes the next <em>running</em>, and the rest <em>pending</em>. The doc is reconstructed from ledger state, never appended to, so a fresh session needs no prior HTML.</li>
+          <li><strong>A resumed session rebuilds the table from the ledger</strong> — every task the ledger marks complete renders <em>done</em>, the first unfinished task becomes the next <em>in progress</em>, and the rest <em>pending</em>. The doc is reconstructed from ledger state, never appended to blindly, so a fresh session needs no prior in-memory state.</li>
         </ul>
       </section>
 
       <section>
         <h2>Components &mdash; what changes</h2>
-        <p>Three files, all mySuperpower overlay/template content. No upstream skill body is touched, so upstream merges stay clean.</p>
+        <p>Two overlay files. The template is reused unchanged; no upstream skill body is touched, so upstream merges stay clean. Overlay changes take effect after a <code>build-mysuperpower</code> rebuild (and reinstall).</p>
         <table>
           <thead><tr><th>File</th><th>Change</th></tr></thead>
           <tbody>
             <tr>
               <td><code>overlays/subagent-driven-development/additions.md</code></td>
-              <td>Replace the single "create at end" instruction with the five-step lifecycle above (create+open, mark running, mark done, mark blocked, finalize+strip+commit).</td>
+              <td>Replace the single "after the final whole-branch review, capture notes" instruction with the five-step live lifecycle above: render+open at start (all rows pending), flip rows as tasks progress, append decision cards from implementer reports, finalize (pill &rarr; Complete, remove <code>&lt;meta refresh&gt;</code>, commit once).</td>
             </tr>
             <tr>
               <td><code>overlays/executing-plans/additions.md</code></td>
-              <td>Same lifecycle, adapted to its batch/checkpoint cadence (create+open at start; update per task as each completes; finalize at the end).</td>
+              <td>Same lifecycle, adapted to the batch/checkpoint flow and the executing-plans specifics above (agent updates the doc itself; resume rebuilds from ledger).</td>
             </tr>
             <tr>
-              <td><code>skills/subagent-driven-development/templates/implementation-notes-template.html</code></td>
-              <td>Add status-aware task rows (pending / running / done / blocked) and an auto-refresh block with a clearly marked start/end so the finalize step can remove it. executing-plans reuses this template.</td>
+              <td><code>skills/&hellip;/templates/implementation-notes-template.html</code></td>
+              <td><strong>No structural change.</strong> Both copies already provide the live table, cards, <code>&lt;meta refresh&gt;</code>, and finalize protocol. (Optional: a one-line comment tweak so the template's "WHO UPDATES WHAT" note matches the controller-owns-all-writes decision.)</td>
             </tr>
           </tbody>
         </table>
       </section>
 
       <section>
-        <h2>The self-refresh block</h2>
-        <p>A small inline script, delimited so the finalize rewrite can drop it cleanly:</p>
-        <pre><code>&lt;!-- AUTO-REFRESH:START (removed on finalize) --&gt;
-&lt;script&gt;
-  // Storage can be denied on file:// (opaque origin) — never let it block reload.
-  try {
-    const y = sessionStorage.getItem('implScroll');
-    if (y) window.scrollTo(0, +y);
-    addEventListener('beforeunload', () =&gt;
-      sessionStorage.setItem('implScroll', String(scrollY)));
-  } catch (_) { /* storage unavailable; ignore */ }
-  // Keep the active task in view.
-  const run = document.querySelector('.row.running');
-  if (run) run.scrollIntoView({ block: 'center' });
-  // Reload on an interval, independent of the above.
-  setTimeout(() =&gt; location.reload(), 3000);
-&lt;/script&gt;
-&lt;!-- AUTO-REFRESH:END --&gt;</code></pre>
-        <p>3-second interval. Scroll continuity is best-effort via <code>sessionStorage</code>, wrapped in <code>try/catch</code> because a <code>file://</code> page can be denied storage; the reload is scheduled regardless. The running row (<code>.row.running</code>) is scrolled into view so the view stays where the action is. The finalized document contains none of this — it is a plain static file.</p>
+        <h2>Refresh &amp; write mechanics</h2>
+        <ul>
+          <li><strong>Refresh</strong> — the template's existing <code>&lt;meta http-equiv="refresh" content="5"&gt;</code> reloads the open tab; the finalize step removes it so the delivered doc is a clean static file.</li>
+          <li><strong>Atomic write</strong> — each rewrite is written to a temporary file and renamed into place, so a 5-second refresh that lands mid-write never sees a truncated document. (Cheap robustness; applies regardless of refresh mechanism.)</li>
+          <li><strong>One-way flow</strong> — the controller regenerates the whole document from the progress ledger plus the latest report; it never reads the HTML back. This means the doc can always be rebuilt from the ledger after a compaction or resume.</li>
+        </ul>
       </section>
 
       <section>
-        <h2>Data flow</h2>
-        <p>The controller never reads the document back into its context. It holds the task list and per-task results in the progress ledger it already maintains, and regenerates the whole HTML from that state on each update — template plus current rows. Each rewrite is written to a temporary file and renamed into place (atomic replace), so a reload that lands mid-write never sees a truncated document. The browser is a passive viewer: it reloads the file from disk on its timer. This one-way flow (ledger &rarr; rewrite file &rarr; browser reload) means the doc can always be rebuilt from the ledger after a compaction or resume.</p>
+        <h2>Browser open &amp; error handling</h2>
+        <ul>
+          <li><strong>Open once, at start</strong> &mdash; the skill speaks in actions ("open in the default browser") with a per-OS note: Windows (PowerShell) <code>Start-Process &lt;file&gt;</code> or <code>cmd /c start "" "&lt;file&gt;"</code>, macOS <code>open &lt;file&gt;</code>, Linux <code>xdg-open &lt;file&gt;</code>. Never reopened (the tab self-refreshes).</li>
+          <li><strong>Browser won't open</strong> (headless / no default handler) &mdash; non-fatal: the agent prints the file path and proceeds. Execution never blocks on the viewer.</li>
+          <li><strong>Finalize, with a crash safety net</strong> &mdash; on every normal exit (including a blocked/aborted branch) finalize removes the refresh. Because a hard crash or kill can skip it, execution start also runs a repair pass: if the existing notes doc still carries a <code>&lt;meta refresh&gt;</code> from a dead session, strip it before creating and opening the new one.</li>
+          <li><strong>Compaction / resume</strong> &mdash; the doc is regenerated from the progress ledger, so it survives a lost context exactly like the ledger does. No state lives only in the HTML.</li>
+        </ul>
       </section>
 
       <section>
         <h2>Git commit cadence</h2>
         <div class="note">
           <span class="k">Decided</span>
-          <p style="margin:0 0 .6rem;"><strong>Disk-only during the run, one commit at the end.</strong> The file is rewritten on disk every task (so the browser updates live), but git receives only the single finalized doc. History stays clean; the transient running/pending states never land in git.</p>
+          <p style="margin:0 0 .6rem;"><strong>Disk-only during the run, one commit at the end.</strong> The file is rewritten on disk every task (so the browser updates live), but git receives only the single finalized doc. History stays clean; the transient in-progress/pending states never land in git.</p>
           <p style="margin:0;">Considered and rejected: committing after every task (captures progress in history, but adds N extra commits per branch and noise to the log).</p>
         </div>
       </section>
 
       <section>
-        <h2>Error handling &amp; edge cases</h2>
-        <ul>
-          <li><strong>Browser won't open</strong> (headless / no default handler) &mdash; non-fatal: the controller prints the file path and proceeds. Execution never blocks on the viewer.</li>
-          <li><strong>Compaction / resume</strong> &mdash; the doc is regenerated from the progress ledger, so it survives a lost context exactly like the ledger does. No state lives only in the HTML.</li>
-          <li><strong>Cross-platform open</strong> &mdash; the skill speaks in actions ("open in the default browser") with a per-OS note: Windows (PowerShell) <code>Start-Process &lt;file&gt;</code> or <code>cmd /c start "" "&lt;file&gt;"</code>, macOS <code>open &lt;file&gt;</code>, Linux <code>xdg-open &lt;file&gt;</code>. Opened once, at start; never reopened (the tab self-refreshes).</li>
-          <li><strong>Finalize, with a crash safety net</strong> &mdash; on every normal exit (including a blocked/aborted branch) the finalize pass strips the auto-refresh so no delivered doc keeps reloading a file that has stopped changing. Because a hard crash, kill, or shutdown can skip finalize, execution start also runs a repair pass: if the existing doc still carries an <code>AUTO-REFRESH</code> block from a dead session, strip it before creating and opening the new one.</li>
-        </ul>
-      </section>
-
-      <section>
         <h2>Verification</h2>
-        <p>These are behavior-shaping skill edits, so verification is by rendering and walkthrough rather than a unit suite:</p>
+        <p>These are behavior-shaping overlay edits, so verification is by rendering and walkthrough rather than a unit suite:</p>
         <ul>
-          <li>Render the updated template from <code>file://</code> offline and confirm it shows correctly with each status state and with the auto-refresh active.</li>
-          <li>Hand-simulate the lifecycle (pending &rarr; running &rarr; done across a few rows) and confirm the open tab reflects each rewrite and holds scroll position.</li>
-          <li>Confirm the finalize output contains no <code>AUTO-REFRESH</code> block and renders as a clean static document.</li>
+          <li>Run <code>build-mysuperpower</code> and confirm each rewritten overlay's text is appended to the corresponding <code>dist</code> SKILL.md.</li>
+          <li>Render the template from <code>file://</code> offline and confirm it shows correctly with each pill state and with the <code>&lt;meta refresh&gt;</code> active.</li>
+          <li>Hand-simulate the lifecycle (pending &rarr; in progress &rarr; done across a few rows, plus a decision card) and confirm the open tab reflects each rewrite.</li>
+          <li>Confirm the finalize output contains no <code>&lt;meta refresh&gt;</code> and renders as a clean static document.</li>
           <li>Confirm no external requests fire (fully offline) and the masthead/palette are unchanged from the house template.</li>
         </ul>
       </section>
