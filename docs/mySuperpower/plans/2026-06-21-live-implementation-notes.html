@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<!--
+  writing-plans PLAN DOC — Live Implementation Notes.
+  Self-contained, offline, file:// — all CSS inline, system fonts only.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Implementation Notes — Implementation Plan</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  /* ---- FIXED masthead ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:52ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .agentic-note{background:var(--meta-bg);border-radius:14px;padding:1.25rem 1.85rem;
+                margin-top:1rem;font-family:var(--mono);color:var(--value);
+                font-size:.92rem;line-height:1.6;}
+
+  /* ---- BODY ---- */
+  main{margin-top:2.6rem;}
+  main h2{font-family:var(--mono);text-transform:uppercase;letter-spacing:.18em;
+          font-size:.82rem;font-weight:700;color:var(--maroon);
+          border-top:1px solid #d8cdb3;padding-top:1.1rem;margin:2rem 0 .9rem;}
+  main p{font-size:1.05rem;line-height:1.6;margin:0 0 1rem;max-width:74ch;}
+  main ul{font-size:1.03rem;line-height:1.55;max-width:74ch;}
+  .overview dl{display:grid;grid-template-columns:max-content 1fr;column-gap:1.2rem;row-gap:.5rem;
+               font-size:1.02rem;margin:.4rem 0 0;}
+  .overview dt{font-family:var(--mono);color:var(--maroon);font-size:.8rem;text-transform:uppercase;
+               letter-spacing:.1em;padding-top:.2rem;}
+  .overview dd{margin:0;}
+  .constraints{background:#efe6d2;border-left:5px solid var(--maroon);border-radius:10px;
+               padding:1rem 1.4rem;margin:1rem 0;}
+  .constraints li{margin:.35rem 0;line-height:1.5;}
+  section.task{border:1px solid #d8cdb3;border-radius:14px;padding:1.4rem 1.7rem;margin:1.6rem 0;
+               background:#faf7ef;}
+  section.task h3{font-family:var(--serif);font-weight:700;font-size:1.45rem;margin:0 0 .8rem;color:var(--maroon);}
+  .files{font-family:var(--mono);font-size:.86rem;background:var(--meta-bg);border-radius:9px;
+          padding:.7rem 1rem;margin:0 0 1rem;}
+  .files div{margin:.2rem 0;}
+  .files .k{color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;}
+  ol.steps{list-style:none;counter-reset:step;padding:0;margin:1rem 0 0;}
+  ol.steps>li{position:relative;padding:.2rem 0 1.1rem 2.1rem;}
+  ol.steps>li::before{content:"";position:absolute;left:0;top:.15rem;width:1.2rem;height:1.2rem;
+                      border:2px solid var(--amber);border-radius:5px;background:transparent;}
+  ol.steps>li .s{font-weight:700;display:block;margin-bottom:.3rem;}
+  pre{font-family:var(--mono);font-size:.82rem;line-height:1.5;background:#efe7d4;
+      border-left:4px solid var(--maroon);border-radius:9px;padding:.85rem 1.1rem;overflow:auto;
+      white-space:pre;margin:.5rem 0;}
+  pre code{background:none;padding:0;border:0;}
+  code{font-family:var(--mono);font-size:.88em;background:var(--meta-bg);border-radius:5px;padding:.08rem .35rem;}
+  .exp{font-family:var(--mono);font-size:.82rem;color:var(--label);margin:.3rem 0 0;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Plan &middot; Implementation</p>
+      <h1>Live Implementation Notes</h1>
+      <p class="subtitle">Wire the SDD and executing-plans overlays to drive the live implementation-notes document the template already supports, and open it in the browser.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-06-21</dd>
+        <dt>Branch</dt><dd>feature/live-implementation-notes</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-06-21-live-implementation-notes-design.html</dd>
+      </dl>
+      <p class="agentic-note">REQUIRED SUB-SKILL: execute task-by-task using subagent-driven-development (recommended) or executing-plans. These are behavior-shaping overlay edits, not code — each task's "test" is a dist rebuild + offline render check rather than a unit suite. Steps are checkbox-styled; track progress with your task tools, not by editing this file.</p>
+    </header>
+
+    <main>
+      <section class="overview">
+        <h2>Overview</h2>
+        <dl>
+          <dt>Goal</dt><dd>Make the implementation-notes HTML a live artifact — created and opened in the browser at the start of execution, updated as tasks run, finalized at the end — by fixing the overlays, reusing the existing template.</dd>
+          <dt>Architecture</dt><dd>The template (<code>implementation-notes-template.html</code>, identical copies in both skills) already provides the auto-refresh, the task/subtask status table, the Decisions &amp; Deviations cards, and the finalize-removes-refresh protocol. The two overlay <code>additions.md</code> files are rewritten to drive that template live; the controller/agent owns every write, implementer subagents stay report-only.</dd>
+          <dt>Tech Stack</dt><dd>Markdown overlay files appended to skill bodies at build time; self-contained offline HTML template; <code>scripts/build-mysuperpower.ps1</code> to apply overlays into <code>dist/</code>.</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Global Constraints</h2>
+        <ul class="constraints">
+          <li>Zero external dependencies; the template stays self-contained and renders from <code>file://</code> offline (no CDN/remote fonts/images/&lt;link&gt;).</li>
+          <li>The template's FIXED masthead and palette are not restyled; the template is reused with <strong>no structural change</strong> (Task 3 touches only a comment).</li>
+          <li><strong>All writes to the notes document stay in the controller (SDD) / agent (executing-plans).</strong> Implementer subagents never write the notes file.</li>
+          <li>Save path: <code>docs/mySuperpower/implementation-notes/YYYY-MM-DD-&lt;feature&gt;.html</code>.</li>
+          <li>Commit cadence: rewrite on disk at each step, but <strong>commit the finalized document only once</strong>, at the end.</li>
+          <li>Cross-platform browser open: Windows (PowerShell) <code>Start-Process &lt;file&gt;</code> or <code>cmd /c start "" "&lt;file&gt;"</code>; macOS <code>open</code>; Linux <code>xdg-open</code>. Open once, at start; non-fatal if it fails.</li>
+          <li>Overlay edits only take effect after a <code>build-mysuperpower</code> rebuild; every task verifies the rebuilt <code>dist/</code> SKILL.md.</li>
+        </ul>
+      </section>
+
+      <!-- ============ TASK 1 ============ -->
+      <section class="task">
+        <h3>Task 1 — Rewrite the subagent-driven-development overlay</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> overlays/subagent-driven-development/additions.md</div>
+          <div><span class="k">Verify</span> dist/skills/subagent-driven-development/SKILL.md (after rebuild)</div>
+        </div>
+        <p><strong>Interfaces — Produces:</strong> the live-lifecycle instruction block the controller follows. Task 2 mirrors its structure for executing-plans; Task 3 aligns the template comment to its "controller owns all writes" rule.</p>
+
+        <ol class="steps">
+          <li><span class="s">Step 1: Replace the entire file with this content</span>
+            <pre><code>## mySuperpower additions — live HTML implementation notes
+
+The implementation-notes document is a **live artifact**: create it at the start of
+execution, keep it current as tasks run, and finalize it at the end. Use the template at
+`skills/subagent-driven-development/templates/implementation-notes-template.html` — it
+already carries the auto-refresh, the task/subtask status table, and the Decisions &amp;
+Deviations cards. Save to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-&lt;feature&gt;.html`.
+
+**The controller owns every write to this document.** Implementer subagents stay
+report-only — never hand the notes file to a subagent. You already hold the per-task
+results (each implementer's report plus the progress ledger) needed to update it. Write
+**atomically**: render to a temp file and rename it into place, so a refresh that lands
+mid-write never shows a truncated document.
+
+1. **At execution start (before Task 1):**
+   - *Repair pass:* if a notes file for this branch already exists and still contains the
+     `&lt;meta ... refresh&gt;` tag, it was left by a crashed run — strip that tag before continuing.
+   - Render the template with one task row per plan task (plus its TDD subtask rows), all
+     pills `pending`; fill the SPEC / PLAN / BRANCH / DATE fields.
+   - **Open it once in the default browser** (Windows PowerShell `Start-Process &lt;file&gt;`, or
+     `cmd /c start "" "&lt;file&gt;"`; macOS `open &lt;file&gt;`; Linux `xdg-open &lt;file&gt;`). If it can't
+     open, print the path and continue — never block on the viewer. Tell your human partner
+     to keep that tab visible; the refresh pauses on background tabs.
+
+2. **Before dispatching each task's implementer:** flip that task's row to `in progress`.
+
+3. **When that task's review comes back clean** (same step as the ledger line): flip the
+   task row and its subtask rows to `done · &lt;sha&gt;` from the implementer's report, and append
+   a Decisions &amp; Deviations card for any substantive off-spec decision, deviation, important
+   fix, cross-task interaction, or tradeoff the report surfaced. Routine progress gets no card.
+
+4. **If a task is BLOCKED:** leave its row `in progress` and append a card naming the blocker,
+   so the doc shows the stall instead of going silent.
+
+5. **At the end (after the final whole-branch review):** flip the status pill to
+   `Implementation — Complete`, add any minor-findings roll-up as a final card, **remove the
+   `&lt;meta ... refresh&gt;` tag**, commit the finalized document once, then proceed to
+   `my-superpower:finishing-a-development-branch`.
+
+Commit cadence: rewrite the file on disk at every step above, but **commit only the finalized
+document once**, in step 5 — keep the run's transient states out of git history.</code></pre>
+          </li>
+
+          <li><span class="s">Step 2: Rebuild dist so the overlay is applied</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1</code></pre>
+            <p class="exp">Expected: build completes; ends with "build-mysuperpower: done. plugin=my-superpower …".</p>
+          </li>
+
+          <li><span class="s">Step 3: Verify the rewritten text landed in the built skill</span>
+            <pre><code>grep -n "live artifact" dist/skills/subagent-driven-development/SKILL.md
+grep -n "Repair pass" dist/skills/subagent-driven-development/SKILL.md</code></pre>
+            <p class="exp">Expected: both matches found (the overlay appended to the dist SKILL.md). If empty, the overlay anchor/append failed — fix before committing.</p>
+          </li>
+
+          <li><span class="s">Step 4: Commit</span>
+            <pre><code>git add overlays/subagent-driven-development/additions.md
+git commit -m "feat(sdd overlay): drive implementation-notes doc live"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 2 ============ -->
+      <section class="task">
+        <h3>Task 2 — Rewrite the executing-plans overlay</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> overlays/executing-plans/additions.md</div>
+          <div><span class="k">Verify</span> dist/skills/executing-plans/SKILL.md (after rebuild)</div>
+        </div>
+        <p><strong>Interfaces — Consumes:</strong> the lifecycle shape from Task 1, adapted to executing-plans (no implementer subagent; the agent updates the doc itself; resume rebuilds from the ledger).</p>
+
+        <ol class="steps">
+          <li><span class="s">Step 1: Replace the entire file with this content</span>
+            <pre><code>## mySuperpower additions — live HTML implementation notes
+
+The implementation-notes document is a **live artifact**: create it at the start of
+execution, keep it current as you work, and finalize it at the end. Use the template at
+`skills/executing-plans/templates/implementation-notes-template.html` — it already carries
+the auto-refresh, the task/subtask status table, and the Decisions &amp; Deviations cards. Save
+to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-&lt;feature&gt;.html`.
+
+Here there is no implementer subagent — **you update the document yourself**, live. Write
+**atomically**: render to a temp file and rename it into place.
+
+1. **At execution start (or on resume):**
+   - *Repair pass:* if a notes file for this branch already exists with a `&lt;meta ... refresh&gt;`
+     tag from a crashed run, strip that tag first.
+   - **Rebuild the table from the progress ledger**, not from memory: every task the ledger
+     marks complete renders `done`, the first unfinished task becomes the next `in progress`,
+     the rest `pending`. On a fresh branch all rows start `pending`.
+   - **Open it once in the default browser** (Windows PowerShell `Start-Process &lt;file&gt;`, or
+     `cmd /c start "" "&lt;file&gt;"`; macOS `open &lt;file&gt;`; Linux `xdg-open &lt;file&gt;`). If it can't
+     open, print the path and continue. Keep that tab visible; the refresh pauses on background tabs.
+
+2. **As you work each task:** flip its row to `in progress`, then to `done · &lt;sha&gt;` once the
+   task is complete and committed — within the batch, not deferred to the checkpoint. At most
+   one task row is `in progress` at a time. Append a Decisions &amp; Deviations card for any
+   substantive decision, deviation, important fix, or tradeoff.
+
+3. **At each checkpoint:** the doc already reflects the completed batch — the checkpoint is for
+   review, not for catching the doc up.
+
+4. **At the end:** flip the status pill to `Implementation — Complete`, add any final roll-up
+   card, **remove the `&lt;meta ... refresh&gt;` tag**, and commit the finalized document once
+   (keep transient states out of history). Then open it for the acceptance gate before finishing
+   the branch.</code></pre>
+          </li>
+
+          <li><span class="s">Step 2: Rebuild dist</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1</code></pre>
+            <p class="exp">Expected: build completes successfully.</p>
+          </li>
+
+          <li><span class="s">Step 3: Verify the text landed in the built skill</span>
+            <pre><code>grep -n "live artifact" dist/skills/executing-plans/SKILL.md
+grep -n "Rebuild the table from the progress ledger" dist/skills/executing-plans/SKILL.md</code></pre>
+            <p class="exp">Expected: both matches found.</p>
+          </li>
+
+          <li><span class="s">Step 4: Commit</span>
+            <pre><code>git add overlays/executing-plans/additions.md
+git commit -m "feat(executing-plans overlay): drive implementation-notes doc live"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 3 (FINAL) ============ -->
+      <section class="task">
+        <h3>Task 3 — Align template comment &amp; final verification</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> skills/subagent-driven-development/templates/implementation-notes-template.html</div>
+          <div><span class="k">Modify</span> skills/executing-plans/templates/implementation-notes-template.html</div>
+        </div>
+        <p><strong>Interfaces — Consumes:</strong> the "controller/agent owns all writes" rule from Tasks 1–2. This is a comment-only change so the template's guidance no longer contradicts the overlays; no structural/visual change.</p>
+
+        <ol class="steps">
+          <li><span class="s">Step 1: In BOTH template copies, replace the "WHO UPDATES WHAT" comment block</span>
+            <p class="exp">Find this block (identical in both files):</p>
+            <pre><code>  WHO UPDATES WHAT:
+    - subagent-driven-development: CONTROLLER builds the table (all rows pending) at
+      setup and flips each task's top-level row to done·&lt;sha&gt; after review; the IMPLEMENTER
+      subagent flips ITS subtask rows live AND appends a Decisions card for any off-spec
+      decision/deviation/tradeoff it makes (controller passes it the notes path).
+    - executing-plans: the agent flips rows AND appends Decisions cards itself, live.</code></pre>
+            <p class="exp">Replace it with:</p>
+            <pre><code>  WHO UPDATES WHAT (the controller/agent owns ALL writes; implementer subagents stay report-only):
+    - subagent-driven-development: the CONTROLLER renders the table at setup (all rows
+      pending), flips each task's row to in-progress before dispatch and to done·&lt;sha&gt; after
+      review (filling its subtask rows from the implementer's report), and appends Decisions
+      cards. Implementer subagents never write this file.
+    - executing-plans: the agent renders, flips rows, and appends Decisions cards itself, live.</code></pre>
+          </li>
+
+          <li><span class="s">Step 2: Confirm both template copies are still identical</span>
+            <pre><code>diff -q skills/executing-plans/templates/implementation-notes-template.html \
+        skills/subagent-driven-development/templates/implementation-notes-template.html</code></pre>
+            <p class="exp">Expected: no output (identical). If they differ, re-apply the same edit so they match.</p>
+          </li>
+
+          <li><span class="s">Step 3: Render the template offline to confirm it still displays</span>
+            <pre><code>start "" "skills/subagent-driven-development/templates/implementation-notes-template.html"</code></pre>
+            <p class="exp">Expected: opens in the browser; the Task Status table, Decisions cards, masthead, and palette render unchanged (the edit was comment-only). No console/network errors (fully offline).</p>
+          </li>
+
+          <li><span class="s">Step 4: Run /simplify on the changed files</span>
+            <p class="exp">Apply the simplify pass to the three changed files (the two overlays and the template comment). Quality only — accept only changes that don't alter the documented behavior. Re-run the Step-2 diff if the template changed.</p>
+          </li>
+
+          <li><span class="s">Step 5: Final rebuild + offline check</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1
+grep -rn "render-time\|http://\|https://\|cdn" dist/skills/subagent-driven-development/templates/ dist/skills/executing-plans/templates/ || echo "no external refs"</code></pre>
+            <p class="exp">Expected: build succeeds; no external references in the built templates (offline-safe).</p>
+          </li>
+
+          <li><span class="s">Step 6: Final commit</span>
+            <pre><code>git add skills/subagent-driven-development/templates/implementation-notes-template.html \
+        skills/executing-plans/templates/implementation-notes-template.html
+git commit -m "docs(template): align WHO-UPDATES-WHAT comment with controller-owns-writes"</code></pre>
+          </li>
+        </ol>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
