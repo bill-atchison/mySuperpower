@@ -3,8 +3,13 @@
 # bump-version.sh — bump version numbers across all declared files,
 # with drift detection and repo-wide audit for missed files.
 #
+# Fork versioning: the version is <upstream-base>+fork.<iteration> (e.g. 1.2.3+fork.4
+# = built from upstream 1.2.3, 4th fork iteration since that sync).
+#
 # Usage:
-#   bump-version.sh <new-version>   Bump all declared files to new version
+#   bump-version.sh <new-version>   Bump all declared files (X.Y.Z or X.Y.Z+fork.N)
+#   bump-version.sh --fork-bump     Increment fork iteration (<base>+fork.N -> +fork.N+1)
+#   bump-version.sh --sync <base>   After upstream merge: set <base>+fork.1
 #   bump-version.sh --check         Report current versions (detect drift)
 #   bump-version.sh --audit         Check + grep repo for old version strings
 #
@@ -28,7 +33,9 @@ read_json_field() {
   # Convert dot-path to jq path: "plugins.0.version" -> .plugins[0].version
   local jq_path
   jq_path=$(echo "$field" | sed -E 's/\.([0-9]+)/[\1]/g' | sed 's/^/./' | sed 's/\.\././g')
-  jq -r "$jq_path" "$file"
+  # tr -d '\r': some Windows jq builds emit CRLF, which would leave a trailing
+  # CR on every captured value and silently break string comparisons/matching.
+  jq -r "$jq_path" "$file" | tr -d '\r'
 }
 
 # Write a dotted field path in a JSON file, preserving formatting.
@@ -48,7 +55,16 @@ declared_files() {
 
 # Read the audit exclude patterns from config.
 audit_excludes() {
-  jq -r '.audit.exclude[]' "$CONFIG" 2>/dev/null
+  # tr -d '\r': strip CR from Windows jq's CRLF output so patterns match cleanly.
+  jq -r '.audit.exclude[]' "$CONFIG" 2>/dev/null | tr -d '\r'
+}
+
+# Determine the current version (most common value across declared files).
+get_current_version() {
+  while IFS=$'\t' read -r path field; do
+    local fullpath="$REPO_ROOT/$path"
+    [[ -f "$fullpath" ]] && read_json_field "$fullpath" "$field"
+  done < <(declared_files) | sort | uniq -c | sort -rn | head -1 | awk '{print $2}'
 }
 
 # --- commands ---
@@ -98,12 +114,7 @@ cmd_audit() {
 
   # Determine the current version (most common across declared files)
   local current_version
-  current_version=$(
-    while IFS=$'\t' read -r path field; do
-      local fullpath="$REPO_ROOT/$path"
-      [[ -f "$fullpath" ]] && read_json_field "$fullpath" "$field"
-    done < <(declared_files) | sort | uniq -c | sort -rn | head -1 | awk '{print $2}'
-  )
+  current_version=$(get_current_version)
 
   if [[ -z "$current_version" ]]; then
     echo "error: could not determine current version" >&2
@@ -113,10 +124,15 @@ cmd_audit() {
   echo "Audit: scanning repo for version string '$current_version'..."
   echo ""
 
-  # Build grep exclude args
+  # Build grep exclude args, AND capture the raw patterns for a reliable
+  # post-filter. (grep --exclude/--exclude-dir is honored inconsistently across
+  # grep builds in this environment, so the post-filter below is authoritative;
+  # the grep args remain as a perf hint for large trees.)
   local -a exclude_args=()
+  local -a exclude_pats=()
   while IFS= read -r pattern; do
     exclude_args+=("--exclude=$pattern" "--exclude-dir=$pattern")
+    exclude_pats+=("$pattern")
   done < <(audit_excludes)
 
   # Also always exclude binary files and .git
@@ -135,6 +151,16 @@ cmd_audit() {
     match_file=$(echo "$match" | cut -d: -f1)
     # Make path relative to repo root
     local rel_path="${match_file#$REPO_ROOT/}"
+
+    # Reliable exclude filter: skip if any path segment equals an exclude
+    # pattern (patterns are basenames, e.g. dist, CHANGELOG.md, node_modules).
+    local is_excluded=0 pat
+    for pat in "${exclude_pats[@]}"; do
+      case "/$rel_path/" in
+        */"$pat"/*) is_excluded=1; break ;;
+      esac
+    done
+    [[ "$is_excluded" -eq 1 ]] && continue
 
     # Check if this file is in the declared list
     local is_declared=0
@@ -166,9 +192,11 @@ cmd_audit() {
 cmd_bump() {
   local new_version="$1"
 
-  # Validate semver-ish format
-  if ! echo "$new_version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
-    echo "error: '$new_version' doesn't look like a version (expected X.Y.Z)" >&2
+  # Validate: must start with X.Y.Z. The fork build-metadata suffix
+  # (e.g. 1.2.3+fork.4 — upstream base 1.2.3, fork iteration 4) is allowed and
+  # encouraged for fork releases; see --fork-bump and --sync.
+  if ! echo "$new_version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\+fork\.[0-9]+)?$'; then
+    echo "error: '$new_version' must be X.Y.Z or X.Y.Z+fork.N" >&2
     exit 1
   fi
 
@@ -193,6 +221,45 @@ cmd_bump() {
   cmd_audit
 }
 
+# Bump the fork iteration: <base>+fork.N -> <base>+fork.(N+1).
+# If the current version has no +fork suffix, it becomes <current>+fork.1.
+cmd_fork_bump() {
+  local cur base n
+  cur=$(get_current_version)
+  if [[ -z "$cur" ]]; then
+    echo "error: could not determine current version" >&2
+    exit 1
+  fi
+  if [[ "$cur" == *"+fork."* ]]; then
+    base="${cur%%+fork.*}"
+    n="${cur##*+fork.}"
+    if ! [[ "$n" =~ ^[0-9]+$ ]]; then
+      echo "error: fork iteration '$n' in current version '$cur' is not numeric" >&2
+      exit 1
+    fi
+    n=$((n + 1))
+  else
+    base="$cur"
+    n=1
+  fi
+  echo "Fork bump: $cur -> ${base}+fork.${n}"
+  echo ""
+  cmd_bump "${base}+fork.${n}"
+}
+
+# Sync to a new upstream base, resetting the fork iteration to 1.
+# Use after merging a new upstream release: --sync 6.0.4  ->  6.0.4+fork.1
+cmd_sync() {
+  local newbase="$1"
+  if ! echo "$newbase" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo "error: --sync base '$newbase' must be a plain upstream version X.Y.Z" >&2
+    exit 1
+  fi
+  echo "Sync to upstream base $newbase, resetting fork iteration to 1..."
+  echo ""
+  cmd_bump "${newbase}+fork.1"
+}
+
 # --- main ---
 
 case "${1:-}" in
@@ -202,12 +269,28 @@ case "${1:-}" in
   --audit)
     cmd_audit
     ;;
+  --fork-bump)
+    cmd_fork_bump
+    ;;
+  --sync)
+    shift
+    if [[ -z "${1:-}" ]]; then
+      echo "error: --sync requires an upstream base version (X.Y.Z)" >&2
+      exit 1
+    fi
+    cmd_sync "$1"
+    ;;
   --help|-h|"")
-    echo "Usage: bump-version.sh <new-version> | --check | --audit"
+    echo "Usage: bump-version.sh <new-version> | --fork-bump | --sync <base> | --check | --audit"
     echo ""
-    echo "  <new-version>  Bump all declared files to the given version"
-    echo "  --check        Show current versions, detect drift"
-    echo "  --audit        Check + scan repo for undeclared version references"
+    echo "  <new-version>   Bump all declared files to the given version (X.Y.Z or X.Y.Z+fork.N)"
+    echo "  --fork-bump     Increment the fork iteration: <base>+fork.N -> <base>+fork.(N+1)"
+    echo "  --sync <base>   After an upstream merge: set <base>+fork.1 (reset fork iteration)"
+    echo "  --check         Show current versions, detect drift"
+    echo "  --audit         Check + scan repo for undeclared version references"
+    echo ""
+    echo "Fork versioning: the version is <upstream-base>+fork.<iteration>, e.g. 1.2.3+fork.4"
+    echo "means built from upstream 1.2.3, 4th fork iteration since that sync."
     exit 0
     ;;
   --*)
