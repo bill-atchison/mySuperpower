@@ -1,5 +1,5 @@
 {
-  "_comment": "Identity overrides applied by scripts/build-mysuperpower.ps1 onto the pristine upstream manifests when assembling dist/. Source manifests stay pristine so upstream merges remain clean. Version is intentionally NOT overridden so dist/ inherits the upstream base version.",
+  "_comment": "Identity overrides applied by scripts/build-mysuperpower.ps1 onto the pristine upstream manifests when assembling dist/. Source manifests stay pristine so upstream merges remain clean. Version is intentionally NOT overridden so dist/ inherits the source fork version (<upstream-base>+fork.<iteration>, e.g. 1.2.3+fork.4; managed by scripts/bump-version.sh).",
   "pluginManifests": [
     ".claude-plugin/plugin.json",
     ".codex-plugin/plugin.json",
