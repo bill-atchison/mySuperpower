@@ -74,8 +74,9 @@ and the plugin are named `my-superpower`. Pull a newer build with
 > does not contain the Codex catalog (`.agents/plugins/...`), which is emitted
 > only when the `release` branch is published.
 
-The plugin version is pinned per release (currently `6.0.3`); a marketplace
-refresh pulls a new build only after the version is bumped on a release.
+The plugin version follows `<upstream-base>+fork.<iteration>` (see `CHANGELOG.md`); a
+marketplace refresh (`/plugin marketplace update`, or `codex plugin marketplace upgrade`)
+pulls a new build only after the version is bumped on a release.
 
 ## HTML workflow output
 

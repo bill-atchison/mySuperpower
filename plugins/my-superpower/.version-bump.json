@@ -9,13 +9,15 @@
     { "path": "gemini-extension.json", "field": "version" }
   ],
   "audit": {
+    "_comment": "Exclude patterns are matched by basename (a '/' would break grep --exclude); 'dist' is the generated, gitignored build output.",
     "exclude": [
       "CHANGELOG.md",
       "RELEASE-NOTES.md",
       "node_modules",
       ".git",
+      "dist",
       ".version-bump.json",
-      "scripts/bump-version.sh"
+      "bump-version.sh"
     ]
   }
 }

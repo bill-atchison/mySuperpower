@@ -1,6 +1,6 @@
 {
   "name": "my-superpower",
-  "version": "6.0.3",
+  "version": "6.0.3+fork.2",
   "description": "Personal HTML-native fork of Superpowers.",
   "type": "module",
   "main": ".opencode/plugins/superpowers.js",

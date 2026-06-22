@@ -10,7 +10,7 @@
       "name": "my-superpower",
       "displayName": "mySuperpower",
       "description": "Personal HTML-native fork of Superpowers.",
-      "version": "6.0.3",
+      "version": "6.0.3+fork.2",
       "source": "./",
       "author": {
         "name": "William Atchison",

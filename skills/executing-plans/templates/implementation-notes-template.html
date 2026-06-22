@@ -24,12 +24,12 @@
   (browsers throttle background tabs) — tell the owner to keep the notes tab visible.
   At completion: flip Status pill to "Implementation — Complete" and REMOVE the <meta refresh>.
 
-  WHO UPDATES WHAT:
-    - subagent-driven-development: CONTROLLER builds the table (all rows pending) at
-      setup and flips each task's top-level row to done·<sha> after review; the IMPLEMENTER
-      subagent flips ITS subtask rows live AND appends a Decisions card for any off-spec
-      decision/deviation/tradeoff it makes (controller passes it the notes path).
-    - executing-plans: the agent flips rows AND appends Decisions cards itself, live.
+  WHO UPDATES WHAT (the controller/agent owns ALL writes; implementer subagents stay report-only):
+    - subagent-driven-development: the CONTROLLER renders the table at setup (all rows
+      pending), flips each task's row to in-progress before dispatch and to done·<sha> after
+      review (filling its subtask rows from the implementer's report), and appends Decisions
+      cards. Implementer subagents never write this file.
+    - executing-plans: the agent renders, flips rows, and appends Decisions cards itself, live.
 
   PLACEHOLDERS: {{TITLE}} {{SUBTITLE}} {{DATE}} {{BRANCH}} {{SPEC}} {{PLAN}}
     {{TASK_ROWS}}     -> task-row + sub rows per plan task (START all "pending")

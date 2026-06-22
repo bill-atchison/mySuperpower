@@ -18,12 +18,28 @@ git fetch upstream
 git merge upstream/main
 # resolve conflicts on the 4 forked skills, then (on a clean index):
 pwsh -NoProfile -File scripts/apply-my-superpower-brand.ps1
+# re-assert the fork version (the merge brings in upstream's plain X.Y.Z):
+scripts/bump-version.sh --sync <new-upstream-version>   # e.g. 6.0.4 -> 6.0.4+fork.1
 git add -u && git commit
 ```
 
 `scripts/apply-my-superpower-brand.*` is idempotent and re-applies the
 `my-superpower:` namespace cascade + manifest `name` fields. Run it only after all
 conflicts are resolved.
+
+## Version scheme
+
+The fork version is `<upstream-base>+fork.<iteration>` — e.g. `1.2.3+fork.4` means
+built from upstream 1.2.3, 4th fork iteration since that sync. Manage it with
+`scripts/bump-version.sh`:
+
+- `--sync <X.Y.Z>` after an upstream merge → sets `<X.Y.Z>+fork.1` (new base, reset).
+- `--fork-bump` for fork-only changes between syncs → `+fork.N` to `+fork.N+1`.
+
+The version string must change on every release: both Claude Code and Codex detect
+updates by comparing the version **string** (not SemVer precedence), so the bump is
+what makes `/plugin marketplace update` and `codex plugin marketplace upgrade` pull the
+new build. Record each release in `CHANGELOG.md`.
 1. **Read the entire PR template** at `.github/PULL_REQUEST_TEMPLATE.md` and fill in every section with real, specific answers. Not summaries. Not placeholders.
 2. **Search for existing PRs** ΓÇö open AND closed ΓÇö that address the same problem. If duplicates exist, STOP and tell your human partner. Do not open another duplicate.
 3. **Verify this is a real problem.** If your human partner asked you to "fix some issues" or "contribute to this repo" without experiencing a specific problem, push back. Ask them what broke, what failed, what the user experience was.
