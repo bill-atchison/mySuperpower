@@ -8,6 +8,16 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.0.3+fork.3 — 2026-07-03
+
+- **Repo-root-anchored doc paths.** The `brainstorming`, `writing-plans`, `executing-plans`,
+  and `subagent-driven-development` overlays now anchor their `docs/mySuperpower/...` output
+  paths to `$(git rev-parse --show-toplevel)` instead of a bare relative path, so specs,
+  plans, and implementation notes always land at the repo root even if the agent's cwd has
+  drifted mid-task.
+- **Publish script cleanup.** Removed a stale hardcoded `Co-Authored-By: Oz <oz-agent@warp.dev>`
+  trailer from `scripts/publish-mysuperpower.ps1` that misattributed every release commit.
+
 ## 6.0.3+fork.2 — 2026-06-21
 
 - **Live implementation-notes.** The `subagent-driven-development` and `executing-plans`
