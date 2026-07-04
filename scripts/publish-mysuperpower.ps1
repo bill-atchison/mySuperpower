@@ -105,7 +105,7 @@ git add -A
 if (@(git status --porcelain).Count -eq 0) {
   Write-Host "publish-mysuperpower: no changes to release ($version)"
 } else {
-  git commit -m "Publish mySuperpower $version" -m "Co-Authored-By: Oz <oz-agent@warp.dev>" | Out-Null
+  git commit -m "Publish mySuperpower $version" | Out-Null
   Write-Host "publish-mysuperpower: committed release $version"
 }
 if ($Push) { git push -u origin $Branch | Out-Null; Write-Host "publish-mysuperpower: pushed origin/$Branch" }
