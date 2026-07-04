@@ -5,7 +5,9 @@ The implementation-notes document is a **live artifact**: create it at the start
 execution, keep it current as tasks run, and finalize it at the end. Use the template at
 `skills/subagent-driven-development/templates/implementation-notes-template.html` — it
 already carries the auto-refresh, the task/subtask status table, and the Decisions &
-Deviations cards. Save to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`.
+Deviations cards. Save to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`,
+rooted at the repo root (`$(git rev-parse --show-toplevel)/docs/mySuperpower/implementation-notes/...`)
+— never relative to the current working directory.
 
 **The controller owns every write to this document.** Implementer subagents stay
 report-only — never hand the notes file to a subagent. You already hold the per-task
