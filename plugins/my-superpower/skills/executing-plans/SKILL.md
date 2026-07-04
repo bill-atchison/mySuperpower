@@ -76,7 +76,9 @@ The implementation-notes document is a **live artifact**: create it at the start
 execution, keep it current as you work, and finalize it at the end. Use the template at
 `skills/executing-plans/templates/implementation-notes-template.html` — it already carries
 the auto-refresh, the task/subtask status table, and the Decisions & Deviations cards. Save
-to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`.
+to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`, rooted at the repo root
+(`$(git rev-parse --show-toplevel)/docs/mySuperpower/implementation-notes/...`) — never relative
+to the current working directory.
 
 Here there is no implementer subagent — **you update the document yourself**, live. Write
 **atomically**: render to a temp file and rename it into place.
