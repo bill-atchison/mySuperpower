@@ -423,8 +423,11 @@ Done!
 The implementation-notes document is a **live artifact**: create it at the start of
 execution, keep it current as tasks run, and finalize it at the end. Use the template at
 `skills/subagent-driven-development/templates/implementation-notes-template.html` — it
-already carries the auto-refresh, the task/subtask status table, and the Decisions &
-Deviations cards. Save to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`,
+already carries the auto-refresh, the task/subtask status table, and the unified
+**Implementation Log · By Task** (per-task `h3.tglabel` group headings, `dd-card` decision
+cards, and `.cc` before→after code-change cards, appended at the `TASK_LOG` comment marker
+so each task's rationale and code stay co-located). Save to
+`docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`,
 rooted at the repo root (`$(git rev-parse --show-toplevel)/docs/mySuperpower/implementation-notes/...`)
 — never relative to the current working directory.
 
@@ -448,8 +451,12 @@ mid-write never shows a truncated document.
 
 3. **When that task's review comes back clean** (same step as the ledger line): flip the
    task row and its subtask rows to `done · <sha>` from the implementer's report, and append
-   a Decisions & Deviations card for any substantive off-spec decision, deviation, important
-   fix, cross-task interaction, or tradeoff the report surfaced. Routine progress gets no card.
+   the task's log group at the `TASK_LOG` marker: its `h3.tglabel` heading (task number,
+   title, `· <sha>` in the `st-mini` span), a decision card for any substantive off-spec
+   decision, deviation, important fix, cross-task interaction, or tradeoff the report
+   surfaced, and one `.cc` before→after code card per applied change (minimal excerpts from
+   the implementer's report; elide unchanged runs with `...`). Routine progress gets no
+   decision card, but every applied code change gets its code card.
 
 4. **If a task is BLOCKED:** leave its row `in progress` and append a card naming the blocker,
    so the doc shows the stall instead of going silent.

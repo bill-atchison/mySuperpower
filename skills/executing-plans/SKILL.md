@@ -75,7 +75,10 @@ After all tasks complete and verified:
 The implementation-notes document is a **live artifact**: create it at the start of
 execution, keep it current as you work, and finalize it at the end. Use the template at
 `skills/executing-plans/templates/implementation-notes-template.html` — it already carries
-the auto-refresh, the task/subtask status table, and the Decisions & Deviations cards. Save
+the auto-refresh, the task/subtask status table, and the unified **Implementation Log ·
+By Task** (per-task `h3.tglabel` group headings, `dd-card` decision cards, and `.cc`
+before→after code-change cards, appended at the `TASK_LOG` comment marker so each task's
+rationale and code stay co-located). Save
 to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`, rooted at the repo root
 (`$(git rev-parse --show-toplevel)/docs/mySuperpower/implementation-notes/...`) — never relative
 to the current working directory.
@@ -95,8 +98,10 @@ Here there is no implementer subagent — **you update the document yourself**, 
 
 2. **As you work each task:** flip its row to `in progress`, then to `done · <sha>` once the
    task is complete and committed — within the batch, not deferred to the checkpoint. At most
-   one task row is `in progress` at a time. Append a Decisions & Deviations card for any
-   substantive decision, deviation, important fix, or tradeoff.
+   one task row is `in progress` at a time. Append the task's log group at the `TASK_LOG`
+   marker: its `h3.tglabel` heading (task number, title, `· <sha>`), a decision card for any
+   substantive decision, deviation, important fix, or tradeoff, and one `.cc` before→after
+   code card per change (minimal excerpts; elide unchanged runs with `...`).
 
 3. **At each checkpoint:** the doc already reflects the completed batch — the checkpoint is for
    review, not for catching the doc up.
