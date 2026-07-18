@@ -5,15 +5,22 @@
     1. TASK STATUS table — one task-row per plan task with its TDD SUBTASK rows beneath.
        Flip each pill pending -> in progress -> done (done rows show commit short-SHA),
        in sync with the TodoWrite list.
-    2. DECISIONS & DEVIATIONS — append a CARD whenever a real off-spec decision, a plan
-       deviation, an important fix, a cross-task interaction, a tradeoff, or anything else
-       the owner should know happens. Each
-       card has a maroon tag ("TASK N · DONE · <sha>" or "PRE-IMPL · CONTEXT"), a bold
-       title, and prose/bullets with inline <code> chips. This is the narrative record —
-       NOT a generic activity log; only substantive items go here.
+    2. IMPLEMENTATION LOG · BY TASK — everything for each task together, in task order.
+       The log OPENS with a "PRE-IMPL · CONTEXT" card when the run needs process context
+       (adapted workflow, environment constraints). Then, per task, append a GROUP:
+         a. an <h3 class="tglabel"> task-group heading — task number + title, with a
+            <span class="st-mini"> status/sha annotation ("· abc1234" or "(no code)");
+         b. one dd-card per substantive item (off-spec decision, plan deviation, important
+            fix, cross-task interaction, tradeoff — NOT routine progress). Each card has a
+            maroon tag ("TASK N · DONE · <sha>", "PRE-IMPL · CONTEXT", …), a bold title,
+            and prose/bullets with inline <code> chips;
+         c. one .cc CODE-CHANGE card per applied edit — heading, mono .loc location line,
+            then labelled BEFORE (red) / AFTER (green) <pre> blocks. Keep excerpts minimal:
+            the changed lines plus just enough context; elide unchanged runs with "...".
+       Append new groups at the TASK_LOG comment marker so decisions and code stay co-located.
 
-  FIXED MASTHEAD + PALETTE (per owner spec): header, palette, table, and card styles are
-  FIXED — reproduce as-is so this doc shares the editorial identity of the spec
+  FIXED MASTHEAD + PALETTE (per owner spec): header, palette, table, card, and code-block
+  styles are FIXED — reproduce as-is so this doc shares the editorial identity of the spec
   (Spec · Design) and plan (Plan · Implementation). Stay on-palette.
 
   HARD RULES: one self-contained .html; ALL CSS inline; web-safe/system fonts only;
@@ -27,13 +34,15 @@
   WHO UPDATES WHAT (the controller/agent owns ALL writes; implementer subagents stay report-only):
     - subagent-driven-development: the CONTROLLER renders the table at setup (all rows
       pending), flips each task's row to in-progress before dispatch and to done·<sha> after
-      review (filling its subtask rows from the implementer's report), and appends Decisions
-      cards. Implementer subagents never write this file.
-    - executing-plans: the agent renders, flips rows, and appends Decisions cards itself, live.
+      review (filling its subtask rows from the implementer's report), and appends the task's
+      log group (tglabel heading, dd-cards, .cc code cards) from the implementer's report.
+      Implementer subagents never write this file.
+    - executing-plans: the agent renders, flips rows, and appends log groups itself, live.
 
   PLACEHOLDERS: {{TITLE}} {{SUBTITLE}} {{DATE}} {{BRANCH}} {{SPEC}} {{PLAN}}
-    {{TASK_ROWS}}     -> task-row + sub rows per plan task (START all "pending")
-    {{DECISION_CARDS}}-> Decisions cards, appended as they happen (may start empty)
+    {{TASK_ROWS}}   -> task-row + sub rows per plan task (START all "pending")
+    {{LOG_ENTRIES}} -> Implementation Log groups, appended as tasks complete (may start
+                       empty, or with a single PRE-IMPL · CONTEXT card)
   Eyebrow FIXED "Notes · Implementation". Status pill starts "Implementation — In Progress".
 -->
 <html lang="en">
@@ -47,6 +56,7 @@
     --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
     --label:#6d5f4e; --value:#2b2820; --amber:#a8762b; --olive:#7a6a2e;
     --rule:#ddd3bc; --subrule:#ece4d0; --green:#3f7d3f; --card:#faf7ef;
+    --code-bg:#2b2820; --code-ink:#f4efe1; --add:#3f7d3f; --del:#8a2b27;
     --serif:Georgia,'Times New Roman',serif;
     --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
   }
@@ -84,6 +94,21 @@
   .tstatus.done{background:#d6e8cf;color:var(--green);}
   .tstatus.inprogress{background:#ecdcbf;color:#9a6a1f;}
   .tstatus.pending{background:#e7dfca;color:var(--label);}
+  .tglabel{font-family:var(--serif);font-weight:700;font-size:1.55rem;color:var(--maroon);margin:2.8rem 0 .2rem;padding-bottom:.3rem;border-bottom:2px solid var(--rule);}
+  .tglabel .st-mini{font-family:var(--mono);font-size:.72rem;font-weight:400;color:var(--label);letter-spacing:.05em;}
+  .cc{margin:1.7rem 0;}
+  .cc h3{font-family:var(--serif);font-weight:700;font-size:1.25rem;margin:.3rem 0 .3rem;color:var(--maroon);}
+  .cc .loc{font-family:var(--mono);font-size:.8rem;color:var(--label);margin:0 0 .6rem;}
+  .cc .ba{display:grid;grid-template-columns:1fr;gap:.5rem;}
+  .cc .lbl{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.68rem;font-weight:700;margin:.2rem 0 -.2rem;}
+  .cc .lbl.before{color:var(--del);}
+  .cc .lbl.after{color:var(--add);}
+  pre{font-family:var(--mono);font-size:.8rem;line-height:1.5;background:var(--code-bg);color:var(--code-ink);
+      border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;margin:.3rem 0;}
+  pre.before{border-left:4px solid var(--del);}
+  pre.after{border-left:4px solid var(--add);}
+  pre code{background:none;padding:0;font-size:1em;color:inherit;border:none;}
+  .pending-note{font-family:var(--mono);font-size:.85rem;color:var(--label);font-style:italic;}
   .dd-card{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:14px;
            padding:1.7rem 1.85rem 1.4rem;margin:1.7rem 0;}
   .dd-tag{position:absolute;top:-0.75rem;left:1.5rem;background:var(--maroon);color:var(--paper);
@@ -128,19 +153,36 @@
       </table>
     </section>
 
-    <section class="decisions">
-      <h2 class="section-label">Decisions &amp; Deviations</h2>
-      {{DECISION_CARDS}}
-      <!-- Append a card per substantive item (off-spec decision, plan deviation, important
-           fix, cross-task interaction, tradeoff) — NOT routine progress. Insert before this
-           section's </section>. Tag = "TASK N · DONE · <sha>" or "PRE-IMPL · CONTEXT". Example:
+    <section class="log">
+      <h2 class="section-label">Implementation Log &middot; By Task</h2>
+      <p class="pending-note">Everything for each task together &mdash; decisions/deviations and the before&rarr;after code.</p>
+      {{LOG_ENTRIES}}
+      <!-- Append one GROUP per task as it completes: an h3.tglabel heading, then that task's
+           dd-card decision/deviation cards (substantive items only — off-spec decisions, plan
+           deviations, important fixes, cross-task interactions, tradeoffs; NOT routine
+           progress), then one .cc card per applied code change (BEFORE/AFTER excerpts, elide
+           unchanged runs with "..."). A run may open with a PRE-IMPL · CONTEXT dd-card
+           (no tglabel) for process context. Example group:
+
+      <h3 class="tglabel">Task 1 &mdash; Short task title <span class="st-mini">&middot; abc1234</span></h3>
       <div class="dd-card">
         <span class="dd-tag">Task 1 &middot; Done &middot; abc1234</span>
         <h3>Short decision title</h3>
         <p><strong>Decision (off-spec).</strong> What was decided and why; use inline <code>code</code> chips.</p>
         <ul><li><strong>Rationale:</strong> …</li><li><strong>Interaction for Task N:</strong> …</li></ul>
       </div>
+      <div class="cc">
+        <h3>Task 1 &middot; Change 1 &mdash; short change title</h3>
+        <p class="loc"><code>path/to/file.ext</code> &mdash; where in the file. Committed <code>abc1234</code>.</p>
+        <div class="ba">
+          <p class="lbl before">Before</p>
+          <pre class="before"><code>old lines (minimal excerpt; "..." for elided runs)</code></pre>
+          <p class="lbl after">After</p>
+          <pre class="after"><code>new lines</code></pre>
+        </div>
+      </div>
       -->
+      <!-- TASK_LOG: append the next task group here (h3.tglabel heading, then its dd-card decisions, then its .cc before/after blocks) -->
     </section>
   </div>
 </body>
