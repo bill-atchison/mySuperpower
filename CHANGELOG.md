@@ -8,6 +8,29 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.2.0+fork.1 — 2026-07-27
+
+- **Synced to upstream superpowers 6.2.0** (from base 6.0.3). Merged 70 upstream commits;
+  the only conflicts were the version fields in the seven declared manifests, resolved to
+  the fork scheme. Notable upstream changes now in the fork:
+  - **SDD lifecycle restructure** — plan-scoped durable workspace (`.superpowers/sdd/<plan>`),
+    resume-based fix loop with a five-round breaker, a scoped re-review prompt, and a
+    rationalization table in `subagent-driven-development`.
+  - **Skills compression sweep** across `brainstorming`, `writing-plans`,
+    `verification-before-completion`, `systematic-debugging`, `receiving-code-review`,
+    `dispatching-parallel-agents`, and others.
+  - **Windows SessionStart fix** — the hook is dispatched via Git Bash (`run-hook.cmd`,
+    `shell: bash`), removing the PowerShell/CMD fallback hazards.
+  - **Codex packaging** — `scripts/package-codex-plugin.sh` and the `.agents/plugins`
+    marketplace manifest; the standalone `hooks/session-start-codex` /
+    `hooks/hooks-codex.json` were removed upstream in favor of hook autodiscovery.
+- **Fork customizations carried through cleanly.** All four HTML overlays (`brainstorming`,
+  `writing-plans`, `executing-plans`, `subagent-driven-development`) still apply — every
+  required build anchor survived the compression sweep, so no overlay edits were needed.
+  The HTML templates, branding, and repo-root-anchored `docs/mySuperpower/` output paths
+  are unchanged. The live implementation-notes overlays remain coherent with the new
+  plan-scoped ledger, which they treat as the source of truth for the status table.
+
 ## 6.0.3+fork.4 — 2026-07-17
 
 - **Unified Implementation Log in the notes template.** The implementation-notes template
