@@ -8,6 +8,43 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.3.0+fork.1 — 2026-08-28
+
+- **Synced to upstream superpowers 6.3.0** (from base 6.2.0). Merged 2 upstream commits
+  (40 files). Notable upstream changes now in the fork:
+  - **Brainstorming scales its ceremony** — requests are classified as *spike*, *bounded*,
+    or *architectural*; only the architectural path writes a spec and hands off to
+    writing-plans. Every path still stops for an explicit approval before implementation.
+  - **SDD circuit-breaker and cost fixes** — controllers rule on non-catastrophic plan
+    conflicts instead of stalling, the pre-dispatch conflict scan records its checks in the
+    ledger, small same-shape tasks batch into one dispatch, and implementers/reviewers may
+    no longer spawn their own subagents.
+  - **Plans carry a `Spec:` pointer** so SDD resolves plan conflicts against the design.
+  - **`finishing-a-development-branch` no longer force-removes worktrees** holding
+    uncommitted work — it stops, names the files, and asks.
+  - **New harness manifests** — `.devin-plugin/plugin.json` and `.hermes-plugin/`
+    (`plugin.yaml` + `__init__.py`), both registered in `.version-bump.json`.
+  - **Codex** — event-driven subagent waits, explicit model/effort pinning on spawn.
+  - Fixes: `writing-skills/render-graphs.js` works on Windows; Copilot CLI backgrounding
+    guidance corrected.
+- **Merge conflicts resolved.** The version field in all nine declared manifests (resolved to
+  the fork scheme), `.gitignore` (fork's `/dist/` + `/.baseline-skills/` kept alongside
+  upstream's Python ignores), and `scripts/bump-version.sh` — where upstream's YAML manifest
+  support (`read_manifest_field`/`write_manifest_field`, `preflight_manifests`, yq) met the
+  fork's `get_current_version` helper. `get_current_version` now reads through
+  `read_manifest_field`, so `--check`/`--audit`/`--fork-bump`/`--sync` see the Hermes YAML
+  manifest too.
+- **`declared_files()` strips CR** from Windows jq's CRLF output. A trailing CR on every
+  field name was harmless to jq (which treats CR as whitespace) but broke yq's `strenv()`
+  lookup outright — `--check` failed with `Error: no matches found` on the first YAML
+  manifest. `scripts/bump-version.sh` now requires **yq** in addition to jq.
+- **Brainstorming overlay scoped to the architectural path.** The HTML-spec instructions and
+  the two gates (Codex review, browser acceptance) now say explicitly that they apply only
+  where upstream writes a spec; spike and bounded work stays in chat. Both required overlay
+  anchors survived the upstream rewrite, and the plan template's `Spec` meta-card row
+  already satisfies upstream's new "spec travels with the plan" rule — no other fork edits
+  were needed.
+
 ## 6.2.0+fork.1 — 2026-07-27
 
 - **Synced to upstream superpowers 6.2.0** (from base 6.0.3). Merged 70 upstream commits;
