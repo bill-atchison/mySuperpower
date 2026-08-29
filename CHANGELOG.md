@@ -44,6 +44,36 @@ the version **string**, so every release bumps it.
   anchors survived the upstream rewrite, and the plan template's `Spec` meta-card row
   already satisfies upstream's new "spec travels with the plan" rule — no other fork edits
   were needed.
+- **Cut with the 6.2.0+fork.2 publish fix in place** — the release branch is republished
+  with the executable bits re-asserted from the source index (see the entry below).
+
+## 6.2.0+fork.2 — 2026-08-12
+
+- **Fixed: published releases lost the executable bit**, so hooks and skill scripts in the
+  installed plugin failed with `Permission denied` (exit 126) on macOS and Linux:
+
+  ```
+  sh: .../my-superpower/6.0.3-fork.3/hooks/run-hook.cmd: Permission denied
+  ```
+
+  The source tree was always correct (`hooks/run-hook.cmd` is committed `100755`) — the bit
+  was lost at publish time. Windows has no Unix permission bit, so a release cut from
+  Windows stages every freshly copied file as `100644`. Every release commit back to
+  2026-06-19 shows `100644`; the same publish run on macOS produces `100755`.
+
+  `scripts/publish-mysuperpower.ps1` now re-asserts the mode from the source index via
+  `git update-index --chmod=+x` before committing the release. `git ls-files -s` reads the
+  index rather than the filesystem, so it reports the committed `100755` on every platform.
+  The file list is derived, not hardcoded, so a new upstream executable is covered with no
+  further change to the script.
+
+  This restored `+x` on 18 published paths — 9 files across the root (Claude) and
+  `plugins/my-superpower/` (Codex) copies: both hooks plus `start-server.sh`,
+  `stop-server.sh`, `review-package`, `sdd-workspace`, `task-brief`, `find-polluter.sh`
+  and `render-graphs.js`.
+
+- No upstream files were changed; the fix is confined to the fork's publish script, so
+  upstream merges remain clean.
 
 ## 6.2.0+fork.1 — 2026-07-27
 

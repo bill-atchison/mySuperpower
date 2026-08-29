@@ -102,6 +102,40 @@ $codexMarket | Set-Content -LiteralPath $agentsMarketPath
 # --- 5. Commit (and optionally push) ---
 Push-Location $wt
 git add -A
+
+# Re-assert the executable bit from the SOURCE index.
+#
+# Windows has no Unix permission bit, so when the release is cut from Windows
+# every file Copy-Item just wrote is staged 100644 — including hooks/run-hook.cmd,
+# hooks/session-start and the skill scripts. The published plugin then dies with
+# "Permission denied" (exit 126) on macOS/Linux the moment a hook or script runs
+# directly. Cutting the same release from macOS produced 100755, which is why
+# this only ever broke for Windows-published releases.
+#
+# `git ls-files -s` reads the index, not the filesystem, so the source repo
+# reports the committed 100755 on every platform — making this the one signal
+# that survives the round trip. Deriving the list here (rather than hardcoding
+# paths) means a new upstream executable is covered with no change to this script.
+$srcExec = @(
+  git -C $root ls-files -s |
+    Where-Object { $_ -match '^100755\s' } |
+    ForEach-Object { ($_ -split "`t", 2)[1] }
+)
+$chmodCount = 0
+foreach ($rel in $srcExec) {
+  # Each source path lands twice: at the branch root (Claude) and under
+  # plugins/<name>/ (Codex). Source-only trees (scripts/, tests/, docs/) are
+  # excluded from dist and simply won't be present.
+  foreach ($target in @($rel, "$codexPluginRel/$rel")) {
+    if (Test-Path (Join-Path $wt $target)) {
+      git update-index --chmod=+x -- $target
+      if ($LASTEXITCODE -ne 0) { Fail "could not set +x on $target" }
+      $chmodCount++
+    }
+  }
+}
+Write-Host "publish-mysuperpower: restored +x on $chmodCount published file(s)"
+
 if (@(git status --porcelain).Count -eq 0) {
   Write-Host "publish-mysuperpower: no changes to release ($version)"
 } else {
