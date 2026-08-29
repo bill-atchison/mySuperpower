@@ -149,11 +149,11 @@
           </div>
         </div>
 
-        <h3>3. The controller ingests the stylesheet</h3>
-        <p>SDD setup instructs the controller to read the plan once. The fork&rsquo;s plans open with roughly sixty lines of inline CSS before any content &mdash; <code>2026-06-21-live-implementation-notes.html</code> is 20&nbsp;KB, most of it presentation the controller has no use for.</p>
+        <h3>3. The controller reads the plan through its stylesheet</h3>
+        <p>SDD setup instructs the controller to read the plan once. It reads the presentation layer along with it: the <code>&lt;head&gt;</code> of <code>2026-06-21-live-implementation-notes.html</code> is about 4&nbsp;KB of the file&rsquo;s 20&nbsp;KB, and presentational markup runs through the body on top of that. Not fatal &mdash; but it is pure noise on the one read the whole run is planned from.</p>
 
         <h3>4. Briefs carry no provenance</h3>
-        <p><code>task-brief</code> overwrites <code>task-N-brief.md</code> with no record of which plan revision produced it. The fork&rsquo;s browser acceptance gate actively invites revising a plan mid-run, and the same brief is later handed to the task reviewer and the re-reviewer &mdash; who then judge the work against requirements that may no longer exist.</p>
+        <p><code>task-brief</code> overwrites <code>task-N-brief.md</code> with no record of which plan revision produced it. The fork&rsquo;s <code>writing-plans</code> overlay ends with &ldquo;open the <code>.html</code> in the user&rsquo;s browser for an acceptance gate and get sign-off&rdquo; &mdash; a gate whose whole purpose is to send a plan back for revision. The same brief is later handed to the task reviewer and the re-reviewer, who then judge the work against requirements that may no longer exist.</p>
       </section>
 
       <section>
@@ -212,18 +212,29 @@
   "replaces": [],
   "append": "additions.md",
   "files": [
-    { "from": "scripts/task-brief-html", "to": "scripts/task-brief-html" }
+    { "from": "scripts/task-brief-html", "to": "scripts/task-brief-html", "exec": true }
   ]
 }</code></pre>
-        <p>A missing <code>from</code> is a fail-loud build error, matching how a missing required anchor already behaves &mdash; loud failure at build time is the property that makes the overlay system trustworthy. The build&rsquo;s verification step gains one assertion: every declared <code>to</code> exists in <code>dist/</code>.</p>
+        <p>The <code>files</code> key is optional; an overlay without it behaves exactly as today. <code>exec</code> defaults to <code>false</code> and declares that the published file must be executable &mdash; see the publish hazard below, where making that intent explicit is what turns a silent regression into a failed release.</p>
 
-        <p>That assertion is not ceremony. The current checks are the dist plugin name, the skill count, and residual <code>superpowers:</code> references. A silently skipped copy passes all three while shipping a SKILL.md that tells the controller to run a script which is not there.</p>
+        <h3>Schema rules, enforced at build time</h3>
+        <p>Every rule below fails the build loudly, naming the overlay and the entry. Loud failure at build time is the property that makes the overlay system trustworthy, and an unvalidated copy step is a file-write primitive pointed at the build output.</p>
+        <ul>
+          <li><code>from</code> and <code>to</code> are relative paths. Absolute paths and any <code>..</code> segment are rejected outright, not normalized.</li>
+          <li><code>from</code> must resolve inside the overlay&rsquo;s own directory and be an existing regular file &mdash; not a directory, not a symlink.</li>
+          <li><code>to</code> must resolve inside <code>dist/skills/&lt;skill&gt;/</code>.</li>
+          <li><code>to</code> must not already exist in <code>dist/</code>. An overlay silently replacing an upstream file would be a source-patching mechanism wearing a copy step&rsquo;s clothes, and the fork has deliberately refused that.</li>
+          <li>No two entries may resolve to the same <strong>canonical destination</strong>, <code>dist/skills/&lt;skill&gt;/&lt;to&gt;</code>. The comparison is on the resolved path, not the raw <code>to</code> string: two overlays for different skills may both legitimately ship <code>scripts/helper</code>, and those are different files.</li>
+          <li><code>exec</code>, when present, must be a JSON boolean. Absent means <code>false</code>.</li>
+        </ul>
+        <p>The build&rsquo;s verification step then asserts every declared <code>to</code> exists in <code>dist/</code>. That assertion is not ceremony: the current checks are the dist plugin name, the skill count, and residual <code>superpowers:</code> references. A silently skipped copy passes all three while shipping a SKILL.md that tells the controller to run a script which is not there.</p>
 
         <div class="hazard">
           <p class="cap">Hazard 1 &mdash; the executable bit</p>
           <p><code>scripts/publish-mysuperpower.ps1</code> restores <code>+x</code> by reading <code>git ls-files -s</code> on the source repo and looking for each <code>100755</code> path in the release tree, at the root and under <code>plugins/my-superpower/</code>. Its own comment notes that deriving the list means &ldquo;a new upstream executable is covered with no change to this script.&rdquo; A new <em>fork</em> executable is not: its source path is <code>overlays/&hellip;</code>, which is excluded from <code>dist/</code> and therefore matches neither target.</p>
           <p>The script would publish as <code>100644</code> and die with <code>Permission denied</code> on macOS and Linux &mdash; the exact failure 6.2.0+fork.2 fixed, re-entering through a new door.</p>
-          <p><strong>Fix:</strong> publish reads each <code>overlays/*/overlay.json</code>, and for every <code>files</code> entry whose <em>source</em> blob is <code>100755</code> in the index, chmods the <em>published</em> path in both copies. The same principle the existing block documents &mdash; the index is the only signal that survives Windows &mdash; applied across the rename.</p>
+          <p><strong>Fix:</strong> publish reads each <code>overlays/*/overlay.json</code> and, for every <code>files</code> entry marked <code>"exec": true</code>, chmods the <em>published</em> path in both copies. The same principle the existing block documents &mdash; the index is the only signal that survives Windows &mdash; applied across the rename.</p>
+          <p>The intent has to be declared rather than sniffed from the source mode. If publish only chmodded files it found at <code>100755</code> in the index, then a source file committed <code>100644</code> by accident &mdash; the single most likely way this goes wrong, since Windows checkouts have no mode bit to preserve &mdash; would produce no chmod, no error, and a broken release. With <code>exec: true</code> declared, publish <strong>fails</strong> when the source is not <code>100755</code> in the index, naming the file and the <code>git update-index --chmod=+x</code> that fixes it.</p>
         </div>
 
         <div class="hazard">
@@ -241,20 +252,25 @@ overlays/**/scripts/* text eol=lf</code></pre>
 
         <h3>Command contract</h3>
 <pre><code>task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]   # default &lt;workspace&gt;/task-N-brief.md
-task-brief-html --overview PLAN_FILE [OUTFILE]    # default &lt;workspace&gt;/plan-overview.md</code></pre>
-        <p>Deliberately congruent with upstream&rsquo;s <code>task-brief</code>: same argument order, same default output location, same exit codes, same closing line printing the path it wrote. The controller&rsquo;s only branch is on the plan&rsquo;s file extension.</p>
+task-brief-html --plan PLAN_FILE [OUTFILE]        # default &lt;workspace&gt;/plan-body.md</code></pre>
+        <p>Congruent with upstream&rsquo;s <code>task-brief</code>: same argument order, same default output location, same exit codes, same closing line printing the path it wrote. The controller&rsquo;s only branch is on the plan&rsquo;s file extension.</p>
+        <p>One behavior differs from upstream deliberately. Upstream redirects awk into the output file and only then tests whether it is empty, so a missing task leaves a zero-byte <code>task-N-brief.md</code> behind (<code>task-brief:34-38</code>). This script writes to a temp file <em>in the output directory</em> &mdash; same filesystem, so the rename is atomic &mdash; and renames it into place only on success. A half-written brief is the worst possible artifact here: it looks like requirements.</p>
+        <p>Temp-and-rename alone is not enough, and the gap is worth naming. Briefs are re-extracted after a plan revision, so a failed extraction that merely declines to write would leave the <em>previous</em> successful brief sitting at the expected path, looking current, with nothing to distinguish it. On any failure the script therefore <strong>deletes the target path</strong> before exiting 3. A missing brief stops the controller; a stale one silently misdirects it.</p>
+        <p>That deletion is scoped to the <em>default</em> workspace path, which the script owns and which holds nothing but generated briefs. When <code>OUTFILE</code> is given explicitly the script deletes nothing &mdash; it exits 3 and names the path as possibly holding a stale brief. A tool that removes a file the caller named is a tool that eventually removes the wrong one.</p>
 
-        <p>Written in bash and awk, matching every other script in the skill, so SDD&rsquo;s dependency set stays bash plus git.</p>
+        <p>Written in bash and awk, matching every other script in the skill and adding no new dependency &mdash; upstream&rsquo;s <code>task-brief</code> already uses <code>awk</code>, <code>wc</code> and <code>tr</code>.</p>
 
         <h3>Workspace resolution</h3>
         <p>The script calls upstream <code>sdd-workspace</code> unmodified. That leaves the directory named <code>&lt;plan-basename&gt;.html/</code>, because <code>basename "$plan" .md</code> does not strip <code>.html</code>. This is cosmetic and is <strong>deliberately not fixed</strong>: every caller passes the same <code>PLAN_FILE</code>, so briefs, review packages and the progress ledger all resolve to one directory. A prettier slug in one script would split the workspace and strand the ledger &mdash; the exact failure the plan-scoped workspace was introduced to prevent.</p>
 
         <h3>Task selection, layered</h3>
-        <p>Real fork plans do not agree on class names. <code>2026-05-25</code> uses <code>class="step"</code>, <code>2026-06-21</code> uses <code>class="s"</code>, and <code>2026-06-19</code> has no task sections at all. Selection keys on structure, with class names as a hint only:</p>
+        <p>Real fork plans disagree about how a task is identified, and the difference is not cosmetic. <code>2026-06-21</code> writes <code>&lt;section class="task"&gt;&lt;h3&gt;Task 1 &mdash; Title&lt;/h3&gt;</code>. <code>2026-05-25</code> writes <code>&lt;section class="task"&gt;&lt;h2&gt;Wire the upstream remote &amp;amp; record baseline&lt;/h2&gt;</code> &mdash; <strong>no task number in the heading at all</strong>, at a different heading level. There, task identity is <em>positional</em>. <code>2026-06-19</code> has no task sections at all. The plan template mandates <code>section.task</code> but never mandates that the heading name a number.</p>
+        <p>Selection therefore keys on structure, in this order:</p>
         <ol>
-          <li><strong>Preferred:</strong> a <code>&lt;section&gt;</code> carrying <code>class="task"</code>, closed by its matching <code>&lt;/section&gt;</code>, whose heading text matches <code>Task &lt;N&gt;</code>.</li>
-          <li><strong>Fallback:</strong> any <code>&lt;h2&gt;</code> or <code>&lt;h3&gt;</code> whose text matches <code>Task &lt;N&gt;</code>, extracting to the next heading of the same or higher level. This mirrors upstream&rsquo;s own heading-delimited strategy and survives arbitrary section markup.</li>
-          <li><strong>Neither:</strong> exit 3, the same code and the same message shape upstream uses for a missing task.</li>
+          <li><strong>Positional, preferred.</strong> If the plan contains <code>&lt;section class="task"&gt;</code> elements, task <em>N</em> is the <em>N</em>th such section in document order, closed by its matching <code>&lt;/section&gt;</code> with nesting tracked.</li>
+          <li><strong>Cross-check.</strong> Take the section&rsquo;s <em>first heading element in document order within that section</em>. If its text names a task number and that number is not <em>N</em>, exit 3 naming both. Position and label disagreeing means the plan is mis-numbered; guessing which one the controller meant is exactly the silent wrong answer this design must not produce. A heading with no number is not a conflict &mdash; that is the <code>2026-05-25</code> shape, and position governs.</li>
+          <li><strong>Fallback.</strong> If there are no task sections, select on any heading whose text matches <code>Task &lt;N&gt;</code>, extracting to the next heading that matches <code>Task &lt;any number&gt;</code> at any level &mdash; the same boundary rule upstream&rsquo;s awk uses, which flips on any <code>Task</code> heading regardless of depth.</li>
+          <li><strong>Neither yields a task:</strong> exit 3.</li>
         </ol>
 
         <h3>Conversion rules</h3>
@@ -262,18 +278,21 @@ task-brief-html --overview PLAN_FILE [OUTFILE]    # default &lt;workspace&gt;/pl
           <li><code>&lt;pre&gt;&lt;code&gt;</code> becomes a fenced block; entities decoded, no tag stripping inside.</li>
           <li><code>&lt;li&gt;</code> inside <code>&lt;ol&gt;</code> becomes a numbered step; inside <code>&lt;ul&gt;</code>, a dash. A files block becomes a plain Files list.</li>
           <li>Block-level tags become line breaks; inline tags (<code>strong</code>, <code>em</code>, <code>span</code>, <code>code</code>) are dropped and their text kept.</li>
-          <li>Entities decoded: <code>&amp;lt;</code>, <code>&amp;gt;</code>, <code>&amp;quot;</code>, <code>&amp;#39;</code>, <code>&amp;mdash;</code>, <code>&amp;nbsp;</code>, numeric forms, and <code>&amp;amp;</code> <strong>last</strong> &mdash; so <code>&amp;amp;lt;</code> decodes to <code>&amp;lt;</code> and not to <code>&lt;</code>.</li>
+          <li>Entities decoded from a named table &mdash; at minimum <code>lt gt quot apos nbsp mdash ndash hellip middot rarr larr lsquo rsquo ldquo rdquo times</code> &mdash; plus numeric decimal and hex forms, with <code>&amp;amp;</code> decoded <strong>last</strong> so <code>&amp;amp;lt;</code> becomes <code>&amp;lt;</code> and not <code>&lt;</code>. The table must cover what the plan template itself emits: it writes <code>&amp;middot;</code> and <code>&amp;rarr;</code> today.</li>
+          <li>Any <code>&amp;name;</code> the table does not cover is left as-is and <strong>warned about on stderr</strong>, naming the entity. An enumerated list will fall behind the template eventually; the warning is what keeps that drift visible instead of quietly shipping <code>&amp;middot;</code> into a subagent&rsquo;s requirements.</li>
           <li>Runs of blank lines collapse to one. The brief is read by a subagent, not rendered.</li>
         </ul>
 
-        <h3>Overview mode</h3>
-        <p><code>--overview</code> runs the same converter over the Overview and Global Constraints sections plus an index of every task heading, and emits nothing from <code>&lt;head&gt;</code> &mdash; which is where the CSS lives. It replaces the controller&rsquo;s whole-file plan read at setup.</p>
+        <h3>Plan mode</h3>
+        <p><code>--plan</code> renders the <em>entire</em> plan body &mdash; Overview, Global Constraints, and every task in full &mdash; through the same converter, emitting nothing from <code>&lt;head&gt;</code>.</p>
+        <p>It renders the whole body, not a summary, because of what SDD setup actually requires. <code>SKILL.md:163-180</code> mandates a pre-flight conflict scan whose output is a table with <em>one row for every pair of tasks that share a file or an interface</em> &mdash; what one produces against what the other consumes &mdash; plus one row per task checking its own text against itself. That scan needs every task&rsquo;s full body. An overview-only extract would quietly starve it, and a controller cannot tell the difference between a clean scan and a scan run on missing input.</p>
+        <p>The saving is therefore modest and honest: the <code>&lt;head&gt;</code> stylesheet is about 4&nbsp;KB of the 20&nbsp;KB <code>2026-06-21</code> plan, and presentational markup accounts for more throughout the body. What <code>--plan</code> removes is noise, not content.</p>
 
         <h3>Provenance header</h3>
         <p>Every brief opens with three lines: source plan path, plan content hash from <code>git hash-object</code>, and extraction timestamp. There is deliberately <strong>no</strong> comparison or invalidation logic &mdash; there is no stored state to compare against, and inventing one would be machinery this problem has not asked for. The header exists so a human reading a brief can see it predates a plan revision.</p>
 
         <h3>Overlay instruction text</h3>
-        <p><code>overlays/subagent-driven-development/additions.md</code> gains a scoped override: when <code>PLAN_FILE</code> ends in <code>.html</code>, use <code>scripts/task-brief-html</code> everywhere the skill says <code>scripts/task-brief</code>, and read the plan with <code>--overview</code> at setup rather than whole. Scoped the same way the brainstorming overlay is scoped to the architectural path, so a markdown plan still follows upstream exactly.</p>
+        <p><code>overlays/subagent-driven-development/additions.md</code> gains a scoped override: when <code>PLAN_FILE</code> ends in <code>.html</code>, use <code>scripts/task-brief-html</code> everywhere the skill says <code>scripts/task-brief</code>, and read the plan with <code>--plan</code> at setup rather than opening the <code>.html</code> directly. Scoped the same way the brainstorming overlay is scoped to the architectural path, so a markdown plan still follows upstream exactly.</p>
       </section>
 
       <section>
@@ -313,11 +332,14 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
           <tbody>
             <tr><td>Wrong argument count</td><td>Usage message on stderr</td><td><code>2</code></td></tr>
             <tr><td>Plan file missing</td><td><code>no such plan file: &lt;path&gt;</code></td><td><code>2</code></td></tr>
-            <tr><td>Task N not found by either strategy</td><td>Names the plan and the task number; writes no partial brief</td><td><code>3</code></td></tr>
-            <tr><td>Unbalanced markup in the selected section</td><td>Extracts to the next task heading and warns on stderr; the brief is still written</td><td><code>0</code></td></tr>
-            <tr><td>Overlay declares a <code>files</code> entry that is missing</td><td>Build fails, naming the overlay and the path</td><td>build</td></tr>
+            <tr><td>Task N not found by either strategy</td><td>Names the plan and the task number; deletes an existing brief at the <em>default</em> path, never at an explicit <code>OUTFILE</code></td><td><code>3</code></td></tr>
+            <tr><td>Section position and heading number disagree</td><td>Names both numbers; any existing brief at the target path is deleted</td><td><code>3</code></td></tr>
+            <tr><td>Named entity outside the decode table</td><td>Left as-is, named on stderr; the brief is still written</td><td><code>0</code></td></tr>
+            <tr><td>Unbalanced markup in the selected section</td><td>Extracts to the next task boundary and warns on stderr; the brief is still written</td><td><code>0</code></td></tr>
+            <tr><td><code>files</code> entry names a missing, absolute, escaping, or non-regular <code>from</code></td><td>Build fails, naming the overlay and the entry</td><td>build</td></tr>
+            <tr><td><code>to</code> escapes the skill dir, collides with another entry, or already exists in <code>dist/</code></td><td>Build fails, naming the overlay and the entry</td><td>build</td></tr>
             <tr><td>Declared <code>files</code> target absent from <code>dist/</code></td><td>Build verification fails</td><td>build</td></tr>
-            <tr><td>Fork script published without <code>+x</code></td><td>Publish fails on the chmod it could not apply</td><td>publish</td></tr>
+            <tr><td><code>exec: true</code> entry whose source is not <code>100755</code> in the index</td><td>Publish fails, naming the file and the <code>git update-index</code> fix</td><td>publish</td></tr>
           </tbody>
         </table>
         </div>
@@ -331,20 +353,24 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
         <p>Fork-owned, under <code>tests/mysuperpower/</code> &mdash; upstream&rsquo;s <code>tests/</code> are not maintained in this fork, and these cover fork-owned code.</p>
 
         <h3>tests/mysuperpower/test-task-brief-html.sh</h3>
-        <p>Against dedicated committed fixtures under <code>tests/mysuperpower/fixtures/</code> &mdash; <code>plan-sections.html</code> (three tasks in <code>&lt;section class="task"&gt;</code>) and <code>plan-headings.html</code> (tasks as bare headings, no task class) &mdash; so the assertions stay stable as the real plans age:</p>
+        <p>Against dedicated committed fixtures rather than the real plans, so the assertions stay stable as those plans age:</p>
         <ul>
           <li>Task 2 of 3 extracts with its own heading, steps and code, and nothing from tasks 1 or 3.</li>
           <li><code>&amp;lt;meta&amp;gt;</code> in the plan arrives as <code>&lt;meta&gt;</code> in the brief; <code>&amp;amp;lt;</code> arrives as <code>&amp;lt;</code>.</li>
           <li>Fenced code blocks survive intact, including indentation.</li>
-          <li>A missing task exits 3 and writes no brief.</li>
-          <li>The fallback selector finds a task in a fixture with no <code>class="task"</code>.</li>
-          <li><code>--overview</code> output contains the goal text and no CSS rules.</li>
+          <li>A missing task exits 3 and leaves <em>no file at all</em> &mdash; not an empty one, and not a previously extracted brief: the test writes a good brief first, then re-extracts a missing task and asserts the path is gone.</li>
+          <li><strong>Positional selection:</strong> in <code>plan-unnumbered.html</code>, whose task sections carry plain <code>&lt;h2&gt;</code> headings with no task number (the <code>2026-05-25</code> shape), task 2 returns the second section.</li>
+          <li><strong>Position/label conflict:</strong> a fixture whose second section is headed &ldquo;Task 3&rdquo; exits 3 naming both numbers.</li>
+          <li><strong>Fallback selection:</strong> <code>plan-headings.html</code>, with no task sections at all, selects on the heading and stops at the next <code>Task</code> heading of any level.</li>
+          <li><code>--plan</code> output contains every task&rsquo;s body and no CSS rules.</li>
           <li>The provenance header names the plan and its hash.</li>
         </ul>
+        <p>Fixtures live in <code>tests/mysuperpower/fixtures/</code>: <code>plan-sections.html</code> (numbered task sections), <code>plan-unnumbered.html</code> (sections, unnumbered headings), <code>plan-headings.html</code> (headings only), <code>plan-conflict.html</code> (position and label disagree).</p>
         <p>Plus one smoke run against the real <code>docs/mySuperpower/plans/2026-06-21-live-implementation-notes.html</code>, asserting a non-empty brief for Task 1 &mdash; cheap protection against a fixture that has drifted from what the template actually produces.</p>
 
         <h3>Build capability test</h3>
-        <p>Assert that a declared <code>files</code> entry lands at its declared <code>to</code> path in <code>dist/</code>, and that a declared-but-missing source fails the build. Runs after <code>build-mysuperpower.ps1</code>, alongside the existing dist checks.</p>
+        <p>Assert that a declared <code>files</code> entry lands at its declared <code>to</code> path in <code>dist/</code>, that an overlay with no <code>files</code> key still builds, and that each schema rule fails the build: a missing <code>from</code>, an absolute path, a <code>..</code> segment in either field, a <code>to</code> that already exists in <code>dist/</code>, and two entries resolving to the same canonical destination. An unrecognized named entity must warn without failing. Runs after <code>build-mysuperpower.ps1</code>, alongside the existing dist checks.</p>
+        <p>One publish-side assertion too, since this is where the regression would land silently: with <code>exec: true</code> declared and the source committed <code>100644</code>, the publish must fail rather than ship.</p>
 
         <h3>Manual verification before release</h3>
         <ol>
@@ -357,7 +383,7 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
       <section>
         <h2>Out of Scope</h2>
         <ul>
-          <li><span class="verdict">Out</span> <span class="out">executing-plans parity.</span> That skill has no brief step; only <code>--overview</code> would apply. Once <code>files</code> exists, adding it is a few lines &mdash; deferred until wanted.</li>
+          <li><span class="verdict">Out</span> <span class="out">executing-plans parity.</span> That skill has no brief step; only <code>--plan</code> would apply. Once <code>files</code> exists, adding it is a few lines &mdash; deferred until wanted.</li>
           <li><span class="verdict">Out</span> <span class="out">Fixing the <code>.html</code> workspace directory name.</span> Cosmetic, and any fix not applied to every caller splits the workspace.</li>
           <li><span class="verdict">Out</span> <span class="out">Brief invalidation or staleness enforcement.</span> Provenance is recorded; comparison logic is not built.</li>
           <li><span class="verdict">Out</span> <span class="out">A general HTML-to-markdown converter.</span> The extractor targets the fork&rsquo;s own plan template, and fails loud rather than guessing at arbitrary HTML.</li>
