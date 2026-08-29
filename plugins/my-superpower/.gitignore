@@ -15,3 +15,9 @@ evals/
 # mySuperpower: generated build output and local scratch (built locally before install)
 /dist/
 /.baseline-skills/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

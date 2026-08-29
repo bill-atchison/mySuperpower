@@ -2,7 +2,7 @@
   "name": "my-superpower",
   "displayName": "mySuperpower",
   "description": "Personal HTML-native fork of Superpowers: brainstorming, planning, TDD, debugging, and delivery workflows that emit self-contained HTML docs.",
-  "version": "6.2.0+fork.2",
+  "version": "6.3.0+fork.1",
   "author": {
     "name": "William Atchison",
     "email": "william.e.atchison.jr@gmail.com"
