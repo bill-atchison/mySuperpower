@@ -277,6 +277,7 @@ task-brief-html --plan PLAN_FILE [OUTFILE]        # default &lt;workspace&gt;/pl
         <h3>Conversion rules</h3>
         <ul>
           <li><code>&lt;pre&gt;&lt;code&gt;</code> becomes a fenced block; entities decoded, no tag stripping inside.</li>
+          <li><strong>The fence must be longer than the longest backtick run in the payload</strong> (scan first, use that run + 1, minimum 3). Plan code blocks really do contain fences: <code>2026-05-25-mysuperpower-conversion.html:510-534,580-586</code> holds triple-backtick markdown samples inside <code>&lt;pre&gt;&lt;code&gt;</code>, because that task writes a README. A fixed <code>```</code> fence would let the inner fence close the outer one, spilling the rest of the payload into prose &mdash; a brief that looks complete while silently reclassifying requirements as commentary.</li>
           <li><code>&lt;li&gt;</code> inside <code>&lt;ol&gt;</code> becomes a numbered step; inside <code>&lt;ul&gt;</code>, a dash. A files block becomes a plain Files list.</li>
           <li>Block-level tags become line breaks; inline tags (<code>strong</code>, <code>em</code>, <code>span</code>, <code>code</code>) are dropped and their text kept.</li>
           <li>Entities decoded from a named table &mdash; at minimum <code>lt gt quot apos nbsp mdash ndash hellip middot rarr larr lsquo rsquo ldquo rdquo times</code> &mdash; plus numeric decimal and hex forms, with <code>&amp;amp;</code> decoded <strong>last</strong> so <code>&amp;amp;lt;</code> becomes <code>&amp;lt;</code> and not <code>&lt;</code>. The table must cover what the plan template itself emits: it writes <code>&amp;middot;</code> and <code>&amp;rarr;</code> today.</li>
@@ -362,7 +363,7 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
             <tr><td>Wrong argument count</td><td>Usage message on stderr</td><td><code>2</code></td></tr>
             <tr><td>Plan file missing</td><td><code>no such plan file: &lt;path&gt;</code></td><td><code>2</code></td></tr>
             <tr><td>Task N not found by either strategy</td><td>Names the plan and the task number; deletes an existing brief at the <em>default</em> path, never at an explicit <code>OUTFILE</code></td><td><code>3</code></td></tr>
-            <tr><td>Section position and heading number disagree</td><td>Names both numbers; any existing brief at the target path is deleted</td><td><code>3</code></td></tr>
+            <tr><td>Section position and heading number disagree</td><td>Names both numbers; same deletion rule as above &mdash; default path only, never an explicit <code>OUTFILE</code></td><td><code>3</code></td></tr>
             <tr><td>Named entity outside the decode table</td><td>Left as-is, named on stderr; the brief is still written</td><td><code>0</code></td></tr>
             <tr><td>Unbalanced markup in the selected section</td><td>Extracts to the next task boundary and warns on stderr; the brief is still written</td><td><code>0</code></td></tr>
             <tr><td><code>files</code> entry names a missing, absolute, escaping, or non-regular <code>from</code></td><td>Build fails, naming the overlay and the entry</td><td>build</td></tr>
@@ -387,7 +388,9 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
           <li>Task 2 of 3 extracts with its own heading, steps and code, and nothing from tasks 1 or 3.</li>
           <li><code>&amp;lt;meta&amp;gt;</code> in the plan arrives as <code>&lt;meta&gt;</code> in the brief; <code>&amp;amp;lt;</code> arrives as <code>&amp;lt;</code>.</li>
           <li>Fenced code blocks survive intact, including indentation.</li>
+          <li><strong>Embedded fences:</strong> a task whose <code>&lt;pre&gt;&lt;code&gt;</code> payload contains its own <code>```</code> block is wrapped in a longer fence, and the payload round-trips whole. The fixture uses the real shape from <code>2026-05-25-mysuperpower-conversion.html</code>.</li>
           <li>A missing task exits 3 and leaves <em>no file at all</em> &mdash; not an empty one, and not a previously extracted brief: the test writes a good brief first, then re-extracts a missing task and asserts the path is gone.</li>
+          <li><strong>Explicit <code>OUTFILE</code> is never deleted:</strong> point both failure modes &mdash; missing task and position/label conflict &mdash; at an existing caller-owned file and assert it survives byte-for-byte.</li>
           <li><strong>Positional selection:</strong> in <code>plan-unnumbered.html</code>, whose task sections carry plain <code>&lt;h2&gt;</code> headings with no task number (the <code>2026-05-25</code> shape), task 2 returns the second section.</li>
           <li><strong>Position/label conflict:</strong> a fixture whose second section is headed &ldquo;Task 3&rdquo; exits 3 naming both numbers.</li>
           <li><strong>Fallback selection:</strong> <code>plan-headings.html</code>, with no task sections at all, selects on the heading and stops at the next <code>Task</code> heading of any level.</li>
