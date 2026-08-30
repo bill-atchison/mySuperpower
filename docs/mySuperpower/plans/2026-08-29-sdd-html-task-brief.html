@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML Task Briefs Implementation Plan</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  /* ---- FIXED masthead ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:52ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .agentic-note{background:var(--meta-bg);border-radius:14px;padding:1.25rem 1.85rem;
+                margin-top:1rem;font-family:var(--mono);color:var(--value);
+                font-size:.92rem;line-height:1.6;}
+
+  /* ---- BODY ---- */
+  main{margin-top:2.6rem;}
+  main h2{font-family:var(--mono);text-transform:uppercase;letter-spacing:.18em;
+          font-size:.82rem;font-weight:700;color:var(--maroon);
+          border-top:1px solid #d8cdb3;padding-top:1.1rem;margin:2rem 0 .9rem;}
+  main p{font-size:1.05rem;line-height:1.6;margin:0 0 1rem;max-width:74ch;}
+  main ul{font-size:1.03rem;line-height:1.55;max-width:74ch;}
+  .overview dl{display:grid;grid-template-columns:max-content 1fr;column-gap:1.2rem;row-gap:.5rem;
+               font-size:1.02rem;margin:.4rem 0 0;}
+  .overview dt{font-family:var(--mono);color:var(--maroon);font-size:.8rem;text-transform:uppercase;
+               letter-spacing:.1em;padding-top:.2rem;}
+  .overview dd{margin:0;}
+  .constraints{background:#efe6d2;border-left:5px solid var(--maroon);border-radius:10px;
+               padding:1rem 1.4rem;margin:1rem 0;}
+  .constraints li{margin:.35rem 0;line-height:1.5;}
+  section.task{border:1px solid #d8cdb3;border-radius:14px;padding:1.4rem 1.7rem;margin:1.6rem 0;
+               background:#faf7ef;}
+  section.task h3{font-family:var(--serif);font-weight:700;font-size:1.45rem;margin:0 0 .8rem;color:var(--maroon);}
+  .files{font-family:var(--mono);font-size:.86rem;background:var(--meta-bg);border-radius:9px;
+          padding:.7rem 1rem;margin:0 0 1rem;}
+  .files div{margin:.2rem 0;}
+  .files .k{color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;}
+  .iface{font-size:.97rem;line-height:1.55;background:#f2ead8;border-radius:9px;
+         padding:.7rem 1rem;margin:0 0 1rem;}
+  .iface b{font-family:var(--mono);font-size:.76rem;text-transform:uppercase;letter-spacing:.1em;
+           color:var(--maroon);}
+  ol.steps{list-style:none;counter-reset:step;padding:0;margin:1rem 0 0;}
+  ol.steps>li{position:relative;padding:.2rem 0 1.1rem 2.1rem;}
+  ol.steps>li::before{content:"";position:absolute;left:0;top:.15rem;width:1.2rem;height:1.2rem;
+                      border:2px solid var(--amber);border-radius:5px;background:transparent;}
+  ol.steps>li .s{font-weight:700;display:block;margin-bottom:.3rem;}
+  pre{font-family:var(--mono);font-size:.82rem;line-height:1.5;background:#efe7d4;
+      border-left:4px solid var(--maroon);border-radius:9px;padding:.85rem 1.1rem;overflow:auto;
+      white-space:pre;margin:.5rem 0;}
+  pre code{background:none;padding:0;border:0;}
+  code{font-family:var(--mono);font-size:.88em;background:var(--meta-bg);border-radius:5px;padding:.08rem .35rem;}
+  .exp{font-family:var(--mono);font-size:.82rem;color:var(--label);margin:.3rem 0 0;}
+  @media (max-width:720px){
+    body{padding:2.2rem 1.1rem;}
+    .overview dl{grid-template-columns:1fr;}
+    section.task{padding:1.1rem 1.15rem;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Plan &middot; Implementation</p>
+      <h1>HTML Task Briefs</h1>
+      <p class="subtitle">TDD: teach the SDD brief pipeline to read the fork&rsquo;s HTML plans, entirely through the overlay system &mdash; without touching one byte of upstream.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-08-29</dd>
+        <dt>Branch</dt><dd>feature/sdd-html-task-brief</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-08-29-sdd-html-task-brief-design.html</dd>
+        <dt>Base</dt><dd>60b361f (mysuperpower)</dd>
+      </dl>
+      <p class="agentic-note">REQUIRED SUB-SKILL: execute task-by-task with TDD (red &rarr; green &rarr; commit) using subagent-driven-development (recommended) or executing-plans. Codex review of this plan + spec before implementation; per-task two-stage review. Steps are checkbox-styled; track progress with your task tools, not by editing this file.</p>
+    </header>
+
+    <main>
+      <section class="overview">
+        <h2>Overview</h2>
+        <dl>
+          <dt>Goal</dt><dd>Make <code>subagent-driven-development</code> work on the HTML implementation plans this fork&rsquo;s <code>writing-plans</code> skill produces, by shipping a fork-owned extractor through a new general-purpose overlay capability &mdash; so upstream&rsquo;s <code>task-brief</code>, <code>sdd-workspace</code> and <code>review-package</code> are never edited, patched, or wrapped.</dd>
+          <dt>Architecture</dt><dd>The fork&rsquo;s git-tracked source stays pristine; every mySuperpower transform happens at build time in <code>scripts/build-mysuperpower.ps1</code>. Today an overlay can rewrite and append to <code>SKILL.md</code> and nothing else. This plan adds the missing third verb &mdash; <code>files</code>, a validated copy of fork-owned assets into <code>dist/skills/&lt;skill&gt;/</code> &mdash; then uses it to ship <code>task-brief-html</code>, a bash/awk extractor that converts one task section (or the whole plan body) from HTML into the markdown brief an implementer subagent reads.</dd>
+          <dt>Tech Stack</dt><dd>Bash + awk (no new dependency &mdash; upstream&rsquo;s <code>task-brief</code> already uses <code>awk</code>, <code>wc</code> and <code>tr</code>); PowerShell 7 for the build and publish scripts; JSON overlay manifests; <code>git</code> index modes and <code>.gitattributes</code> for the cross-platform delivery guarantees.</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Global Constraints</h2>
+        <ul class="constraints">
+          <li><strong>No upstream source file is modified.</strong> Everything the fork changes about a skill is expressed in <code>overlays/</code> and applied at build time. This is the governing constraint; a task that cannot meet it is a task to redesign, not to exempt.</li>
+          <li><strong>Overlay anchors match pristine upstream text.</strong> Overlays are build step 4; the rebrand cascade is step 5 (<code>build-mysuperpower.ps1:47,76</code>). An anchor written against <code>docs/mySuperpower/</code> matches nothing and fails the build. Write <code>docs/superpowers/&hellip;</code> and change only what the cascade will not.</li>
+          <li><strong><code>Set-StrictMode -Version Latest</code> is set at <code>build-mysuperpower.ps1:19</code>.</strong> Reading a property that does not exist on a <code>ConvertFrom-Json</code> object <em>throws</em>. Probe every optional key with <code>$cfg.PSObject.Properties.Name -contains '&lt;key&gt;'</code> &mdash; never <code>if ($cfg.&lt;key&gt;)</code>.</li>
+          <li><strong>Zero new dependencies.</strong> Superpowers is a zero-dependency plugin by design. The extractor uses only what the skill&rsquo;s existing scripts already use.</li>
+          <li><strong>Fail loud at build and publish time.</strong> The value of the overlay architecture is that a fork assumption which stopped being true stops the build rather than shipping quietly. Every new validation names the overlay and the offending entry.</li>
+          <li><strong>An explicit <code>OUTFILE</code> is never deleted.</strong> The extractor deletes a failed target only at the default workspace path it owns. A tool that removes a file the caller named eventually removes the wrong one.</li>
+          <li><strong>The workspace directory name keeps its <code>.html</code> suffix.</strong> <code>sdd-workspace</code> is upstream and unmodified, so <code>basename "$plan" .md</code> leaves <code>plan.html/</code>. This is cosmetic and deliberately not fixed: every caller passes the same <code>PLAN_FILE</code>, so briefs, review packages and the progress ledger all resolve to one directory. A prettier slug in one script would split the workspace and strand the ledger.</li>
+          <li><strong>Workspace artifacts stay markdown.</strong> <code>progress.md</code>, <code>task-N-brief.md</code>, <code>task-N-report.md</code> and the review <code>.diff</code> are read by subagents, not by a human in a browser.</li>
+          <li><strong>Version scheme:</strong> <code>&lt;upstream-base&gt;+fork.&lt;iteration&gt;</code>. This release is <code>6.3.0+fork.2</code>. Both Claude Code and Codex detect updates by comparing the version <em>string</em>, not SemVer precedence.</li>
+          <li><strong>Tests live in <code>tests/mysuperpower/</code></strong> and are standalone executables, matching <code>tests/version-bump/</code> and <code>tests/shell-lint/</code>. There is no CI and no <code>npm test</code>; each is run directly.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Where the code came from</h2>
+        <p>The extractor, its test suite and its fixtures in Task 2 were written and run against both real fork plans (<code>2026-06-21-live-implementation-notes.html</code> and <code>2026-05-25-mysuperpower-conversion.html</code>) before this plan was written. All 54 assertions pass. Four defects were found and fixed during that run and are worth knowing about, because they are the shapes this problem actually takes:</p>
+        <ul>
+          <li><strong>A section that opens and closes on one line loses its content</strong> unless section tags are newline-normalized first. Real plans put tags on their own lines; hand-written fixtures do not.</li>
+          <li><strong>Capture never terminated.</strong> Ending on <code>capdepth &lt; 0</code> instead of <code>&lt;= 0</code> meant task 1&rsquo;s brief silently contained tasks 1, 2 and 3 &mdash; the worst kind of failure, since the brief looks complete.</li>
+          <li><strong><code>\b</code> is not a word boundary in awk</strong>, it is a backspace. A block-tag regex using it never matches anything.</li>
+          <li><strong><code>split("", parts, "\n")</code> returns 0</strong>, so a naive per-line loop drops every blank line &mdash; including inside <code>&lt;pre&gt;</code> payloads, where they are content.</li>
+        </ul>
+        <p>The PowerShell path validation in Task 3 was likewise executed against this repo before being written down, including the StrictMode probe behavior and the <code>.gitattributes</code> pattern match in Task 1.</p>
+      </section>
+
+      <!-- ============ TASK 1 ============ -->
+      <section class="task">
+        <h3>Task 1 &mdash; Pin extensionless skill scripts to LF</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> .gitattributes</div>
+          <div><span class="k">Verify</span> skills/subagent-driven-development/scripts/ (line endings)</div>
+        </div>
+        <p class="iface"><b>Produces</b> &mdash; the LF guarantee every script in this plan depends on. Nothing else consumes anything from this task, but it must land first: a script created before these rules exist is a CRLF file in the working tree, and <code>dist/</code> copies from the working tree.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Confirm the defect &mdash; the shipped scripts are CRLF in the working tree</span>
+            <pre><code>git ls-files --eol skills/subagent-driven-development/scripts/</code></pre>
+            <p class="exp">Expected: three lines reading <code>i/lf&nbsp;&nbsp;&nbsp;&nbsp;w/crlf&nbsp;&nbsp;attr/</code>. The index is LF and the working tree is CRLF with no attribute governing it, so <code>dist/</code> inherits CRLF. It only becomes LF again because <code>core.autocrlf</code> normalizes inside the publish worktree &mdash; a side effect, not a guarantee.</p>
+          </li>
+          <li><span class="s">Step 2: Append the two rules to <code>.gitattributes</code></span>
+<pre><code># mySuperpower: the SDD skill scripts are extensionless, so *.sh does not
+# reach them. They ship with a #!/usr/bin/env bash shebang; a CR would make
+# every one of them fail to start on macOS and Linux. Both rules are required:
+# the first covers the scripts at their published location, the second covers a
+# fork-owned script at its SOURCE location, which is where the build copies from.
+skills/**/scripts/*   text eol=lf
+overlays/**/scripts/* text eol=lf</code></pre>
+            <p class="exp">Add these at the end of the file, after the existing <code>merge=ours</code> rule. Both are required: the first covers the published location, the second covers the fork script at its source location, which is where the build copies from.</p>
+          </li>
+          <li><span class="s">Step 3: Verify the patterns actually match extensionless files</span>
+            <pre><code>git check-attr text eol -- \
+  skills/subagent-driven-development/scripts/task-brief</code></pre>
+            <p class="exp">Expected: <code>text: set</code> and <code>eol: lf</code>. If <code>eol</code> reports <code>unspecified</code>, the pattern is wrong &mdash; fix it before continuing.</p>
+          </li>
+          <li><span class="s">Step 4: Re-materialize the working tree at LF</span>
+            <pre><code>git add --renormalize .
+git status --short
+rm -f skills/subagent-driven-development/scripts/task-brief \
+      skills/subagent-driven-development/scripts/sdd-workspace \
+      skills/subagent-driven-development/scripts/review-package
+git checkout -- skills/subagent-driven-development/scripts/</code></pre>
+            <p class="exp">Expected: <code>git status</code> after the renormalize lists <em>only</em> <code>.gitattributes</code>. The index blobs are already LF, so no upstream file content changes &mdash; the delete-and-checkout only re-materializes the working tree under the new attribute. If any <code>skills/</code> file shows as modified, stop: something is rewriting content, which this task must not do.</p>
+          </li>
+          <li><span class="s">Step 5: Verify the fix</span>
+            <pre><code>git ls-files --eol skills/subagent-driven-development/scripts/</code></pre>
+            <p class="exp">Expected: three lines reading <code>i/lf&nbsp;&nbsp;&nbsp;&nbsp;w/lf&nbsp;&nbsp;&nbsp;&nbsp;attr/text&nbsp;eol=lf</code>.</p>
+          </li>
+          <li><span class="s">Step 6: Commit</span>
+            <pre><code>git add .gitattributes
+git commit -m "build: pin extensionless skill scripts to LF"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 2 ============ -->
+      <section class="task">
+        <h3>Task 2 &mdash; The <code>task-brief-html</code> extractor</h3>
+        <div class="files">
+          <div><span class="k">Create</span> overlays/subagent-driven-development/scripts/task-brief-html</div>
+          <div><span class="k">Create</span> tests/mysuperpower/test-task-brief-html.sh</div>
+          <div><span class="k">Create</span> tests/mysuperpower/fixtures/plan-sections.html</div>
+          <div><span class="k">Create</span> tests/mysuperpower/fixtures/plan-unnumbered.html</div>
+          <div><span class="k">Create</span> tests/mysuperpower/fixtures/plan-headings.html</div>
+          <div><span class="k">Create</span> tests/mysuperpower/fixtures/plan-conflict.html</div>
+          <div><span class="k">Create</span> tests/mysuperpower/fixtures/plan-unbalanced.html</div>
+        </div>
+        <p class="iface"><b>Consumes</b> &mdash; the LF attribute from Task 1. <b>Produces</b> &mdash; <code>task-brief-html</code>, invoked as <code>task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]</code> and <code>task-brief-html --plan PLAN_FILE [OUTFILE]</code>; exits <code>0</code> on success, <code>2</code> on usage or a missing plan, <code>3</code> when the task cannot be selected. Task 4 ships it; Task 6 chmods it; Task 7 exercises it live.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Create the four fixtures</span>
+            <p>These are dedicated fixtures rather than the real plans, so the assertions stay stable as those plans age. <code>tests/mysuperpower/fixtures/plan-sections.html</code>:</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Fixture Plan&lt;/title&gt;
+&lt;style&gt;body{font-family:var(--serif);background:#f4efe1;}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class="wrap"&gt;
+    &lt;main&gt;
+      &lt;section class="overview"&gt;&lt;h2&gt;Overview&lt;/h2&gt;&lt;p&gt;Fixture overview text.&lt;/p&gt;&lt;/section&gt;
+
+      &lt;section class="task"&gt;
+        &lt;h3&gt;Task 1 &amp;mdash; ALPHAONLY&lt;/h3&gt;
+        &lt;div class="files"&gt;
+          &lt;div&gt;&lt;span class="k"&gt;Create&lt;/span&gt; src/alpha.txt&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;ol class="steps"&gt;
+          &lt;li&gt;&lt;span class="s"&gt;Step 1: write alpha&lt;/span&gt;
+            &lt;pre&gt;&lt;code&gt;echo alpha&lt;/code&gt;&lt;/pre&gt;
+          &lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/section&gt;
+
+      &lt;section class="task"&gt;
+        &lt;h3&gt;Task 2 &amp;mdash; BETAONLY&lt;/h3&gt;
+        &lt;div class="files"&gt;
+          &lt;div&gt;&lt;span class="k"&gt;Create&lt;/span&gt; src/beta.txt&lt;/div&gt;
+          &lt;div&gt;&lt;span class="k"&gt;Modify&lt;/span&gt; src/shared.txt&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;p&gt;Entities: &amp;lt;meta&amp;gt; and double &amp;amp;lt;kept&amp;amp;gt; and &amp;middot; &amp;rarr; &amp;mdash;.&lt;/p&gt;
+        &lt;ol class="steps"&gt;
+          &lt;li&gt;&lt;span class="s"&gt;Step 1: indented code survives&lt;/span&gt;
+            &lt;pre&gt;&lt;code&gt;def f():
+    if True:
+        return 1&lt;/code&gt;&lt;/pre&gt;
+          &lt;/li&gt;
+          &lt;li&gt;&lt;span class="s"&gt;Step 2: a payload containing its own fence&lt;/span&gt;
+            &lt;pre&gt;&lt;code&gt;# README
+
+```
+inner fenced content
+```
+
+tail after the inner fence&lt;/code&gt;&lt;/pre&gt;
+          &lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/section&gt;
+
+      &lt;section class="task"&gt;
+        &lt;h3&gt;Task 3 &amp;mdash; GAMMAONLY&lt;/h3&gt;
+        &lt;p&gt;Third task body.&lt;/p&gt;
+      &lt;/section&gt;
+    &lt;/main&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+            <p><code>tests/mysuperpower/fixtures/plan-unnumbered.html</code> &mdash; the <code>2026-05-25</code> shape, where task identity is purely positional:</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Unnumbered&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;main&gt;
+    &lt;section class="task"&gt;&lt;h2&gt;Wire the upstream remote &amp;amp; record baseline&lt;/h2&gt;&lt;p&gt;FIRSTBODY&lt;/p&gt;&lt;/section&gt;
+    &lt;section class="task"&gt;&lt;h2&gt;Takeover &amp;mdash; &lt;code&gt;brainstorming&lt;/code&gt;&lt;/h2&gt;&lt;p&gt;SECONDBODY&lt;/p&gt;&lt;/section&gt;
+    &lt;section class="task"&gt;&lt;h2&gt;Final verification&lt;/h2&gt;&lt;p&gt;THIRDBODY&lt;/p&gt;&lt;/section&gt;
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+            <p><code>tests/mysuperpower/fixtures/plan-headings.html</code> &mdash; no task sections at all, so selection must fall back to headings:</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Headings only&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;main&gt;
+    &lt;h2&gt;Task 1: Alpha&lt;/h2&gt;
+    &lt;p&gt;ALPHABODY&lt;/p&gt;
+    &lt;h4&gt;Task 2: Beta&lt;/h4&gt;
+    &lt;p&gt;BETABODY&lt;/p&gt;
+    &lt;h2&gt;Task 3: Gamma&lt;/h2&gt;
+    &lt;p&gt;GAMMABODY&lt;/p&gt;
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+            <p><code>tests/mysuperpower/fixtures/plan-conflict.html</code> &mdash; the second section is headed &ldquo;Task 3&rdquo;:</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Conflict&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;main&gt;
+    &lt;section class="task"&gt;&lt;h3&gt;Task 1 &amp;mdash; First&lt;/h3&gt;&lt;p&gt;ONE&lt;/p&gt;&lt;/section&gt;
+    &lt;section class="task"&gt;&lt;h3&gt;Task 3 &amp;mdash; Mislabelled&lt;/h3&gt;&lt;p&gt;TWO&lt;/p&gt;&lt;/section&gt;
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+            <p><code>tests/mysuperpower/fixtures/plan-unbalanced.html</code> &mdash; a task section missing its closing tag, which must degrade to the next boundary rather than swallow the rest of the document:</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Unbalanced&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;main&gt;
+    &lt;section class="task"&gt;&lt;h3&gt;Task 1 &amp;mdash; Broken&lt;/h3&gt;&lt;p&gt;BROKENBODY&lt;/p&gt;
+    &lt;section class="task"&gt;&lt;h3&gt;Task 2 &amp;mdash; Next&lt;/h3&gt;&lt;p&gt;NEXTBODY&lt;/p&gt;&lt;/section&gt;
+  &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+          </li>
+          <li><span class="s">Step 2: Write the failing test suite</span>
+            <p>Create <code>tests/mysuperpower/test-task-brief-html.sh</code>:</p>
+<pre><code>#!/usr/bin/env bash
+# Tests for the fork-owned task-brief-html extractor.
+#
+# The script under test lives in the overlay that owns it, but at RUNTIME it
+# sits beside upstream's sdd-workspace inside the built skill. Each test stages
+# that layout in a throwaway git repo, so the default-output path (which
+# sdd-workspace resolves from `git rev-parse --show-toplevel`) is exercised for
+# real without writing into this repo's working tree.
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" &amp;&amp; pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." &amp;&amp; pwd)"
+SUT="$REPO_ROOT/overlays/subagent-driven-development/scripts/task-brief-html"
+WORKSPACE_SCRIPT="$REPO_ROOT/skills/subagent-driven-development/scripts/sdd-workspace"
+FIXTURES="$SCRIPT_DIR/fixtures"
+
+fails=0
+pass() { printf '  ok   %s\n' "$1"; }
+fail() { printf '  FAIL %s\n' "$1"; fails=$((fails + 1)); }
+
+check() { # check &lt;name&gt; &lt;expected&gt; &lt;actual&gt;
+  if [ "$2" = "$3" ]; then pass "$1"; else fail "$1 (expected '$2', got '$3')"; fi
+}
+contains() { # contains &lt;name&gt; &lt;needle&gt; &lt;file&gt;
+  if grep -qF -- "$2" "$3"; then pass "$1"; else fail "$1 (missing '$2')"; fi
+}
+lacks() { # lacks &lt;name&gt; &lt;needle&gt; &lt;file&gt;
+  if grep -qF -- "$2" "$3"; then fail "$1 (unexpectedly found '$2')"; else pass "$1"; fi
+}
+
+[ -x "$SUT" ] || { echo "FAIL: $SUT is missing or not executable" &gt;&amp;2; exit 1; }
+
+TEST_ROOT="$(mktemp -d)"
+trap 'rm -rf "$TEST_ROOT"' EXIT
+
+# A throwaway repo laid out the way dist/ lays the skill out.
+REPO="$TEST_ROOT/repo"
+BIN="$REPO/skills/subagent-driven-development/scripts"
+mkdir -p "$BIN"
+git init -q "$REPO"
+cp "$SUT" "$WORKSPACE_SCRIPT" "$BIN/"
+chmod +x "$BIN"/*
+cp "$FIXTURES"/*.html "$REPO/"
+TB="$BIN/task-brief-html"
+cd "$REPO" || exit 1
+
+echo "== argument and file handling =="
+"$TB" &gt;/dev/null 2&gt;&amp;1; check "no args exits 2" 2 $?
+"$TB" plan-sections.html &gt;/dev/null 2&gt;&amp;1; check "one arg exits 2" 2 $?
+"$TB" plan-sections.html 1 a b &gt;/dev/null 2&gt;&amp;1; check "four args exits 2" 2 $?
+"$TB" missing.html 1 out.md &gt;/dev/null 2&gt;&amp;1; check "missing plan exits 2" 2 $?
+"$TB" plan-sections.html zero out.md &gt;/dev/null 2&gt;&amp;1; check "non-numeric task exits 2" 2 $?
+
+echo "== task selection: numbered sections =="
+"$TB" plan-sections.html 2 t2.md &gt;/dev/null 2&gt;&amp;1
+check "task 2 exits 0" 0 $?
+contains "task 2 has its own heading" "Task 2 — BETAONLY" t2.md
+lacks    "task 2 excludes task 1"     "ALPHAONLY" t2.md
+lacks    "task 2 excludes task 3"     "GAMMAONLY" t2.md
+contains "files block renders"        "- Create src/beta.txt" t2.md
+contains "files block second entry"   "- Modify src/shared.txt" t2.md
+contains "ol renders numbered steps"  "1. Step 1: indented code survives" t2.md
+
+echo "== entity decoding =="
+contains "&amp;lt;meta&amp;gt; decodes"        "&lt;meta&gt;" t2.md
+contains "&amp;amp;lt; stays escaped"      "&amp;lt;kept&amp;gt;" t2.md
+contains "&amp;middot; decodes"            "·" t2.md
+contains "&amp;rarr; decodes"              "→" t2.md
+
+echo "== code blocks =="
+contains "indentation survives"        "        return 1" t2.md
+# The step-2 payload carries its own ``` fence, so the wrapper must be longer.
+check "payload fence is 4 backticks" 2 "$(grep -c '^````$' t2.md)"
+check "inner fences sit inside the wrapper" 2   "$(sed -n '/^````$/,/^````$/p' t2.md | grep -c '^```$')"
+contains "content after inner fence"   "tail after the inner fence" t2.md
+
+echo "== provenance header =="
+contains "names the plan" "Source plan: plan-sections.html" t2.md
+check "names the plan hash" "$(git hash-object plan-sections.html)" "$(awk '/^Plan hash:/ {print $3}' t2.md)"
+
+echo "== positional selection, unnumbered headings =="
+"$TB" plan-unnumbered.html 2 u2.md &gt;/dev/null 2&gt;&amp;1
+check "unnumbered task 2 exits 0" 0 $?
+contains "second section selected" "SECONDBODY" u2.md
+lacks    "first section excluded"  "FIRSTBODY"  u2.md
+lacks    "third section excluded"  "THIRDBODY"  u2.md
+contains "inline tags stripped from heading" "Takeover — brainstorming" u2.md
+
+echo "== fallback selection, headings only =="
+"$TB" plan-headings.html 2 f2.md &gt;/dev/null 2&gt;&amp;1
+check "fallback task 2 exits 0" 0 $?
+contains "fallback body selected"  "BETABODY"  f2.md
+lacks    "fallback excludes prior" "ALPHABODY" f2.md
+lacks    "fallback stops at next Task heading" "GAMMABODY" f2.md
+
+echo "== position/label conflict =="
+"$TB" plan-conflict.html 2 c2.md &gt;/dev/null 2&gt;err.txt
+check "conflict exits 3" 3 $?
+contains "conflict names both numbers" 'section 2 of plan-conflict.html is headed "Task 3"' err.txt
+
+echo "== failure never leaves a stale brief at the default path =="
+"$TB" plan-sections.html 1 &gt;/dev/null 2&gt;&amp;1
+WS="$(./skills/subagent-driven-development/scripts/sdd-workspace plan-sections.html)"
+BRIEF="$WS/task-1-brief.md"
+if [ -s "$BRIEF" ]; then pass "default path brief written"; else fail "default path brief written"; fi
+"$TB" plan-sections.html 9 &gt;/dev/null 2&gt;&amp;1
+check "missing task exits 3" 3 $?
+if [ -e "$WS/task-9-brief.md" ]; then fail "no zero-byte brief left behind"; else pass "no zero-byte brief left behind"; fi
+
+# A brief that was good a moment ago must not survive a later failed extraction
+# of the SAME task: it would sit at the expected path looking current.
+"$TB" plan-sections.html 2 &gt;/dev/null 2&gt;&amp;1
+BRIEF2="$WS/task-2-brief.md"
+if [ -s "$BRIEF2" ]; then pass "task 2 brief written"; else fail "task 2 brief written"; fi
+cp "$FIXTURES/plan-conflict.html" plan-sections.html   # section 2 is now headed "Task 3"
+"$TB" plan-sections.html 2 &gt;/dev/null 2&gt;&amp;1
+check "conflict at default path exits 3" 3 $?
+if [ -e "$BRIEF2" ]; then fail "stale default-path brief deleted"; else pass "stale default-path brief deleted"; fi
+
+echo "== an explicit OUTFILE is never deleted =="
+cp "$FIXTURES/plan-conflict.html" plan-conflict.html
+printf 'CALLER OWNED CONTENT\n' &gt; owned.md
+cp owned.md owned.expected
+"$TB" plan-conflict.html 2 owned.md &gt;/dev/null 2&gt;&amp;1
+check "conflict with OUTFILE exits 3" 3 $?
+"$TB" plan-conflict.html 9 owned.md &gt;/dev/null 2&gt;&amp;1
+check "missing task with OUTFILE exits 3" 3 $?
+if cmp -s owned.md owned.expected; then pass "caller's file survives byte-for-byte"
+else fail "caller's file survives byte-for-byte"; fi
+
+echo "== --plan mode =="
+cp "$FIXTURES/plan-sections.html" plan-sections.html
+"$TB" --plan plan-sections.html body.md &gt;/dev/null 2&gt;&amp;1
+check "--plan exits 0" 0 $?
+contains "--plan keeps task 1" "ALPHAONLY" body.md
+contains "--plan keeps task 2" "BETAONLY"  body.md
+contains "--plan keeps task 3" "GAMMAONLY" body.md
+contains "--plan keeps the overview" "Fixture overview text." body.md
+lacks    "--plan drops the stylesheet" "background:#f4efe1" body.md
+lacks    "--plan drops the title tag"  "Fixture Plan" body.md
+
+echo "== unrecognized entities warn but still write =="
+printf '%s\n' '&lt;html&gt;&lt;body&gt;&lt;section class="task"&gt;&lt;h3&gt;Task 1&lt;/h3&gt;&lt;p&gt;&amp;copy; sign&lt;/p&gt;&lt;/section&gt;&lt;/body&gt;&lt;/html&gt;' &gt; ent.html
+"$TB" ent.html 1 ent.md &gt;/dev/null 2&gt;ent.err
+check "unknown entity still exits 0" 0 $?
+contains "unknown entity left as-is" "&amp;copy;" ent.md
+contains "unknown entity warned"     "undecoded entity &amp;copy;" ent.err
+
+echo "== unbalanced markup degrades gracefully =="
+"$TB" plan-unbalanced.html 1 ub.md &gt;/dev/null 2&gt;ub.err
+check "unbalanced still exits 0" 0 $?
+contains "selected task body kept"  "BROKENBODY" ub.md
+lacks    "stops at the next task"   "NEXTBODY"   ub.md
+contains "warns about the missing tag" "missing a closing &lt;/section&gt;" ub.err
+
+echo "== smoke test against a real fork plan =="
+REAL="$REPO_ROOT/docs/mySuperpower/plans/2026-06-21-live-implementation-notes.html"
+if [ -f "$REAL" ]; then
+  cp "$REAL" real.html
+  "$TB" real.html 1 real1.md &gt;/dev/null 2&gt;&amp;1
+  check "real plan task 1 exits 0" 0 $?
+  if [ -s real1.md ]; then pass "real plan task 1 is non-empty"; else fail "real plan task 1 is non-empty"; fi
+  lacks "real plan task 1 excludes task 2" "Task 2 — Rewrite the executing-plans overlay" real1.md
+else
+  echo "  skip real-plan smoke test ($REAL not present)"
+fi
+
+echo
+if [ "$fails" -eq 0 ]; then echo "task-brief-html tests passed"; else echo "$fails assertion(s) failed"; exit 1; fi</code></pre>
+          </li>
+          <li><span class="s">Step 3: Run it and watch it fail</span>
+            <pre><code>chmod +x tests/mysuperpower/test-task-brief-html.sh
+bash tests/mysuperpower/test-task-brief-html.sh</code></pre>
+            <p class="exp">Expected: <code>FAIL: .../overlays/subagent-driven-development/scripts/task-brief-html is missing or not executable</code>, exit 1.</p>
+          </li>
+          <li><span class="s">Step 4: Write the extractor</span>
+            <p>Create <code>overlays/subagent-driven-development/scripts/task-brief-html</code>. Bash and awk only &mdash; upstream&rsquo;s <code>task-brief</code> already uses <code>awk</code>, <code>wc</code> and <code>tr</code>, so this adds no dependency.</p>
+<pre><code>#!/usr/bin/env bash
+# Extract one task's full text from an HTML implementation plan into a markdown
+# brief the implementer reads in one call. The mySuperpower fork's writing-plans
+# skill emits plans as self-contained HTML; upstream's task-brief only matches
+# markdown headings, so it exits 3 on every fork plan.
+#
+# Usage: task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]
+#        task-brief-html --plan PLAN_FILE [OUTFILE]
+#
+# Default OUTFILE: &lt;sdd-workspace&gt;/task-&lt;N&gt;-brief.md  (task mode)
+#                  &lt;sdd-workspace&gt;/plan-body.md       (--plan mode)
+#
+# Congruent with upstream task-brief: same argument order, same default
+# location, same exit codes (2 usage/missing, 3 not found), same closing line.
+set -euo pipefail
+
+usage() {
+  echo "usage: task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]" &gt;&amp;2
+  echo "       task-brief-html --plan PLAN_FILE [OUTFILE]" &gt;&amp;2
+}
+
+mode=task
+if [ "${1-}" = "--plan" ]; then
+  mode=plan
+  shift
+  if [ $# -lt 1 ] || [ $# -gt 2 ]; then usage; exit 2; fi
+  plan=$1
+  n=0
+  explicit_out=${2-}
+else
+  if [ $# -lt 2 ] || [ $# -gt 3 ]; then usage; exit 2; fi
+  plan=$1
+  n=$2
+  explicit_out=${3-}
+  case $n in
+    ''|*[!0-9]*) echo "task number must be a positive integer: $n" &gt;&amp;2; exit 2 ;;
+  esac
+  [ "$n" -ge 1 ] || { echo "task number must be a positive integer: $n" &gt;&amp;2; exit 2; }
+fi
+
+[ -f "$plan" ] || { echo "no such plan file: $plan" &gt;&amp;2; exit 2; }
+
+# Resolve the output path. The default lives in the plan's SDD workspace, which
+# this script owns; an explicit OUTFILE belongs to the caller and is never
+# deleted (see the failure path below).
+if [ -n "$explicit_out" ]; then
+  out=$explicit_out
+  owns_out=0
+else
+  dir=$("$(cd "$(dirname "$0")" &amp;&amp; pwd)/sdd-workspace" "$plan")
+  if [ "$mode" = plan ]; then out="$dir/plan-body.md"; else out="$dir/task-${n}-brief.md"; fi
+  owns_out=1
+fi
+
+outdir=$(dirname "$out")
+[ -d "$outdir" ] || { echo "output directory does not exist: $outdir" &gt;&amp;2; exit 2; }
+
+# On any failure, a brief left at the default path would look current while
+# describing a superseded plan. Delete it -- but only at the path this script
+# owns. A tool that removes a file the caller named eventually removes the
+# wrong one.
+fail_extract() {
+  echo "$1" &gt;&amp;2
+  if [ "$owns_out" -eq 1 ]; then
+    rm -f "$out"
+  else
+    echo "note: $out may hold a stale brief; not deleted (explicit OUTFILE)" &gt;&amp;2
+  fi
+  exit 3
+}
+
+plan_hash=$(git hash-object "$plan" 2&gt;/dev/null || echo "unknown")
+stamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+# Temp file in the OUTPUT directory: same filesystem, so the rename is atomic.
+tmp=$(mktemp "$outdir/.task-brief-html.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+
+{
+  printf 'Source plan: %s\n' "$plan"
+  printf 'Plan hash:   %s\n' "$plan_hash"
+  printf 'Extracted:   %s\n' "$stamp"
+  printf '\n'
+} &gt; "$tmp"
+
+# ---- Stage 1: select the fragment -------------------------------------------
+#
+# Task identity in fork plans is POSITIONAL, not label-based. 2026-06-21 writes
+# &lt;section class="task"&gt;&lt;h3&gt;Task 1 - Title&lt;/h3&gt;; 2026-05-25 writes
+# &lt;section class="task"&gt;&lt;h2&gt;Wire the upstream remote&lt;/h2&gt; with no number at all.
+# So: the Nth section.task is task N, cross-checked against its first heading.
+#
+# Counting raw "&lt;section" is safe: the plan template mandates that code inside
+# &lt;pre&gt;&lt;code&gt; be escaped, so a literal "&lt;section" cannot appear in a payload.
+select_status=0
+fragment=$(awk '{ line = $0
+    gsub(/&lt;section[^&gt;]*&gt;/,  "\n&amp;\n", line)
+    gsub(/&lt;\/section&gt;/, "\n&amp;\n", line)
+    gsub(/&lt;body[^&gt;]*&gt;/,     "\n&amp;\n", line)
+    gsub(/&lt;\/body&gt;/,    "\n&amp;\n", line)
+    print line }' "$plan" | awk -v want="$n" -v mode="$mode" -v planpath="$plan" '
+  function count(s, t,   c, i) { c = 0; i = index(s, t)
+    while (i &gt; 0) { c++; s = substr(s, i + length(t)); i = index(s, t) } return c }
+
+  BEGIN { depth = 0; seen = 0; cap = 0; capdepth = 0; found = 0; headnum = -1; sawhead = 0 }
+
+  mode == "plan" {
+    if (!inbody) { if ($0 ~ /&lt;body[^&gt;]*&gt;/) { inbody = 1 } ; next }
+    if ($0 ~ /&lt;\/body&gt;/) { inbody = 0; next }
+    print; found = 1; next
+  }
+
+  {
+    opens  = count($0, "&lt;section")
+    closes = count($0, "&lt;/section")
+
+    if (!cap &amp;&amp; $0 ~ /&lt;section[^&gt;]*class="[^"]*task[^"]*"/) {
+      seen++
+      if (seen == want) { cap = 1; capdepth = 1; found = 1; next }
+    }
+
+    # A task section missing its closing tag would otherwise swallow the rest of
+    # the document. Stop at the next task boundary and say so: an LLM-authored
+    # plan with one stray tag should still yield a usable brief.
+    if (cap &amp;&amp; $0 ~ /&lt;section[^&gt;]*class="[^"]*task[^"]*"/) {
+      printf "task-brief-html: task %d in %s is missing a closing &lt;/section&gt;; extracted to the next task boundary\n", want, planpath &gt; "/dev/stderr"
+      cap = 0
+      next
+    }
+
+    if (cap) {
+      capdepth += opens - closes
+      if (capdepth &lt;= 0) { cap = 0; next }
+      # First heading in the section decides the cross-check.
+      if (!sawhead &amp;&amp; $0 ~ /&lt;h[1-6][^&gt;]*&gt;/) {
+        sawhead = 1
+        h = $0
+        sub(/^[^&lt;]*&lt;h[1-6][^&gt;]*&gt;/, "", h)
+        sub(/&lt;\/h[1-6]&gt;.*$/, "", h)
+        gsub(/&lt;[^&gt;]*&gt;/, "", h)
+        if (match(h, /Task[ \t]+[0-9]+/)) {
+          t = substr(h, RSTART, RLENGTH)
+          gsub(/[^0-9]/, "", t)
+          headnum = t + 0
+        }
+      }
+      print
+    }
+  }
+
+  END {
+    if (mode == "plan") { exit (found ? 0 : 4) }
+    if (found) {
+      if (headnum &gt;= 0 &amp;&amp; headnum != want) {
+        printf "task-brief-html: section %d of %s is headed \"Task %d\" -- plan numbering disagrees with section order\n", want, planpath, headnum &gt; "/dev/stderr"
+        exit 5
+      }
+      exit 0
+    }
+    exit 4
+  }
+') || select_status=$?
+
+if [ "$select_status" -eq 5 ]; then
+  fail_extract "task ${n} not extracted from ${plan}: fix the plan's task numbering"
+fi
+
+# Fallback: no task sections at all. Select on any heading naming Task N, and
+# stop at the next heading naming any Task number -- the same boundary rule
+# upstream's awk uses, which flips on any Task heading regardless of depth.
+if [ "$select_status" -eq 4 ] &amp;&amp; [ "$mode" = task ]; then
+  fragment=$(awk -v want="$n" '
+    /&lt;h[1-6][^&gt;]*&gt;/ {
+      h = $0
+      gsub(/&lt;[^&gt;]*&gt;/, " ", h)
+      if (match(h, /Task[ \t]+[0-9]+/)) {
+        t = substr(h, RSTART, RLENGTH); gsub(/[^0-9]/, "", t)
+        intask = ((t + 0) == want)
+        if (intask) found = 1
+      }
+    }
+    intask { print }
+    END { exit (found ? 0 : 4) }
+  ' "$plan") || select_status=$?
+  [ -n "$fragment" ] &amp;&amp; select_status=0
+fi
+
+if [ "$select_status" -ne 0 ]; then
+  if [ "$mode" = plan ]; then
+    fail_extract "no &lt;body&gt; content found in ${plan}"
+  fi
+  fail_extract "task ${n} not found in ${plan} (no &lt;section class=\"task\"&gt; number ${n} and no heading matching 'Task ${n}')"
+fi
+
+# ---- Stage 2: convert the fragment to markdown ------------------------------
+printf '%s\n' "$fragment" | awk '
+  BEGIN {
+    PRE = "&lt;&lt;&lt;TBH-PRE&gt;&gt;&gt;"; ENDPRE = "&lt;&lt;&lt;TBH-ENDPRE&gt;&gt;&gt;"
+    split("lt:&lt; gt:&gt; quot:\" apos:'"'"' nbsp:  amp:&amp;", _ignore, " ")
+    ename[1]="lt";     eval[1]="&lt;"
+    ename[2]="gt";     eval[2]="&gt;"
+    ename[3]="quot";   eval[3]="\""
+    ename[4]="apos";   eval[4]="'"'"'"
+    ename[5]="nbsp";   eval[5]=" "
+    ename[6]="mdash";  eval[6]="—"
+    ename[7]="ndash";  eval[7]="–"
+    ename[8]="hellip"; eval[8]="…"
+    ename[9]="middot"; eval[9]="·"
+    ename[10]="rarr";  eval[10]="→"
+    ename[11]="larr";  eval[11]="←"
+    ename[12]="lsquo"; eval[12]="‘"
+    ename[13]="rsquo"; eval[13]="’"
+    ename[14]="ldquo"; eval[14]="“"
+    ename[15]="rdquo"; eval[15]="”"
+    ename[16]="times"; eval[16]="×"
+    NENT = 16
+    # Numeric code points for the same set, so &amp;#8212; decodes like &amp;mdash;.
+    num[60]="&lt;"; num[62]="&gt;"; num[34]="\""; num[39]="'"'"'"; num[160]=" "
+    num[8212]="—"; num[8211]="–"; num[8230]="…"; num[183]="·"
+    num[8594]="→"; num[8592]="←"; num[8216]="‘"; num[8217]="’"
+    num[8220]="“"; num[8221]="”"; num[215]="×"; num[38]="&amp;"
+    listtop = 0; inpre = 0; prebuf = ""; blank = 0; infiles = 0; filesdepth = 0
+  }
+
+  function count(s, t,   c, i) { c = 0; i = index(s, t)
+    while (i &gt; 0) { c++; s = substr(s, i + length(t)); i = index(s, t) } return c }
+
+  function hexval(h,   i, c, v, d) {
+    v = 0
+    for (i = 1; i &lt;= length(h); i++) {
+      c = tolower(substr(h, i, 1))
+      d = index("0123456789abcdef", c) - 1
+      v = v * 16 + d
+    }
+    return v
+  }
+
+  # Decode named entities, then numeric, then &amp;amp; LAST so that &amp;amp;lt;
+  # becomes &amp;lt; and not &lt;.
+  function decode(s,   i, out, pre, m, body, cp, rep) {
+    for (i = 1; i &lt;= NENT; i++) {
+      if (ename[i] == "amp") continue
+      gsub("&amp;" ename[i] ";", eval[i], s)
+    }
+    out = ""
+    while (match(s, /&amp;#[0-9]+;|&amp;#[xX][0-9a-fA-F]+;/)) {
+      pre = substr(s, 1, RSTART - 1)
+      m   = substr(s, RSTART, RLENGTH)
+      s   = substr(s, RSTART + RLENGTH)
+      body = substr(m, 3, length(m) - 3)
+      if (body ~ /^[xX]/) cp = hexval(substr(body, 2)); else cp = body + 0
+      if (cp in num)                    rep = num[cp]
+      else if (cp &gt;= 32 &amp;&amp; cp &lt;= 126)   rep = sprintf("%c", cp)
+      else { rep = m; warn(m) }
+      out = out pre rep
+    }
+    s = out s
+    # Anything still shaped like a named entity is outside the table.
+    body = s
+    while (match(body, /&amp;[A-Za-z][A-Za-z0-9]*;/)) {
+      m = substr(body, RSTART, RLENGTH)
+      if (m != "&amp;amp;") warn(m)
+      body = substr(body, RSTART + RLENGTH)
+    }
+    gsub(/&amp;amp;/, "\\&amp;", s)
+    return s
+  }
+
+  function warn(e) {
+    if (!(e in warned)) { warned[e] = 1
+      printf "task-brief-html: undecoded entity %s left as-is\n", e &gt; "/dev/stderr" }
+  }
+
+  function emit(line) {
+    if (line ~ /^[ \t]*$/) { blank++; return }
+    if (blank &gt; 0 &amp;&amp; printed) print ""
+    blank = 0
+    print line
+    printed = 1
+  }
+
+  function flushpre(   i, k, run, best, fence, lines, cnt, body) {
+    sub(/\n+$/, "", prebuf)
+    body = decode(prebuf)
+    # The fence must outrun the longest backtick run in the payload. Plan code
+    # blocks really do contain ``` fences (2026-05-25 writes a README).
+    best = 0; run = 0
+    for (i = 1; i &lt;= length(body); i++) {
+      if (substr(body, i, 1) == "`") { run++; if (run &gt; best) best = run } else run = 0
+    }
+    fence = ""
+    k = (best + 1 &gt; 3) ? best + 1 : 3
+    for (i = 0; i &lt; k; i++) fence = fence "`"
+    if (blank &gt; 0 &amp;&amp; printed) print ""
+    blank = 0
+    print fence
+    printed = 1
+    cnt = split(body, lines, "\n")
+    for (i = 1; i &lt;= cnt; i++) print lines[i]
+    print fence
+    prebuf = ""
+  }
+
+  function handle(s,   prefix, i, cnt, parts, first, t) {
+    if (s == PRE)    { inpre = 1; prebuf = ""; return }
+    if (s == ENDPRE) { flushpre(); inpre = 0; return }
+    if (inpre)       { prebuf = prebuf s "\n"; return }
+    if (s ~ /^[ \t]*$/) { emit(""); return }
+
+    prefix = ""
+
+    # Files block -&gt; a plain Files list.
+    if (s ~ /&lt;div[^&gt;]*class="[^"]*files[^"]*"/) {
+      infiles = 1; filesdepth = 0
+      emit("Files:")
+      filesdepth += count(s, "&lt;div") - count(s, "&lt;/div")
+      return
+    }
+    if (infiles) {
+      if (count(s, "&lt;div") &gt; 0) prefix = "- "
+      filesdepth += count(s, "&lt;div") - count(s, "&lt;/div")
+      if (filesdepth &lt;= 0) infiles = 0
+      if (prefix == "") { if (s ~ /^[ \t]*&lt;\/div&gt;[ \t]*$/) return }
+    }
+
+    # List context.
+    if (s ~ /&lt;ol[^&gt;]*&gt;/) { listtop++; kind[listtop] = "ol"; ctr[listtop] = 0 }
+    if (s ~ /&lt;ul[^&gt;]*&gt;/) { listtop++; kind[listtop] = "ul" }
+    if (s ~ /&lt;li[^&gt;]*&gt;/ &amp;&amp; listtop &gt; 0 &amp;&amp; prefix == "") {
+      if (kind[listtop] == "ol") { ctr[listtop]++; prefix = ctr[listtop] ". " }
+      else prefix = "- "
+    }
+    if (s ~ /&lt;\/ol&gt;/ || s ~ /&lt;\/ul&gt;/) { if (listtop &gt; 0) listtop-- }
+
+    # Block-level tags become line breaks; inline tags are dropped.
+    gsub(/&lt;\/?(p|div|h[1-6]|ul|ol|li|table|thead|tbody|tr|td|th|br|hr|blockquote|section|main|header|footer|nav|dl|dt|dd|figure|figcaption)(&gt;|[\t \/][^&gt;]*&gt;)/, "\n", s)
+    gsub(/&lt;[^&gt;]*&gt;/, "", s)
+    s = decode(s)
+
+    cnt = split(s, parts, "\n")
+    first = 1
+    for (i = 1; i &lt;= cnt; i++) {
+      t = parts[i]
+      gsub(/[ \t]+$/, "", t)
+      if (t ~ /^[ \t]*$/) continue
+      sub(/^[ \t]+/, "", t)
+      if (first &amp;&amp; prefix != "") { t = prefix t; first = 0 }
+      emit(t)
+    }
+  }
+
+  {
+    line = $0
+    gsub(/&lt;pre[^&gt;]*&gt;[ \t]*&lt;code[^&gt;]*&gt;/, "\n" PRE "\n", line)
+    gsub(/&lt;pre[^&gt;]*&gt;/,                  "\n" PRE "\n", line)
+    gsub(/&lt;\/code&gt;[ \t]*&lt;\/pre&gt;/,       "\n" ENDPRE "\n", line)
+    gsub(/&lt;\/pre&gt;/,                     "\n" ENDPRE "\n", line)
+    n = split(line, parts, "\n")
+    if (n == 0) { handle("") }
+    else { for (i = 1; i &lt;= n; i++) handle(parts[i]) }
+  }
+
+  END { if (inpre) { printf "task-brief-html: unbalanced &lt;pre&gt; in the selected section; extracted to the boundary\n" &gt; "/dev/stderr"; flushpre() } }
+' &gt;&gt; "$tmp"
+
+mv -f "$tmp" "$out"
+trap - EXIT
+
+echo "wrote ${out}: $(wc -l &lt; "$out" | tr -d ' ') lines"</code></pre>
+          </li>
+          <li><span class="s">Step 5: Make it executable and run the suite</span>
+            <pre><code>chmod +x overlays/subagent-driven-development/scripts/task-brief-html
+bash tests/mysuperpower/test-task-brief-html.sh</code></pre>
+            <p class="exp">Expected: every assertion prints <code>ok</code> and the run ends with <code>task-brief-html tests passed</code>.</p>
+          </li>
+          <li><span class="s">Step 6: Verify by eye against a real plan</span>
+            <pre><code>./overlays/subagent-driven-development/scripts/task-brief-html \
+  docs/mySuperpower/plans/2026-05-25-mysuperpower-conversion.html 9 /tmp/brief.md
+grep -n -E '^[`]{4}' /tmp/brief.md</code></pre>
+            <p class="exp">Expected: two matches. That task writes a README whose <code>&lt;pre&gt;&lt;code&gt;</code> payload contains its own triple-backtick fences, so the wrapper must widen to four. Read the brief end to end and confirm it is something you would hand an implementer.</p>
+          </li>
+          <li><span class="s">Step 7: Commit with the executable bit set in the index</span>
+            <pre><code>git add overlays/subagent-driven-development/scripts/task-brief-html \
+        tests/mysuperpower/
+git update-index --chmod=+x -- overlays/subagent-driven-development/scripts/task-brief-html
+git ls-files -s overlays/subagent-driven-development/scripts/task-brief-html
+git commit -m "feat(sdd): add task-brief-html extractor for HTML plans"</code></pre>
+            <p class="exp">Expected: <code>git ls-files -s</code> prints a line starting <code>100755</code>. Windows has no permission bit, so <code>git add</code> stages this <code>100644</code> and the explicit <code>update-index --chmod=+x</code> is what fixes it. Task 6 makes the release fail loudly if this step was skipped &mdash; but fixing it here is the point.</p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 3 ============ -->
+      <section class="task">
+        <h3>Task 3 &mdash; The overlay <code>files</code> capability</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> scripts/build-mysuperpower.ps1</div>
+          <div><span class="k">Create</span> tests/mysuperpower/test-overlay-files.ps1</div>
+        </div>
+        <p class="iface"><b>Produces</b> &mdash; a third overlay verb beside <code>replaces</code> and <code>append</code>: <code>files: [{ from, to, exec }]</code>, copying <code>&lt;overlayDir&gt;/&lt;from&gt;</code> to <code>dist/skills/&lt;skill&gt;/&lt;to&gt;</code>. Also the <code>-OverlaysDir</code> build parameter, and StrictMode-safe probes for <code>replaces</code> and <code>append</code>. Tasks 4, 5 and 6 all depend on this.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Write the failing capability test</span>
+            <p>Create <code>tests/mysuperpower/test-overlay-files.ps1</code>. Each case points the build at a fixture overlays directory and a throwaway output directory, so the repo&rsquo;s real overlays and <code>dist/</code> are never touched.</p>
+<pre><code>#!/usr/bin/env pwsh
+# Tests for the overlay "files" capability in build-mysuperpower.ps1.
+#
+# Each case points the build at a FIXTURE overlays directory via -OverlaysDir
+# and at a throwaway -OutDir, so the repo's real overlays and dist/ are never
+# touched. A negative case passes when the build fails and names the entry.
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$build = Join-Path $root 'scripts/build-mysuperpower.ps1'
+$fails = 0
+
+function Pass([string]$m) { Write-Host "  ok   $m" }
+function Failed([string]$m) { Write-Host "  FAIL $m"; $script:fails++ }
+
+function New-Overlay([string]$dir, [string]$json, [hashtable]$files) {
+  New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  Set-Content -LiteralPath (Join-Path $dir 'overlay.json') -Value $json
+  foreach ($k in $files.Keys) {
+    $p = Join-Path $dir $k
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $p) | Out-Null
+    Set-Content -LiteralPath $p -Value $files[$k]
+  }
+}
+
+# Returns $true when the build succeeded.
+function Invoke-Build([string]$overlays, [string]$out, [ref]$log) {
+  $o = &amp; pwsh -NoProfile -ExecutionPolicy Bypass -File $build `
+    -OutDir $out -OverlaysDir $overlays 2&gt;&amp;1 | Out-String
+  $log.Value = $o
+  return ($LASTEXITCODE -eq 0)
+}
+
+$tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("ovl-" + [guid]::NewGuid().ToString('n'))
+New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+try {
+  $SKILL = 'subagent-driven-development'
+  $out = Join-Path $tmp 'dist'
+  $log = ''
+
+  Write-Host "== a declared file lands at its declared 'to' path =="
+  $ov = Join-Path $tmp 'ok/sdd'
+  New-Overlay $ov ('{"skill":"' + $SKILL + '","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/demo","exec":true}]}') @{ 'scripts/demo' = "#!/usr/bin/env bash`necho demo" }
+  if (Invoke-Build (Join-Path $tmp 'ok') $out ([ref]$log)) {
+    if (Test-Path (Join-Path $out "skills/$SKILL/scripts/demo")) { Pass "file copied into dist" }
+    else { Failed "file copied into dist" }
+  } else { Failed "build succeeded for a valid files entry`n$log" }
+
+  Write-Host "== an overlay with no files key still builds under StrictMode =="
+  $ov = Join-Path $tmp 'nofiles/sdd'
+  New-Overlay $ov ('{"skill":"' + $SKILL + '","replaces":[]}') @{}
+  if (Invoke-Build (Join-Path $tmp 'nofiles') $out ([ref]$log)) { Pass "no files key, no append key" }
+  else { Failed "no files key, no append key`n$log" }
+
+  Write-Host "== schema violations fail the build =="
+  $cases = @(
+    @{ name = "missing 'from' file"; json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/nope","to":"scripts/x"}]}'; files = @{} }
+    @{ name = "absolute 'from'";     json = '{"skill":"SK","replaces":[],"files":[{"from":"/etc/hosts","to":"scripts/x"}]}'; files = @{} }
+    @{ name = "'..' in 'from'";      json = '{"skill":"SK","replaces":[],"files":[{"from":"../escape","to":"scripts/x"}]}'; files = @{ 'scripts/demo' = 'x' } }
+    @{ name = "'..' in 'to'";        json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"../../escape"}]}'; files = @{ 'scripts/demo' = 'x' } }
+    @{ name = "'to' already in dist"; json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/task-brief"}]}'; files = @{ 'scripts/demo' = 'x' } }
+    @{ name = "duplicate canonical 'to'"; json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/dup"},{"from":"scripts/other","to":"scripts/dup"}]}'; files = @{ 'scripts/demo' = 'x'; 'scripts/other' = 'y' } }
+    @{ name = "non-boolean exec";    json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/x","exec":"true"}]}'; files = @{ 'scripts/demo' = 'x' } }
+  )
+  $i = 0
+  foreach ($c in $cases) {
+    $i++
+    $dir = Join-Path $tmp ("bad$i")
+    New-Overlay (Join-Path $dir 'sdd') ($c.json -replace 'SK', $SKILL) $c.files
+    if (Invoke-Build $dir $out ([ref]$log)) { Failed ("{0}: build should have failed" -f $c.name) }
+    else { Pass $c.name }
+  }
+}
+finally {
+  Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+}
+
+Write-Host ""
+if ($fails -eq 0) { Write-Host "overlay files tests passed" }
+else { Write-Host "$fails assertion(s) failed"; exit 1 }</code></pre>
+          </li>
+          <li><span class="s">Step 2: Run it and watch it fail</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1</code></pre>
+            <p class="exp">Expected: failures. <code>-OverlaysDir</code> is not a parameter yet, so every build invocation errors out; the positive cases fail and the negative cases &ldquo;pass&rdquo; for the wrong reason. Both are fixed by the same change.</p>
+          </li>
+          <li><span class="s">Step 3: Add the <code>-OverlaysDir</code> parameter</span>
+            <p>Replace the <code>param</code> block at the top of <code>scripts/build-mysuperpower.ps1</code>:</p>
+<pre><code>[CmdletBinding()]
+param(
+  [string]$OutDir = "dist",
+  [string]$OverlaysDir = ""
+)</code></pre>
+            <p class="exp">Symmetric with the existing <code>-OutDir</code>. It exists so the schema rules below can be tested against fixture overlays without a hermetic copy of the whole repo.</p>
+          </li>
+          <li><span class="s">Step 4: Add the validated copy function</span>
+            <p>Insert this after the <code>Fail</code> function definition, before step 1 of the build. It reads <code>$dist</code> from the enclosing script scope, the same way <code>Apply-Overrides</code> already does.</p>
+<pre><code># An unvalidated copy step is a file-write primitive pointed at the build output.
+# Every rule below fails the build loudly, naming the overlay and the entry.
+function Test-RelSafe([string]$p) {
+  if ([string]::IsNullOrWhiteSpace($p)) { return $false }
+  if ([System.IO.Path]::IsPathRooted($p)) { return $false }
+  if ($p -match '(^|[\\/])\.\.([\\/]|$)') { return $false }
+  return $true
+}
+
+function Copy-OverlayFiles($cfg, [string]$overlayRoot, [hashtable]$declared) {
+  $sep = [System.IO.Path]::DirectorySeparatorChar
+  $skillRoot = Join-Path $dist ("skills/{0}" -f $cfg.skill)
+  $skillRootFull = (Resolve-Path -LiteralPath $skillRoot).ProviderPath
+  $overlayRootFull = (Resolve-Path -LiteralPath $overlayRoot).ProviderPath
+
+  foreach ($fe in $cfg.files) {
+    foreach ($k in @('from', 'to')) {
+      if ($fe.PSObject.Properties.Name -notcontains $k) {
+        Fail ("overlay {0}: files entry is missing '{1}'" -f $cfg.skill, $k)
+      }
+    }
+    $from = [string]$fe.from
+    $to   = [string]$fe.to
+    if (-not (Test-RelSafe $from)) {
+      Fail ("overlay {0}: files 'from' must be a relative path with no '..': '{1}'" -f $cfg.skill, $from)
+    }
+    if (-not (Test-RelSafe $to)) {
+      Fail ("overlay {0}: files 'to' must be a relative path with no '..': '{1}'" -f $cfg.skill, $to)
+    }
+    if ($fe.PSObject.Properties.Name -contains 'exec') {
+      if ($fe.exec -isnot [bool]) {
+        Fail ("overlay {0}: files entry '{1}' has a non-boolean exec" -f $cfg.skill, $to)
+      }
+    }
+
+    $src = Join-Path $overlayRootFull $from
+    if (-not (Test-Path -LiteralPath $src -PathType Leaf)) {
+      Fail ("overlay {0}: files 'from' is not an existing file: {1}" -f $cfg.skill, $src)
+    }
+    $srcFull = (Resolve-Path -LiteralPath $src).ProviderPath
+    if (-not $srcFull.StartsWith($overlayRootFull + $sep)) {
+      Fail ("overlay {0}: files 'from' escapes the overlay directory: '{1}'" -f $cfg.skill, $from)
+    }
+    if (((Get-Item -LiteralPath $srcFull -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+      Fail ("overlay {0}: files 'from' is a symlink, not a regular file: '{1}'" -f $cfg.skill, $from)
+    }
+
+    # Compare CANONICAL destinations: two overlays for different skills may both
+    # legitimately ship scripts/helper, and those are different files.
+    $destFull = [System.IO.Path]::GetFullPath((Join-Path $skillRootFull $to))
+    if (-not $destFull.StartsWith($skillRootFull + $sep)) {
+      Fail ("overlay {0}: files 'to' escapes dist/skills/{0}: '{1}'" -f $cfg.skill, $to)
+    }
+    if (Test-Path -LiteralPath $destFull) {
+      Fail ("overlay {0}: files 'to' already exists in dist; overlays must not replace upstream files: '{1}'" -f $cfg.skill, $to)
+    }
+    if ($declared.ContainsKey($destFull)) {
+      Fail ("overlay {0}: files 'to' collides with {1}: '{2}'" -f $cfg.skill, $declared[$destFull], $to)
+    }
+
+    $declared[$destFull] = ("{0}/{1}" -f $cfg.skill, $to)
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destFull) | Out-Null
+    Copy-Item -Force -LiteralPath $srcFull -Destination $destFull
+    Write-Host ("overlay file: {0} -&gt; skills/{1}/{2}" -f $from, $cfg.skill, $to)
+  }
+}</code></pre>
+          </li>
+          <li><span class="s">Step 5: Rewrite the overlay loop to use it</span>
+            <p>Replace the whole of build step 4 with this. Two things change beyond the new copy call: <code>replaces</code> and <code>append</code> are now probed with <code>PSObject.Properties.Name -contains</code> rather than tested for truthiness, because <code>Set-StrictMode -Version Latest</code> at line 19 turns a missing property into a throw. Task 5 adds an overlay with no <code>append</code> key, which would otherwise break the build.</p>
+<pre><code># --- 4. Apply per-skill HTML overlays (replaces + append + fork-owned files) ---
+#
+# Every fork-owned file an overlay ships is recorded here so step 7 can assert it
+# actually landed. A silently skipped copy passes the plugin-name, skill-count and
+# residual-namespace checks while shipping a SKILL.md that tells the controller to
+# run a script which is not there.
+$declaredFiles = @{}
+
+$overlaysDir = if ($OverlaysDir) { $OverlaysDir } else { Join-Path $root 'overlays' }
+if (Test-Path $overlaysDir) {
+  foreach ($skillDir in (Get-ChildItem -Directory $overlaysDir)) {
+    $cfgPath = Join-Path $skillDir.FullName 'overlay.json'
+    if (-not (Test-Path $cfgPath)) { continue }
+    $cfg = Get-Content -Raw $cfgPath | ConvertFrom-Json
+    $skillFile = Join-Path $dist ("skills/{0}/SKILL.md" -f $cfg.skill)
+    if (-not (Test-Path $skillFile)) { Fail "overlay target missing: $skillFile" }
+    $content = Get-Content -Raw -LiteralPath $skillFile
+
+    # Set-StrictMode -Version Latest turns a missing property into a throw, not a
+    # null. Probe every optional key rather than testing it for truthiness.
+    if ($cfg.PSObject.Properties.Name -contains 'replaces') {
+      foreach ($r in $cfg.replaces) {
+        if (-not $content.Contains($r.find)) {
+          if ($r.required) { Fail ("required anchor not found in {0}: '{1}'" -f $cfg.skill, $r.find) }
+          Write-Warning ("optional anchor not found in {0}: '{1}'" -f $cfg.skill, $r.find)
+          continue
+        }
+        $content = $content.Replace($r.find, $r.replace)
+      }
+    }
+    if (($cfg.PSObject.Properties.Name -contains 'append') -and $cfg.append) {
+      $addPath = Join-Path $skillDir.FullName $cfg.append
+      if (-not (Test-Path $addPath)) { Fail "append file missing: $addPath" }
+      $add = Get-Content -Raw -LiteralPath $addPath
+      $content = $content.TrimEnd() + "`n`n" + $add.TrimEnd() + "`n"
+    }
+    Set-Content -NoNewline -LiteralPath $skillFile -Value $content
+
+    if ($cfg.PSObject.Properties.Name -contains 'files') {
+      Copy-OverlayFiles $cfg $skillDir.FullName $declaredFiles
+    }
+    Write-Host ("overlay applied: {0}" -f $cfg.skill)
+  }
+}</code></pre>
+          </li>
+          <li><span class="s">Step 6: Assert in the verify step that every declared file landed</span>
+            <p>Append this to build step 7, after the residual-namespace check:</p>
+<pre><code>foreach ($d in $declaredFiles.Keys) {
+  if (-not (Test-Path -LiteralPath $d)) {
+    Fail ("declared overlay file missing from dist: {0}" -f $declaredFiles[$d])
+  }
+}
+Write-Host ("build-mysuperpower: verified {0} overlay-supplied file(s)" -f $declaredFiles.Count)</code></pre>
+            <p class="exp">Without this, a silently skipped copy passes the plugin-name, skill-count and residual-namespace checks while shipping a SKILL.md that tells the controller to run a script which is not there.</p>
+          </li>
+          <li><span class="s">Step 7: Run the capability test and a real build</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1</code></pre>
+            <p class="exp">Expected: <code>overlay files tests passed</code>, then a normal build ending with <code>build-mysuperpower: done. plugin=my-superpower &hellip;</code> and <code>verified 0 overlay-supplied file(s)</code> &mdash; no overlay declares <code>files</code> yet. The four existing overlays must still apply.</p>
+          </li>
+          <li><span class="s">Step 8: Commit</span>
+            <pre><code>git add scripts/build-mysuperpower.ps1 tests/mysuperpower/test-overlay-files.ps1
+git commit -m "feat(build): add validated overlay files capability"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 4 ============ -->
+      <section class="task">
+        <h3>Task 4 &mdash; Ship the extractor and migrate the SDD worked example</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> overlays/subagent-driven-development/overlay.json</div>
+          <div><span class="k">Modify</span> overlays/subagent-driven-development/additions.md</div>
+          <div><span class="k">Verify</span> dist/skills/subagent-driven-development/ (after rebuild)</div>
+        </div>
+        <p class="iface"><b>Consumes</b> &mdash; the <code>files</code> capability (Task 3) and the script itself (Task 2). <b>Produces</b> &mdash; <code>dist/skills/subagent-driven-development/scripts/task-brief-html</code> and the instruction text Task 7 tests. Task 6 reads this overlay&rsquo;s <code>exec: true</code> to know what to chmod.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Declare the script and the two migrated call sites</span>
+            <p>Replace <code>overlays/subagent-driven-development/overlay.json</code>:</p>
+<pre><code>{
+  "skill": "subagent-driven-development",
+  "replaces": [
+    {
+      "find": "[Read plan file once: docs/superpowers/plans/feature-plan.md]",
+      "replace": "[Read plan body once: scripts/task-brief-html --plan docs/superpowers/plans/feature-plan.html]",
+      "required": true
+    },
+    {
+      "find": "scripts/sdd-workspace docs/superpowers/plans/feature-plan.md",
+      "replace": "scripts/sdd-workspace docs/superpowers/plans/feature-plan.html",
+      "required": true
+    }
+  ],
+  "append": "additions.md",
+  "files": [
+    { "from": "scripts/task-brief-html", "to": "scripts/task-brief-html", "exec": true }
+  ]
+}</code></pre>
+            <p class="exp">Both anchors match the <strong>pristine upstream</strong> string. Overlays are build step 4 and the rebrand cascade is step 5, so an anchor written against <code>docs/mySuperpower/</code> would match nothing and fail the build. The replacement keeps the <code>docs/superpowers/</code> prefix and changes only the extension; the cascade rebrands it afterwards. Both are <code>required: true</code> &mdash; if upstream rewords the worked example, the fork finds out at build time rather than shipping a transcript that teaches the wrong tool.</p>
+          </li>
+          <li><span class="s">Step 2: Append the instruction text</span>
+            <p>Append this to <code>overlays/subagent-driven-development/additions.md</code>, after the existing live-implementation-notes block. Do not replace that block.</p>
+<pre><code>## mySuperpower additions - HTML plans
+
+The fork's `writing-plans` skill saves implementation plans as self-contained
+HTML under `docs/mySuperpower/plans/`. **When `PLAN_FILE` ends in `.html`, use
+`scripts/task-brief-html` everywhere this skill says `scripts/task-brief`.** A
+markdown plan still follows the instructions above exactly - this override is
+scoped to HTML plans only.
+
+`scripts/task-brief-html` takes the same arguments, writes to the same workspace,
+and exits with the same codes as `scripts/task-brief`:
+
+```
+scripts/task-brief-html PLAN_FILE TASK_NUMBER   # -&gt; &lt;workspace&gt;/task-N-brief.md
+scripts/task-brief-html --plan PLAN_FILE        # -&gt; &lt;workspace&gt;/plan-body.md
+```
+
+**At setup, do not open the `.html` plan directly.** Run
+`scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. That is
+the whole plan body - Overview, Global Constraints, and every task in full, with
+the stylesheet and presentational markup removed. It is not a summary: the
+pre-flight conflict scan needs every task's full text to produce its per-pair
+rows, and a scan run on missing input looks exactly like a clean scan.
+
+Read the Spec the same way when the plan names one and it is also `.html`.
+
+Two failure modes are worth recognizing, because both mean the plan is wrong
+rather than the tool:
+
+- **Exit 3, "section N is headed Task M"** - the plan's task sections are
+  numbered inconsistently with their order. Fix the plan; do not guess which
+  numbering was meant.
+- **Exit 3, "task N not found"** - there is no Nth `&lt;section class="task"&gt;` and
+  no heading naming that task. Any brief previously written at the default path
+  has been deleted, so there is no stale brief to mistake for a current one.
+
+Warnings on stderr about undecoded entities are not failures - the brief is
+still written. Report them, because they mean the plan template has grown an
+entity the extractor does not know yet.</code></pre>
+          </li>
+          <li><span class="s">Step 3: Rebuild and verify the script shipped</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1
+ls -l dist/skills/subagent-driven-development/scripts/
+diff overlays/subagent-driven-development/scripts/task-brief-html \
+     dist/skills/subagent-driven-development/scripts/task-brief-html</code></pre>
+            <p class="exp">Expected: the build reports <code>overlay file: scripts/task-brief-html -&gt; skills/subagent-driven-development/scripts/task-brief-html</code> and <code>verified 1 overlay-supplied file(s)</code>; <code>dist/</code> now holds four scripts; <code>diff</code> is silent.</p>
+          </li>
+          <li><span class="s">Step 4: Verify the worked example and the instruction text landed</span>
+            <pre><code>grep -n "task-brief-html --plan" dist/skills/subagent-driven-development/SKILL.md
+grep -n "feature-plan" dist/skills/subagent-driven-development/SKILL.md
+grep -c "task-brief" dist/skills/subagent-driven-development/SKILL.md</code></pre>
+            <p class="exp">Expected: the <code>--plan</code> line appears in both the worked example and the appended block; every <code>feature-plan</code> reference reads <code>.html</code> under <code>docs/mySuperpower/plans/</code>, with no <code>.md</code> left.</p>
+          </li>
+          <li><span class="s">Step 5: Verify the extractor runs from where it was published</span>
+            <pre><code>./dist/skills/subagent-driven-development/scripts/task-brief-html \
+  --plan docs/mySuperpower/plans/2026-06-21-live-implementation-notes.html /tmp/body.md
+grep -c "font-family:var" /tmp/body.md</code></pre>
+            <p class="exp">Expected: the script writes the file and reports its line count; the stylesheet grep returns <code>0</code>. This also confirms it resolves <code>sdd-workspace</code> correctly from its published location, beside the upstream scripts.</p>
+          </li>
+          <li><span class="s">Step 6: Commit</span>
+            <pre><code>git add overlays/subagent-driven-development/
+git commit -m "feat(sdd overlay): route HTML plans through task-brief-html"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 5 ============ -->
+      <section class="task">
+        <h3>Task 5 &mdash; A second overlay: <code>requesting-code-review</code></h3>
+        <div class="files">
+          <div><span class="k">Create</span> overlays/requesting-code-review/overlay.json</div>
+          <div><span class="k">Create</span> tests/mysuperpower/test-dist-call-sites.sh</div>
+          <div><span class="k">Verify</span> dist/skills/requesting-code-review/SKILL.md (after rebuild)</div>
+        </div>
+        <p class="iface"><b>Consumes</b> &mdash; the StrictMode-safe <code>append</code> probe from Task 3, without which an overlay carrying no <code>append</code> key throws. <b>Produces</b> &mdash; the dist-wide call-site assertion, which every later task re-runs.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Write the failing call-site assertion</span>
+            <p>Create <code>tests/mysuperpower/test-dist-call-sites.sh</code>:</p>
+<pre><code>#!/usr/bin/env bash
+# After a build, no shipped skill may point at a fork docs path that ends in .md.
+#
+# The rebrand cascade rewrites docs/superpowers/ to docs/mySuperpower/ and never
+# touches the extension, so upstream's markdown examples ship with fork paths and
+# markdown suffixes -- a path shape that cannot exist in this fork. The cascade
+# will keep manufacturing these on every upstream merge; this check is what makes
+# the next one visible.
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/../.." &amp;&amp; pwd)"
+DIST="${1:-$REPO_ROOT/dist}"
+
+[ -d "$DIST/skills" ] || { echo "no built skills at $DIST/skills -- run build-mysuperpower.ps1 first" &gt;&amp;2; exit 2; }
+
+hits=$(grep -rn -E 'docs/mySuperpower/[^ )`"&lt;&gt;]*\.md' "$DIST/skills" || true)
+
+if [ -n "$hits" ]; then
+  echo "FAIL: built skills reference fork doc paths that are still markdown:" &gt;&amp;2
+  printf '%s\n' "$hits" &gt;&amp;2
+  exit 1
+fi
+echo "dist call-site check passed: no docs/mySuperpower/*.md references"</code></pre>
+          </li>
+          <li><span class="s">Step 2: Run it against the current build and watch it fail</span>
+            <pre><code>chmod +x tests/mysuperpower/test-dist-call-sites.sh
+bash tests/mysuperpower/test-dist-call-sites.sh</code></pre>
+            <p class="exp">Expected: exit 1, reporting <code>dist/skills/requesting-code-review/SKILL.md</code> line 60 &mdash; <code>PLAN_OR_REQUIREMENTS: Task 2 from docs/mySuperpower/plans/deployment-plan.md</code>. That is the cascade&rsquo;s doing: it rewrote the directory and left the extension, producing a path shape that cannot exist in this fork.</p>
+          </li>
+          <li><span class="s">Step 3: Add the overlay</span>
+            <p>Create <code>overlays/requesting-code-review/overlay.json</code>. This skill has no overlay today, so the directory is new; there is no <code>additions.md</code>.</p>
+<pre><code>{
+  "skill": "requesting-code-review",
+  "replaces": [
+    {
+      "find": "docs/superpowers/plans/deployment-plan.md",
+      "replace": "docs/superpowers/plans/deployment-plan.html",
+      "required": true
+    }
+  ],
+  "files": []
+}</code></pre>
+            <p class="exp">This is also the first proof that a second overlay composes, and the first overlay with no <code>append</code> key &mdash; which is exactly what the StrictMode probe added in Task 3 makes safe.</p>
+          </li>
+          <li><span class="s">Step 4: Rebuild and run the assertion</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1
+bash tests/mysuperpower/test-dist-call-sites.sh
+grep -n "deployment-plan" dist/skills/requesting-code-review/SKILL.md</code></pre>
+            <p class="exp">Expected: the build applies five overlays; the assertion prints <code>dist call-site check passed</code>; the grep shows <code>docs/mySuperpower/plans/deployment-plan.html</code>.</p>
+          </li>
+          <li><span class="s">Step 5: Re-run every test written so far</span>
+            <pre><code>bash tests/mysuperpower/test-task-brief-html.sh
+pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1
+bash tests/mysuperpower/test-dist-call-sites.sh</code></pre>
+            <p class="exp">Expected: three passing runs.</p>
+          </li>
+          <li><span class="s">Step 6: Commit</span>
+            <pre><code>git add overlays/requesting-code-review/ tests/mysuperpower/test-dist-call-sites.sh
+git commit -m "fix(requesting-code-review): migrate the stale markdown plan path"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 6 ============ -->
+      <section class="task">
+        <h3>Task 6 &mdash; Publish fork-owned executables at their published paths</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> scripts/publish-mysuperpower.ps1</div>
+          <div><span class="k">Verify</span> the release branch blob modes, both copies</div>
+        </div>
+        <p class="iface"><b>Consumes</b> &mdash; the <code>exec: true</code> declaration in <code>overlays/subagent-driven-development/overlay.json</code> (Task 4) and the <code>100755</code> source mode committed in Task 2. <b>Produces</b> &mdash; a release in which fork-owned executables are <code>100755</code> in both published copies, and a publish that fails loudly when a declared executable&rsquo;s source is not.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Reproduce the defect on a throwaway release branch</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/publish-mysuperpower.ps1 -Branch release-exectest
+git ls-tree release-exectest -- skills/subagent-driven-development/scripts/task-brief-html
+git ls-tree release-exectest -- plugins/my-superpower/skills/subagent-driven-development/scripts/task-brief-html</code></pre>
+            <p class="exp">Expected: both lines start <code>100644</code>. That is the bug: the existing block derives its chmod list from <code>git ls-files -s</code> on the source repo, and this file&rsquo;s source path is <code>overlays/&hellip;</code>, which is excluded from <code>dist/</code> and matches neither published target. Compare against an upstream script in the same tree, which is <code>100755</code>. Published as-is, the plugin dies with <code>Permission denied</code> on macOS and Linux &mdash; the exact failure 6.2.0+fork.2 fixed.</p>
+          </li>
+          <li><span class="s">Step 2: Add the overlay-driven chmod mapping</span>
+            <p>In <code>scripts/publish-mysuperpower.ps1</code>, insert this immediately after the existing <code>foreach ($rel in $srcExec)</code> loop and before the <code>Write-Host "&hellip; restored +x &hellip;"</code> line:</p>
+<pre><code># A fork-owned file never appears in the source index at its PUBLISHED path: its
+# source lives under overlays/, which is excluded from dist/. So the loop above
+# matches neither target and the file would publish 100644 -- exactly the
+# "Permission denied" failure 6.2.0+fork.2 fixed, re-entering through a new door.
+#
+# Map each declared exec file from its overlay source to both published copies.
+# The intent is DECLARED (exec: true), never sniffed from the source mode: a
+# source file committed 100644 by accident -- the most likely way this goes
+# wrong, since Windows checkouts have no mode bit to preserve -- must fail the
+# release rather than produce no chmod, no error, and a broken plugin.
+$srcModes = @{}
+git -C $root ls-files -s | ForEach-Object {
+  $parts = $_ -split "`t", 2
+  $srcModes[$parts[1]] = ($parts[0] -split '\s+')[0]
+}
+
+foreach ($overlayDir in (Get-ChildItem -Directory (Join-Path $root 'overlays'))) {
+  $cfgPath = Join-Path $overlayDir.FullName 'overlay.json'
+  if (-not (Test-Path $cfgPath)) { continue }
+  $cfg = Get-Content -Raw $cfgPath | ConvertFrom-Json
+  if ($cfg.PSObject.Properties.Name -notcontains 'files') { continue }
+  foreach ($fe in $cfg.files) {
+    $isExec = ($fe.PSObject.Properties.Name -contains 'exec') -and ([bool]$fe.exec)
+    if (-not $isExec) { continue }
+
+    $srcRel = ("overlays/{0}/{1}" -f $overlayDir.Name, $fe.from) -replace '\\', '/'
+    if ($srcModes[$srcRel] -ne '100755') {
+      Fail ("overlay {0} declares exec:true for {1}, but {2} is not 100755 in the index. Fix with: git update-index --chmod=+x -- {2}" -f $overlayDir.Name, $fe.from, $srcRel)
+    }
+
+    $pubRel = ("skills/{0}/{1}" -f $cfg.skill, $fe.to) -replace '\\', '/'
+    foreach ($target in @($pubRel, "$codexPluginRel/$pubRel")) {
+      if (-not (Test-Path (Join-Path $wt $target))) {
+        Fail "declared exec file missing from the release tree: $target"
+      }
+      git update-index --chmod=+x -- $target
+      if ($LASTEXITCODE -ne 0) { Fail "could not set +x on $target" }
+      $chmodCount++
+    }
+  }
+}</code></pre>
+          </li>
+          <li><span class="s">Step 3: Re-publish and verify both copies</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/publish-mysuperpower.ps1 -Branch release-exectest
+git ls-tree release-exectest -- skills/subagent-driven-development/scripts/task-brief-html
+git ls-tree release-exectest -- plugins/my-superpower/skills/subagent-driven-development/scripts/task-brief-html</code></pre>
+            <p class="exp">Expected: both lines now start <code>100755</code>, and the publish reports two more chmodded files than before.</p>
+          </li>
+          <li><span class="s">Step 4: Verify the declared-intent failure path</span>
+            <pre><code>git update-index --chmod=-x -- overlays/subagent-driven-development/scripts/task-brief-html
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/publish-mysuperpower.ps1 -Branch release-exectest
+echo "exit=$?"
+git update-index --chmod=+x -- overlays/subagent-driven-development/scripts/task-brief-html
+git ls-files -s overlays/subagent-driven-development/scripts/task-brief-html</code></pre>
+            <p class="exp">Expected: the publish fails naming the file and the <code>git update-index --chmod=+x</code> that fixes it, and does so <em>before</em> any release commit. The final <code>ls-files -s</code> must read <code>100755</code> again &mdash; do not leave this task with the bit off. This is the case that matters most: a source committed 100644 by accident is the likeliest way this breaks, and sniffing the mode instead of declaring the intent would produce no chmod, no error, and a broken release.</p>
+          </li>
+          <li><span class="s">Step 5: Verify line endings in the published blob</span>
+            <pre><code>git show release-exectest:skills/subagent-driven-development/scripts/task-brief-html | od -c | grep -c '\\r'</code></pre>
+            <p class="exp">Expected: <code>0</code>. Task 1&rsquo;s <code>.gitattributes</code> rules are what guarantee this rather than <code>core.autocrlf</code> happening to be set on the publishing machine.</p>
+          </li>
+          <li><span class="s">Step 6: Clean up the throwaway branch and commit</span>
+            <pre><code>git worktree prune
+git branch -D release-exectest
+git add scripts/publish-mysuperpower.ps1
+git commit -m "fix(publish): chmod +x fork-owned overlay files at their published paths"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 7 ============ -->
+      <section class="task">
+        <h3>Task 7 &mdash; Acceptance run: one real plan, end to end</h3>
+        <div class="files">
+          <div><span class="k">Verify</span> a live subagent-driven-development session</div>
+          <div><span class="k">Record</span> the four observations below, in the task report</div>
+        </div>
+        <p class="iface"><b>Consumes</b> &mdash; everything above, installed. <b>Produces</b> &mdash; the only evidence that a controller actually reaches for the new tool. This task writes no code; its deliverable is a recorded observation.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Install the built plugin and start a fresh session</span>
+            <p>Every other test in this plan exercises code. The part of this change that is <em>not</em> code is the overlay text telling a controller which tool to reach for, and no unit test can observe an agent reading an instruction. Install the freshly built plugin, then open a new session and ask it to execute a real HTML plan:</p>
+            <pre><code>Use subagent-driven-development to execute
+docs/mySuperpower/plans/2026-06-21-live-implementation-notes.html</code></pre>
+            <p class="exp">Let it run to the <strong>first implementer dispatch</strong>, then stop it. Running the plan to completion proves nothing further about the extraction path and costs a full implementation cycle.</p>
+          </li>
+          <li><span class="s">Step 2: Assert all four observations</span>
+            <ol>
+              <li>Setup ran <code>scripts/task-brief-html --plan</code> rather than opening the <code>.html</code> directly.</li>
+              <li>The pre-flight conflict scan produced its per-task <em>and</em> per-pair rows &mdash; evidence the full body arrived, not a summary.</li>
+              <li>The per-task dispatch ran <code>scripts/task-brief-html PLAN N</code>, not upstream <code>scripts/task-brief</code>.</li>
+              <li>The brief handed to the implementer contains decoded markup &mdash; <code>&lt;meta&gt;</code>, not <code>&amp;lt;meta&amp;gt;</code>. Open <code>.superpowers/sdd/&lt;plan&gt;.html/task-1-brief.md</code> and read it.</li>
+            </ol>
+            <p class="exp">The fourth is the whole point of the change and the one thing a green build still would not prove. The specific failure this catches: a controller that ignores the overlay and calls upstream <code>task-brief</code>, which exits 3 on an HTML plan.</p>
+          </li>
+          <li><span class="s">Step 3: If any observation fails, fix the instruction text and re-run</span>
+            <p>A failure here is a wording problem in <code>overlays/subagent-driven-development/additions.md</code>, not a code problem &mdash; the code is already covered by Task 2. Revise, rebuild, reinstall, and run a <em>fresh</em> session: a session that has already seen the old text is not a valid retest.</p>
+            <p class="exp">No commit unless the text changed. If it did: <code>git commit -m "fix(sdd overlay): clarify HTML plan tool selection"</code>.</p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ TASK 8 ============ -->
+      <section class="task">
+        <h3>Task 8 &mdash; Release 6.3.0+fork.2</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> CHANGELOG.md</div>
+          <div><span class="k">Modify</span> the nine version manifests, via scripts/bump-version.sh</div>
+          <div><span class="k">Publish</span> the release branch</div>
+        </div>
+        <p class="iface"><b>Consumes</b> &mdash; a green Task 7. <b>Produces</b> &mdash; the published plugin at <code>6.3.0+fork.2</code>, on <code>origin/release</code> in both the branch-root (Claude Code) and <code>plugins/my-superpower/</code> (Codex) layouts.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Run <code>/simplify</code> over the whole change and apply what it finds</span>
+            <p>Review everything added across Tasks 1&ndash;6 as one diff:</p>
+            <pre><code>git diff 60b361f..HEAD --stat
+git diff 60b361f..HEAD</code></pre>
+            <p class="exp">Apply any simplification it surfaces <em>before</em> the release commit, then re-run the tests in Step 2. Do not defer fixes past this point.</p>
+          </li>
+          <li><span class="s">Step 2: Run every test and a clean build</span>
+            <pre><code>bash tests/mysuperpower/test-task-brief-html.sh
+pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1
+bash tests/mysuperpower/test-dist-call-sites.sh
+bash tests/version-bump/test-bump-version.sh</code></pre>
+            <p class="exp">Expected: all five pass. The version-bump suite is included because the next step depends on it. <code>tests/shell-lint/test-lint-shell.sh</code> needs <code>shellcheck</code>, which is not on PATH on this machine &mdash; run it if you have it, and say so in the report if you could not.</p>
+          </li>
+          <li><span class="s">Step 3: Merge the feature branch</span>
+            <pre><code>git checkout mysuperpower
+git merge --no-ff feature/sdd-html-task-brief
+git log --oneline -1</code></pre>
+          </li>
+          <li><span class="s">Step 4: Bump the fork version</span>
+            <pre><code>bash scripts/bump-version.sh 6.3.0+fork.2
+bash scripts/bump-version.sh --check</code></pre>
+            <p class="exp">Expected: nine manifests move from <code>6.3.0+fork.1</code> to <code>6.3.0+fork.2</code>, then <code>All declared files are in sync at 6.3.0+fork.2</code> and a clean audit. The upstream base is unchanged, so only the fork iteration advances &mdash; and both Claude Code and Codex detect updates by comparing the version <em>string</em>, not SemVer precedence.</p>
+          </li>
+          <li><span class="s">Step 5: Write the CHANGELOG entry</span>
+            <p>Add a new section at the top of <code>CHANGELOG.md</code>, above <code>## 6.3.0+fork.1</code>, in the same style as the existing entries. Cover: HTML task briefs for subagent-driven-development via a new fork-owned <code>task-brief-html</code>; the overlay <code>files</code> capability with build-time schema validation; the publish-side executable-bit mapping for fork-owned files; LF pinning for extensionless skill scripts; and the two migrated markdown call sites.</p>
+            <p class="exp">Write what changed and why it matters to someone installing the plugin &mdash; not a list of commit subjects.</p>
+          </li>
+          <li><span class="s">Step 6: Publish and push</span>
+            <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/publish-mysuperpower.ps1 -Push</code></pre>
+            <p class="exp">Expected: a build, then <code>restored +x on N published file(s)</code> where N is two higher than the previous release, then <code>committed release 6.3.0+fork.2</code> and a push to <code>origin/release</code>.</p>
+          </li>
+          <li><span class="s">Step 7: Verify the published artifact</span>
+            <pre><code>git ls-tree release -- skills/subagent-driven-development/scripts/
+git ls-tree release -- plugins/my-superpower/skills/subagent-driven-development/scripts/
+git show release:skills/subagent-driven-development/scripts/task-brief-html | od -c | grep -c '\\r'
+git show release:.claude-plugin/plugin.json | grep version</code></pre>
+            <p class="exp">Expected: <code>task-brief-html</code> is <code>100755</code> in <strong>both</strong> copies alongside the three upstream scripts; the CR count is <code>0</code>; the version reads <code>6.3.0+fork.2</code>.</p>
+          </li>
+          <li><span class="s">Step 8: Final commit and tag</span>
+            <pre><code>git add CHANGELOG.md
+git commit -m "Release 6.3.0+fork.2: HTML task briefs for subagent-driven-development"
+git tag -a v6.3.0+fork.2 -m "mySuperpower 6.3.0+fork.2"
+git push origin mysuperpower --follow-tags</code></pre>
+            <p class="exp">The version bump from Step 4 is included in this commit. Tag the <code>mysuperpower</code> commit, not the release-branch commit.</p>
+          </li>
+        </ol>
+      </section>
+
+    </main>
+  </div>
+</body>
+</html>
