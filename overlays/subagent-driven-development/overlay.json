@@ -1,5 +1,19 @@
 {
   "skill": "subagent-driven-development",
-  "replaces": [],
-  "append": "additions.md"
+  "replaces": [
+    {
+      "find": "[Read plan file once: docs/superpowers/plans/feature-plan.md]",
+      "replace": "[Read plan body once: scripts/task-brief-html --plan docs/superpowers/plans/feature-plan.html]",
+      "required": true
+    },
+    {
+      "find": "scripts/sdd-workspace docs/superpowers/plans/feature-plan.md",
+      "replace": "scripts/sdd-workspace docs/superpowers/plans/feature-plan.html",
+      "required": true
+    }
+  ],
+  "append": "additions.md",
+  "files": [
+    { "from": "scripts/task-brief-html", "to": "scripts/task-brief-html", "exec": true }
+  ]
 }
