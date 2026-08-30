@@ -114,7 +114,8 @@
           <li><strong>The workspace directory name keeps its <code>.html</code> suffix.</strong> <code>sdd-workspace</code> is upstream and unmodified, so <code>basename "$plan" .md</code> leaves <code>plan.html/</code>. This is cosmetic and deliberately not fixed: every caller passes the same <code>PLAN_FILE</code>, so briefs, review packages and the progress ledger all resolve to one directory. A prettier slug in one script would split the workspace and strand the ledger.</li>
           <li><strong>Workspace artifacts stay markdown.</strong> <code>progress.md</code>, <code>task-N-brief.md</code>, <code>task-N-report.md</code> and the review <code>.diff</code> are read by subagents, not by a human in a browser.</li>
           <li><strong>Version scheme:</strong> <code>&lt;upstream-base&gt;+fork.&lt;iteration&gt;</code>. This release is <code>6.3.0+fork.2</code>. Both Claude Code and Codex detect updates by comparing the version <em>string</em>, not SemVer precedence.</li>
-          <li><strong>Tests live in <code>tests/mysuperpower/</code></strong> and are standalone executables, matching <code>tests/version-bump/</code> and <code>tests/shell-lint/</code>. There is no CI and no <code>npm test</code>; each is run directly.</li>
+          <li><strong>Tests live in <code>tests/mysuperpower/</code></strong>, one directory per suite, matching <code>tests/version-bump/</code> and <code>tests/shell-lint/</code>. There is no CI and no <code>npm test</code>; every step runs them explicitly as <code>bash tests/mysuperpower/&lt;name&gt;.sh</code> or <code>pwsh -File</code>.</li>
+          <li><strong><code>core.filemode</code> is <code>false</code> in this repo.</strong> <code>chmod +x</code> changes the working tree and stages nothing, so every file that must ship executable needs <code>git update-index --chmod=+x</code> naming it. The existing suites are inconsistent on this &mdash; <code>tests/codex-plugin-sync/</code> is <code>100755</code>, <code>tests/version-bump/</code> and <code>tests/shell-lint/</code> are <code>100644</code> &mdash; so this plan follows the <code>100755</code> convention for every script it adds, since they all carry a shebang.</li>
         </ul>
       </section>
 
@@ -140,6 +141,14 @@
           <li><strong>The release tag would not have matched the release.</strong> <code>bump-version.sh</code> edits the nine manifests but never stages them &mdash; the final commit staged only <code>CHANGELOG.md</code>, so the tag would have pointed at a commit reading <code>6.3.0+fork.1</code> while the published branch was built as <code>6.3.0+fork.2</code>. Task 8 now commits the bump before anything is built from it.</li>
         </ul>
         <p>The other four: negative schema tests passed on any nonzero exit, so an unreachable <code>..</code> fixture proved nothing about the traversal check (each case now asserts its own diagnostic against a reachable fixture); the deliberately-failed publish left its worktree behind, so <code>git branch -D</code> could not succeed; a failed <code>mktemp</code> exited before the cleanup trap was installed; and making <code>-OutDir</code> accept absolute paths meant a rooted output directory inside the repo would be copied into itself.</p>
+        <p>A third pass then found four defects <em>in those fixes</em> &mdash; which is the argument for having run it:</p>
+        <ul>
+          <li><strong>The <code>-OutDir</code> guard could delete the working copy.</strong> Build step 1 is <code>Remove-Item -Recurse -Force $dist</code>, and the containment check sat below it in step 2. <code>-OutDir C:\Projects\GitHub\mySuperpower</code> would have removed the repository &mdash; and the descendant test does not catch it, because <code>StartsWith</code> is false when two paths are equal. Validation now runs above step 1, with its own rules for the repo itself and for any ancestor of it.</li>
+          <li><strong>The nested-output rejection was case-sensitive on a case-insensitive filesystem.</strong> <code>c:\projects\github\mysuperpower\nested\dist</code> slipped past an ordinal <code>StartsWith</code> against <code>C:\Projects\...</code>. All path comparisons now use <code>OrdinalIgnoreCase</code> on Windows.</li>
+          <li><strong>Custom builds picked up a stale plugin tree.</strong> Dropping <code>$OutDir</code> from the name-based exclusion in favour of a resolved-path test left the repo&rsquo;s own <code>dist/</code> unexcluded whenever the output went elsewhere &mdash; the capability test&rsquo;s exact scenario. <code>dist</code> is now excluded unconditionally.</li>
+          <li><strong>The new shell tests would have shipped non-executable.</strong> <code>core.filemode=false</code> means <code>chmod +x</code> stages nothing, and only <code>task-brief-html</code> was named in a <code>git update-index --chmod=+x</code>.</li>
+        </ul>
+        <p>The guard tests for the first two run against a throwaway copy of the build script whose <code>$root</code> is a temp directory. That is deliberate: a test for a rule whose absence deletes a directory must not be pointed at the working copy.</p>
       </section>
 
       <!-- ============ TASK 1 ============ -->
@@ -905,10 +914,13 @@ grep -n -E '^[`]{4}' /tmp/brief.md</code></pre>
           <li><span class="s">Step 7: Commit with the executable bit set in the index</span>
             <pre><code>git add overlays/subagent-driven-development/scripts/task-brief-html \
         tests/mysuperpower/
-git update-index --chmod=+x -- overlays/subagent-driven-development/scripts/task-brief-html
-git ls-files -s overlays/subagent-driven-development/scripts/task-brief-html
+git update-index --chmod=+x -- \
+  overlays/subagent-driven-development/scripts/task-brief-html \
+  tests/mysuperpower/test-task-brief-html.sh
+git ls-files -s overlays/subagent-driven-development/scripts/task-brief-html \
+                tests/mysuperpower/test-task-brief-html.sh
 git commit -m "feat(sdd): add task-brief-html extractor for HTML plans"</code></pre>
-            <p class="exp">Expected: <code>git ls-files -s</code> prints a line starting <code>100755</code>. Windows has no permission bit, so <code>git add</code> stages this <code>100644</code> and the explicit <code>update-index --chmod=+x</code> is what fixes it. Task 6 makes the release fail loudly if this step was skipped &mdash; but fixing it here is the point.</p>
+            <p class="exp">Expected: <strong>both</strong> lines start <code>100755</code>. This repo sets <code>core.filemode=false</code>, so the <code>chmod +x</code> in Steps 3 and 5 changes the working tree and stages nothing &mdash; <code>git update-index --chmod=+x</code> is the only thing that sets the mode in the index, and it must name every file that needs it. Task 6 makes the release fail loudly if the extractor was missed here; nothing catches a test script that was, which is why it is listed explicitly.</p>
           </li>
         </ol>
       </section>
@@ -1022,6 +1034,41 @@ try {
     }
   }
 
+  Write-Host "== destructive output directories are rejected before any cleanup =="
+  # These cases are run against a THROWAWAY COPY of the build script, whose
+  # $root is a temp directory. That is deliberate: build step 1 removes $dist
+  # recursively, so if the guard under test is absent or broken, an -OutDir
+  # naming the root deletes it. Pointed at the real repo that is the working
+  # copy; pointed here it is a directory we created to be destroyed.
+  $guard = Join-Path $tmp 'guard'
+  $fakeRoot = Join-Path $guard 'repo'
+  New-Item -ItemType Directory -Force -Path (Join-Path $fakeRoot 'scripts') | Out-Null
+  Copy-Item -LiteralPath $build -Destination (Join-Path $fakeRoot 'scripts/build-mysuperpower.ps1')
+  $fakeBuild = Join-Path $fakeRoot 'scripts/build-mysuperpower.ps1'
+
+  function Invoke-FakeBuild([string]$outDir, [ref]$log) {
+    $o = &amp; pwsh -NoProfile -ExecutionPolicy Bypass -File $fakeBuild -OutDir $outDir 2&gt;&amp;1 | Out-String
+    $log.Value = $o
+    return ($LASTEXITCODE -eq 0)
+  }
+
+  $guardCases = @(
+    @{ name = "OutDir is the repository itself"; out = $fakeRoot; expect = "must not be the repository itself" }
+    @{ name = "OutDir is an ancestor of the repository"; out = $guard; expect = "must not be an ancestor" }
+    @{ name = "nested OutDir, lowercased"; out = (Join-Path $fakeRoot 'nested/dist').ToLower(); expect = "direct child" }
+  )
+  foreach ($g in $guardCases) {
+    if (Invoke-FakeBuild $g.out ([ref]$log)) {
+      Failed ("{0}: build should have been rejected" -f $g.name)
+    } elseif ($log -notmatch [regex]::Escape($g.expect)) {
+      Failed ("{0}: rejected for the wrong reason; expected '{1}'`n{2}" -f $g.name, $g.expect, $log)
+    } elseif (-not (Test-Path $fakeRoot)) {
+      Failed ("{0}: the guard did not fire and the root was deleted" -f $g.name)
+    } else {
+      Pass $g.name
+    }
+  }
+
   Write-Host "== a symlinked ancestor in 'from' is rejected =="
   if ($IsWindows) {
     $dir = Join-Path $tmp 'junction'
@@ -1054,8 +1101,8 @@ else { Write-Host "$fails assertion(s) failed"; exit 1 }</code></pre>
             <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1</code></pre>
             <p class="exp">Expected: failures. <code>-OverlaysDir</code> is not a parameter yet, so every build invocation errors out; the positive cases fail and the negative cases &ldquo;pass&rdquo; for the wrong reason. Both are fixed by the same change.</p>
           </li>
-          <li><span class="s">Step 3: Add <code>-OverlaysDir</code>, and let both directory parameters take absolute paths</span>
-            <p>Replace everything from the <code>param</code> block down to and including the <code>$dist</code> assignment at the top of <code>scripts/build-mysuperpower.ps1</code>:</p>
+          <li><span class="s">Step 3: Add <code>-OverlaysDir</code>, accept absolute paths, and validate before anything is deleted</span>
+            <p>Replace everything from the <code>param</code> block down to and including the <code>function Fail</code> line in <code>scripts/build-mysuperpower.ps1</code>:</p>
 <pre><code>[CmdletBinding()]
 param(
   [string]$OutDir = "dist",
@@ -1070,36 +1117,58 @@ $root = Split-Path -Parent $PSScriptRoot
 # value onto the repo root instead of replacing it -- Join-Path 'C:\repo'
 # 'C:\Temp\x' returns 'C:\repo\C:\Temp\x' -- so a test that builds into a
 # temporary directory could never succeed without this.
-$dist = if ([System.IO.Path]::IsPathRooted($OutDir)) { $OutDir } else { Join-Path $root $OutDir }</code></pre>
-            <p class="exp"><code>-OverlaysDir</code> is symmetric with the existing <code>-OutDir</code>, and exists so the schema rules below can be tested against fixture overlays without a hermetic copy of the whole repo. The <code>$dist</code> change is what makes that testable at all: <code>Join-Path</code> splices a rooted value onto the repo root rather than replacing it, so <code>-OutDir C:\Temp\x</code> would have built into <code>C:\repo\C:\Temp\x</code> and failed before reaching any overlay logic.</p>
-          </li>
-          <li><span class="s">Step 4: Stop a rooted output directory from being copied into itself</span>
-            <p>Replace the whole of build step 2 with this:</p>
-<pre><code># --- 2. Copy pristine plugin tree into dist/, excluding source-only entries ---
+$dist = if ([System.IO.Path]::IsPathRooted($OutDir)) { $OutDir } else { Join-Path $root $OutDir }
+
+function Fail([string]$msg) { Write-Error "build-mysuperpower: $msg"; exit 1 }
+
+# Validate the output directory HERE, before step 1 removes it recursively.
+# -OutDir naming the repository itself, or any ancestor of it, would otherwise
+# delete the working copy outright: a containment check that runs later is
+# already too late to prevent it.
 #
-# $OutDir may now be an absolute path, so excluding it by NAME no longer works:
-# a rooted output directory inside the repo would not match any child name and
-# would be copied recursively into itself. Compare RESOLVED paths instead. A
-# name-based exclusion also cannot express a nested output directory, so reject
-# one rather than silently copying its parent.
-$rootFull = [System.IO.Path]::GetFullPath($root)
-$distFull = [System.IO.Path]::GetFullPath($dist)
+# StartsWith is ordinal by default while Windows paths are case-insensitive, so
+# 'c:\projects\...\nested\dist' would slip past an ordinal comparison against
+# 'C:\Projects\...'. Compare the way the platform's filesystem does.
 $sep = [System.IO.Path]::DirectorySeparatorChar
-if ($distFull.StartsWith($rootFull + $sep)) {
+$cmp = if ($IsWindows) { [System.StringComparison]::OrdinalIgnoreCase } else { [System.StringComparison]::Ordinal }
+$rootFull = [System.IO.Path]::GetFullPath($root).TrimEnd($sep)
+$distFull = [System.IO.Path]::GetFullPath($dist).TrimEnd($sep)
+
+if ($distFull.Equals($rootFull, $cmp)) {
+  Fail "OutDir must not be the repository itself: $distFull"
+}
+if ($rootFull.StartsWith($distFull + $sep, $cmp)) {
+  Fail "OutDir must not be an ancestor of the repository: $distFull"
+}
+if ($distFull.StartsWith($rootFull + $sep, $cmp)) {
   $rel = $distFull.Substring($rootFull.Length + 1)
   if ($rel.Contains($sep)) {
     Fail "an OutDir inside the repo must be a direct child of it, got '$rel'"
   }
-}
-
-$exclude = @('overlays', 'branding', 'scripts', 'docs', 'tests', '.git', '.github', '.baseline-skills')
+}</code></pre>
+            <p class="exp"><code>-OverlaysDir</code> is symmetric with the existing <code>-OutDir</code>, and exists so the schema rules below can be tested against fixture overlays without a hermetic copy of the whole repo. The <code>$dist</code> change is what makes that testable at all: <code>Join-Path</code> splices a rooted value onto the repo root rather than replacing it, so <code>-OutDir C:\Temp\x</code> would have built into <code>C:\repo\C:\Temp\x</code>. <strong>The validation block must sit above build step 1, not below it.</strong> Step 1 is <code>Remove-Item -Recurse -Force $dist</code>, so <code>-OutDir</code> naming the repo or any ancestor of it deletes the working copy before a later check could ever run. Note also that the repo-equals case is not caught by the descendant test &mdash; <code>$distFull.StartsWith($rootFull + $sep)</code> is <em>false</em> when the two are equal &mdash; which is why it needs its own rule.</p>
+          </li>
+          <li><span class="s">Step 4: Keep generated output out of the copy</span>
+            <p>Replace the whole of build step 2 with this:</p>
+<pre><code># --- 2. Copy pristine plugin tree into dist/, excluding source-only entries ---
+#
+# 'dist' is an UNCONDITIONAL exclusion, not a stand-in for $OutDir: it is this
+# repo's generated output and is source-only for every build, including one
+# writing somewhere else entirely. Replacing it with the resolved-path test
+# alone would copy a stale plugin tree into every custom output directory --
+# which is exactly what the capability test does, building outside the repo.
+#
+# The resolved-path test then covers the case no name-based exclusion can
+# express: a custom $OutDir that IS inside the repo. $distFull, $sep and $cmp
+# were computed during validation above.
+$exclude = @('overlays', 'branding', 'scripts', 'docs', 'tests', '.git', '.github', '.baseline-skills', 'dist')
 Get-ChildItem -Force -Path $root |
   Where-Object {
     $exclude -notcontains $_.Name -and
-    [System.IO.Path]::GetFullPath($_.FullName) -ne $distFull
+    -not ([System.IO.Path]::GetFullPath($_.FullName).TrimEnd($sep).Equals($distFull, $cmp))
   } |
   ForEach-Object { Copy-Item -Recurse -Force -Path $_.FullName -Destination (Join-Path $dist $_.Name) }</code></pre>
-            <p class="exp">The existing exclusion compares <code>$OutDir</code> against each child&rsquo;s <code>.Name</code>. That worked while <code>$OutDir</code> was always the literal string <code>dist</code>; now that it can be a full path, an output directory inside the repo matches no child name and gets copied recursively into itself. Comparing resolved paths fixes the direct-child case; a nested output directory cannot be expressed by an exclusion at all, so it is rejected outright.</p>
+            <p class="exp">Two independent things are needed here. <code>dist</code> becomes an unconditional exclusion: the old list excluded <code>$OutDir</code> by name, which happened to exclude <code>dist</code> only because that was the default value. A build writing anywhere else would copy the repo&rsquo;s stale <code>dist/</code> into its output &mdash; and building outside the repo is precisely what the capability test does. The resolved-path test then covers a custom output directory inside the repo, which no name can express.</p>
           </li>
           <li><span class="s">Step 5: Add the validated copy function</span>
             <p>Insert this after the <code>Fail</code> function definition, before step 1 of the build. It reads <code>$dist</code> from the enclosing script scope, the same way <code>Apply-Overrides</code> already does.</p>
@@ -1420,7 +1489,10 @@ bash tests/mysuperpower/test-dist-call-sites.sh</code></pre>
           </li>
           <li><span class="s">Step 6: Commit</span>
             <pre><code>git add overlays/requesting-code-review/ tests/mysuperpower/test-dist-call-sites.sh
+git update-index --chmod=+x -- tests/mysuperpower/test-dist-call-sites.sh
+git ls-files -s tests/mysuperpower/
 git commit -m "fix(requesting-code-review): migrate the stale markdown plan path"</code></pre>
+            <p class="exp">Expected: both <code>.sh</code> tests read <code>100755</code>. Same reason as Task 2, Step 7 &mdash; <code>core.filemode=false</code> means <code>chmod</code> stages nothing.</p>
           </li>
         </ol>
       </section>
