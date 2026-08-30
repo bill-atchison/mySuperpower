@@ -215,7 +215,8 @@
     { "from": "scripts/task-brief-html", "to": "scripts/task-brief-html", "exec": true }
   ]
 }</code></pre>
-        <p>The <code>files</code> key is optional; an overlay without it behaves exactly as today. <code>exec</code> defaults to <code>false</code> and declares that the published file must be executable &mdash; see the publish hazard below, where making that intent explicit is what turns a silent regression into a failed release.</p>
+        <p>The <code>files</code> key is optional, and &ldquo;optional&rdquo; has teeth here: <code>build-mysuperpower.ps1:19</code> sets <code>Set-StrictMode -Version Latest</code>, under which reading a property that does not exist on a <code>ConvertFrom-Json</code> object throws rather than returning null. Every overlay.json in the repo today carries both <code>replaces</code> and <code>append</code> for exactly this reason. The new step must probe with <code>$cfg.PSObject.Properties.Name -contains 'files'</code>, not <code>if ($cfg.files)</code>, so existing overlays keep building untouched.</p>
+        <p>An overlay without <code>files</code> behaves exactly as today. <code>exec</code> defaults to <code>false</code> and declares that the published file must be executable &mdash; see the publish hazard below, where making that intent explicit is what turns a silent regression into a failed release.</p>
 
         <h3>Schema rules, enforced at build time</h3>
         <p>Every rule below fails the build loudly, naming the overlay and the entry. Loud failure at build time is the property that makes the overlay system trustworthy, and an unvalidated copy step is a file-write primitive pointed at the build output.</p>
@@ -296,6 +297,34 @@ task-brief-html --plan PLAN_FILE [OUTFILE]        # default &lt;workspace&gt;/pl
       </section>
 
       <section>
+        <h2>Stale Call Sites the Cascade Cannot Fix</h2>
+
+        <p>The build&rsquo;s rebrand cascade rewrites <code>docs/superpowers/</code> to <code>docs/mySuperpower/</code> and never touches the extension. Upstream&rsquo;s markdown examples therefore ship with fork paths and markdown suffixes &mdash; a path shape that cannot exist in this fork. Two of them matter, and both are fixed with overlay <code>replaces</code> entries.</p>
+
+        <div class="hazard">
+          <p class="cap">Anchors match pristine text, not branded text</p>
+          <p>Overlays are step 4 of the build; the cascade is step 5 (<code>build-mysuperpower.ps1:47,76</code>). An anchor must therefore match the <em>upstream</em> string &mdash; <code>docs/superpowers/&hellip;</code> &mdash; and its replacement should keep that prefix and change only the extension, leaving the cascade to rebrand it afterwards. An anchor written against <code>docs/mySuperpower/</code> matches nothing and fails the build.</p>
+        </div>
+
+        <h3>The SDD worked example</h3>
+        <p><code>subagent-driven-development/SKILL.md:509-510</code> is the transcript a controller pattern-matches at setup, and it demonstrates both behaviors this design replaces &mdash; reading the plan whole, and handing a <code>.md</code> path to the workspace resolver:</p>
+<pre><code>find:    [Read plan file once: docs/superpowers/plans/feature-plan.md]
+replace: [Read plan body once: scripts/task-brief-html --plan docs/superpowers/plans/feature-plan.html]
+
+find:    scripts/sdd-workspace docs/superpowers/plans/feature-plan.md
+replace: scripts/sdd-workspace docs/superpowers/plans/feature-plan.html</code></pre>
+        <p>Both <code>required: true</code>. If upstream rewords the worked example, the fork should find out at build time rather than ship a transcript teaching the wrong tool.</p>
+
+        <h3>The code-review dispatch example</h3>
+        <p><code>requesting-code-review/SKILL.md:60</code> names the artifact the final reviewer is pointed at. That skill has no overlay today, so this adds <code>overlays/requesting-code-review/</code> &mdash; an <code>overlay.json</code> with one <code>replaces</code> entry, an empty <code>files</code> array, and no <code>append</code> file:</p>
+<pre><code>find:    docs/superpowers/plans/deployment-plan.md
+replace: docs/superpowers/plans/deployment-plan.html</code></pre>
+        <p>It is worth adding for its own sake, and it doubles as the first proof that a second overlay composes &mdash; the collision rule compares canonical <code>dist/skills/&lt;skill&gt;/&lt;to&gt;</code> paths precisely so two overlays can coexist without colliding on identical relative names.</p>
+
+        <p>The workspace artifacts stay markdown and are <strong>not</strong> migrated: <code>progress.md</code>, <code>task-N-brief.md</code>, <code>task-N-report.md</code> and the review <code>.diff</code> live in <code>.superpowers/sdd/</code>, are read by subagents rather than by a human in a browser, and are easier to grep and diff as text. Migrating them would cost the fork something and buy it nothing.</p>
+      </section>
+
+      <section>
         <h2>Data Flow</h2>
 
         <h3>Per task, at runtime</h3>
@@ -369,8 +398,11 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
         <p>Plus one smoke run against the real <code>docs/mySuperpower/plans/2026-06-21-live-implementation-notes.html</code>, asserting a non-empty brief for Task 1 &mdash; cheap protection against a fixture that has drifted from what the template actually produces.</p>
 
         <h3>Build capability test</h3>
-        <p>Assert that a declared <code>files</code> entry lands at its declared <code>to</code> path in <code>dist/</code>, that an overlay with no <code>files</code> key still builds, and that each schema rule fails the build: a missing <code>from</code>, an absolute path, a <code>..</code> segment in either field, a <code>to</code> that already exists in <code>dist/</code>, and two entries resolving to the same canonical destination. An unrecognized named entity must warn without failing. Runs after <code>build-mysuperpower.ps1</code>, alongside the existing dist checks.</p>
+        <p>Assert that a declared <code>files</code> entry lands at its declared <code>to</code> path in <code>dist/</code>, that an overlay with no <code>files</code> key still builds under <code>Set-StrictMode -Version Latest</code>, and that each schema rule fails the build: a missing <code>from</code>, an absolute path, a <code>..</code> segment in either field, a <code>to</code> that already exists in <code>dist/</code>, and two entries resolving to the same canonical destination. An unrecognized named entity must warn without failing. Runs after <code>build-mysuperpower.ps1</code>, alongside the existing dist checks.</p>
         <p>One publish-side assertion too, since this is where the regression would land silently: with <code>exec: true</code> declared and the source committed <code>100644</code>, the publish must fail rather than ship.</p>
+
+        <h3>Call-site assertions</h3>
+        <p>After a build, assert that <code>dist/</code> contains no occurrence of <code>docs/mySuperpower/</code> followed by a path ending in <code>.md</code>. That single check covers both migrated call sites and catches the next one an upstream merge introduces, which is the failure mode worth guarding &mdash; the cascade will keep manufacturing these silently.</p>
 
         <h3>Manual verification before release</h3>
         <ol>
