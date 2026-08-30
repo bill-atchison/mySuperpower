@@ -134,6 +134,12 @@
           <li><strong>A symlinked ancestor bypassed the containment check.</strong> <code>Resolve-Path</code> preserves a junction lexically while <code>Get-Item</code> inspects the real target leaf, so <code>from: "linkdir/secret"</code> satisfied both the prefix test and the reparse-point test and would have copied a file from outside the overlay into the release. Fixed in Task 3, Step 4, with a junction test case.</li>
           <li><strong>The on-failure deletion guarantee had a hole.</strong> Only <code>fail_extract</code> deleted a stale brief, but <code>set -e</code> exits straight out of a failed <code>awk</code> or a failed <code>mv</code> without reaching it &mdash; leaving the previous brief at the expected path, looking current. Every failure between the temp file and the rename now runs through one cleanup point (Task 2).</li>
         </ul>
+        <p>A second review pass found six more, again each reproduced first. Two mattered:</p>
+        <ul>
+          <li><strong>The heading fallback silently returned the wrong task.</strong> When a plan has task sections but the requested number exceeds their count, selection fell through to the heading search &mdash; so asking <code>plan-conflict.html</code> for task 3 returned the mislabelled <em>second</em> section with exit 0. A silent wrong answer is worse than the conflict it was meant to catch. The fallback is now permitted only when the plan has no task sections at all; anything else exits 3 naming the count.</li>
+          <li><strong>The release tag would not have matched the release.</strong> <code>bump-version.sh</code> edits the nine manifests but never stages them &mdash; the final commit staged only <code>CHANGELOG.md</code>, so the tag would have pointed at a commit reading <code>6.3.0+fork.1</code> while the published branch was built as <code>6.3.0+fork.2</code>. Task 8 now commits the bump before anything is built from it.</li>
+        </ul>
+        <p>The other four: negative schema tests passed on any nonzero exit, so an unreachable <code>..</code> fixture proved nothing about the traversal check (each case now asserts its own diagnostic against a reachable fixture); the deliberately-failed publish left its worktree behind, so <code>git branch -D</code> could not succeed; a failed <code>mktemp</code> exited before the cleanup trap was installed; and making <code>-OutDir</code> accept absolute paths meant a rooted output directory inside the repo would be copied into itself.</p>
       </section>
 
       <!-- ============ TASK 1 ============ -->
@@ -403,6 +409,15 @@ echo "== position/label conflict =="
 check "conflict exits 3" 3 $?
 contains "conflict names both numbers" 'section 2 of plan-conflict.html is headed "Task 3"' err.txt
 
+echo "== heading fallback never rescues an out-of-range task =="
+# plan-conflict.html has two sections, the second headed "Task 3". Asking for
+# task 3 must NOT fall through to the heading search and return section 2 --
+# that is a silent wrong answer, worse than the conflict it was meant to catch.
+"$TB" plan-conflict.html 3 oor.md &gt;/dev/null 2&gt;oor.err
+check "out-of-range exits 3" 3 $?
+contains "says the plan is out of range" "has only 2 task section(s); task 3 is out of range" oor.err
+if [ -e oor.md ]; then fail "no brief written for an out-of-range task"; else pass "no brief written for an out-of-range task"; fi
+
 echo "== failure never leaves a stale brief at the default path =="
 "$TB" plan-sections.html 1 &gt;/dev/null 2&gt;&amp;1
 WS="$(./skills/subagent-driven-development/scripts/sdd-workspace plan-sections.html)"
@@ -559,19 +574,23 @@ plan_hash=$(git hash-object "$plan" 2&gt;/dev/null || echo "unknown")
 stamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
 # Temp file in the OUTPUT directory: same filesystem, so the rename is atomic.
-tmp=$(mktemp "$outdir/.task-brief-html.XXXXXX")
-
-# Every failure between here and the rename runs through one cleanup point.
-# set -e exits directly out of a failed awk or a failed mv without reaching
-# fail_extract, so putting the deletion only there would leave a previously
-# good brief at the expected path looking current -- the exact artifact this
-# script exists to prevent. The trap is cleared once the rename succeeds.
+# Installed BEFORE mktemp: if temp creation itself fails -- an unwritable
+# workspace, a full disk -- set -e exits, and a trap installed after mktemp
+# would never have run, leaving a stale brief at the expected path.
+tmp=""
 cleanup_incomplete() {
-  rm -f "$tmp"
+  if [ -n "$tmp" ]; then rm -f "$tmp"; fi
   if [ "$owns_out" -eq 1 ]; then rm -f "$out"; fi
 }
 trap cleanup_incomplete EXIT
 
+tmp=$(mktemp "$outdir/.task-brief-html.XXXXXX")
+
+# Every failure between here and the rename runs through that one cleanup point.
+# set -e exits directly out of a failed awk or a failed mv without reaching
+# fail_extract, so putting the deletion only there would leave a previously
+# good brief at the expected path looking current -- the exact artifact this
+# script exists to prevent. The trap is cleared once the rename succeeds.
 {
   printf 'Source plan: %s\n' "$plan"
   printf 'Plan hash:   %s\n' "$plan_hash"
@@ -646,6 +665,10 @@ fragment=$(awk '{ line = $0
 
   END {
     if (mode == "plan") { exit (found ? 0 : 4) }
+    if (seen &gt; 0 &amp;&amp; !found) {
+      printf "task-brief-html: %s has only %d task section(s); task %d is out of range\n", planpath, seen, want &gt; "/dev/stderr"
+      exit 6
+    }
     if (found) {
       if (headnum &gt;= 0 &amp;&amp; headnum != want) {
         printf "task-brief-html: section %d of %s is headed \"Task %d\" -- plan numbering disagrees with section order\n", want, planpath, headnum &gt; "/dev/stderr"
@@ -656,6 +679,10 @@ fragment=$(awk '{ line = $0
     exit 4
   }
 ') || select_status=$?
+
+if [ "$select_status" -eq 6 ]; then
+  fail_extract "task ${n} not found in ${plan}"
+fi
 
 if [ "$select_status" -eq 5 ]; then
   fail_extract "task ${n} not extracted from ${plan}: fix the plan's task numbering"
@@ -678,7 +705,7 @@ if [ "$select_status" -eq 4 ] &amp;&amp; [ "$mode" = task ]; then
     intask { print }
     END { exit (found ? 0 : 4) }
   ' "$plan") || select_status=$?
-  [ -n "$fragment" ] &amp;&amp; select_status=0
+  if [ -n "$fragment" ]; then select_status=0; fi
 fi
 
 if [ "$select_status" -ne 0 ]; then
@@ -952,23 +979,47 @@ try {
   if (Invoke-Build (Join-Path $tmp 'nofiles') $out ([ref]$log)) { Pass "no files key, no append key" }
   else { Failed "no files key, no append key`n$log" }
 
-  Write-Host "== schema violations fail the build =="
+  Write-Host "== schema violations fail the build, each for its own reason =="
+  # Every negative case asserts the SPECIFIC diagnostic. Checking only for a
+  # nonzero exit lets an unrelated error satisfy a security test: a '..' fixture
+  # whose target does not exist fails on "not an existing file" whether or not
+  # the traversal check is there at all. So each escape fixture is made
+  # REACHABLE -- the file it points at really exists -- leaving the rule under
+  # test as the only thing that can reject it.
   $cases = @(
-    @{ name = "missing 'from' file"; json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/nope","to":"scripts/x"}]}'; files = @{} }
-    @{ name = "absolute 'from'";     json = '{"skill":"SK","replaces":[],"files":[{"from":"/etc/hosts","to":"scripts/x"}]}'; files = @{} }
-    @{ name = "'..' in 'from'";      json = '{"skill":"SK","replaces":[],"files":[{"from":"../escape","to":"scripts/x"}]}'; files = @{ 'scripts/demo' = 'x' } }
-    @{ name = "'..' in 'to'";        json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"../../escape"}]}'; files = @{ 'scripts/demo' = 'x' } }
-    @{ name = "'to' already in dist"; json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/task-brief"}]}'; files = @{ 'scripts/demo' = 'x' } }
-    @{ name = "duplicate canonical 'to'"; json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/dup"},{"from":"scripts/other","to":"scripts/dup"}]}'; files = @{ 'scripts/demo' = 'x'; 'scripts/other' = 'y' } }
-    @{ name = "non-boolean exec";    json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/x","exec":"true"}]}'; files = @{ 'scripts/demo' = 'x' } }
+    @{ name = "missing 'from' file"; expect = "is not an existing file"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/nope","to":"scripts/x"}]}'; files = @{} }
+    @{ name = "absolute 'from' that exists"; expect = "must be a relative path"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"ABS","to":"scripts/x"}]}'; files = @{} }
+    @{ name = "reachable '..' in 'from'"; expect = "must be a relative path"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"../escape","to":"scripts/x"}]}'; files = @{ 'scripts/demo' = 'x' }; sibling = $true }
+    @{ name = "reachable '..' in 'to'"; expect = "must be a relative path"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"../../escape"}]}'; files = @{ 'scripts/demo' = 'x' } }
+    @{ name = "'to' already in dist"; expect = "already exists in dist"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/task-brief"}]}'; files = @{ 'scripts/demo' = 'x' } }
+    @{ name = "duplicate canonical 'to'"; expect = "collides with"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/dup"},{"from":"scripts/other","to":"scripts/dup"}]}'; files = @{ 'scripts/demo' = 'x'; 'scripts/other' = 'y' } }
+    @{ name = "non-boolean exec"; expect = "non-boolean exec"
+       json = '{"skill":"SK","replaces":[],"files":[{"from":"scripts/demo","to":"scripts/x","exec":"true"}]}'; files = @{ 'scripts/demo' = 'x' } }
   )
   $i = 0
   foreach ($c in $cases) {
     $i++
     $dir = Join-Path $tmp ("bad$i")
-    New-Overlay (Join-Path $dir 'sdd') ($c.json -replace 'SK', $SKILL) $c.files
-    if (Invoke-Build $dir $out ([ref]$log)) { Failed ("{0}: build should have failed" -f $c.name) }
-    else { Pass $c.name }
+    $json = ($c.json -replace 'SK', $SKILL) -replace 'ABS', ($build -replace '\\', '\\\\')
+    New-Overlay (Join-Path $dir 'sdd') $json $c.files
+    # A '..' in 'from' escapes the overlay into its PARENT, so put a real file
+    # there; without it the entry would be rejected for merely not existing.
+    if ($c.ContainsKey('sibling')) {
+      Set-Content -LiteralPath (Join-Path $dir 'escape') -Value 'reachable from ../escape'
+    }
+    if (Invoke-Build $dir $out ([ref]$log)) {
+      Failed ("{0}: build should have failed" -f $c.name)
+    } elseif ($log -notmatch [regex]::Escape($c.expect)) {
+      Failed ("{0}: failed for the wrong reason; expected '{1}'`n{2}" -f $c.name, $c.expect, $log)
+    } else {
+      Pass $c.name
+    }
   }
 
   Write-Host "== a symlinked ancestor in 'from' is rejected =="
@@ -980,8 +1031,13 @@ try {
     New-Item -ItemType Directory -Force -Path $outside | Out-Null
     Set-Content -LiteralPath (Join-Path $outside 'secret') -Value 'outside the overlay'
     New-Item -ItemType Junction -Path (Join-Path $ovj 'linkdir') -Target $outside | Out-Null
-    if (Invoke-Build $dir $out ([ref]$log)) { Failed "a symlinked ancestor should have failed the build" }
-    else { Pass "symlinked ancestor rejected" }
+    if (Invoke-Build $dir $out ([ref]$log)) {
+      Failed "a symlinked ancestor should have failed the build"
+    } elseif ($log -notmatch 'traverses a symlinked directory') {
+      Failed "symlinked ancestor failed for the wrong reason`n$log"
+    } else {
+      Pass "symlinked ancestor rejected"
+    }
   } else {
     Write-Host "  skip (junctions are a Windows construct)"
   }
@@ -1017,7 +1073,35 @@ $root = Split-Path -Parent $PSScriptRoot
 $dist = if ([System.IO.Path]::IsPathRooted($OutDir)) { $OutDir } else { Join-Path $root $OutDir }</code></pre>
             <p class="exp"><code>-OverlaysDir</code> is symmetric with the existing <code>-OutDir</code>, and exists so the schema rules below can be tested against fixture overlays without a hermetic copy of the whole repo. The <code>$dist</code> change is what makes that testable at all: <code>Join-Path</code> splices a rooted value onto the repo root rather than replacing it, so <code>-OutDir C:\Temp\x</code> would have built into <code>C:\repo\C:\Temp\x</code> and failed before reaching any overlay logic.</p>
           </li>
-          <li><span class="s">Step 4: Add the validated copy function</span>
+          <li><span class="s">Step 4: Stop a rooted output directory from being copied into itself</span>
+            <p>Replace the whole of build step 2 with this:</p>
+<pre><code># --- 2. Copy pristine plugin tree into dist/, excluding source-only entries ---
+#
+# $OutDir may now be an absolute path, so excluding it by NAME no longer works:
+# a rooted output directory inside the repo would not match any child name and
+# would be copied recursively into itself. Compare RESOLVED paths instead. A
+# name-based exclusion also cannot express a nested output directory, so reject
+# one rather than silently copying its parent.
+$rootFull = [System.IO.Path]::GetFullPath($root)
+$distFull = [System.IO.Path]::GetFullPath($dist)
+$sep = [System.IO.Path]::DirectorySeparatorChar
+if ($distFull.StartsWith($rootFull + $sep)) {
+  $rel = $distFull.Substring($rootFull.Length + 1)
+  if ($rel.Contains($sep)) {
+    Fail "an OutDir inside the repo must be a direct child of it, got '$rel'"
+  }
+}
+
+$exclude = @('overlays', 'branding', 'scripts', 'docs', 'tests', '.git', '.github', '.baseline-skills')
+Get-ChildItem -Force -Path $root |
+  Where-Object {
+    $exclude -notcontains $_.Name -and
+    [System.IO.Path]::GetFullPath($_.FullName) -ne $distFull
+  } |
+  ForEach-Object { Copy-Item -Recurse -Force -Path $_.FullName -Destination (Join-Path $dist $_.Name) }</code></pre>
+            <p class="exp">The existing exclusion compares <code>$OutDir</code> against each child&rsquo;s <code>.Name</code>. That worked while <code>$OutDir</code> was always the literal string <code>dist</code>; now that it can be a full path, an output directory inside the repo matches no child name and gets copied recursively into itself. Comparing resolved paths fixes the direct-child case; a nested output directory cannot be expressed by an exclusion at all, so it is rejected outright.</p>
+          </li>
+          <li><span class="s">Step 5: Add the validated copy function</span>
             <p>Insert this after the <code>Fail</code> function definition, before step 1 of the build. It reads <code>$dist</code> from the enclosing script scope, the same way <code>Apply-Overrides</code> already does.</p>
 <pre><code># An unvalidated copy step is a file-write primitive pointed at the build output.
 # Every rule below fails the build loudly, naming the overlay and the entry.
@@ -1097,7 +1181,7 @@ function Copy-OverlayFiles($cfg, [string]$overlayRoot, [hashtable]$declared) {
   }
 }</code></pre>
           </li>
-          <li><span class="s">Step 5: Rewrite the overlay loop to use it</span>
+          <li><span class="s">Step 6: Rewrite the overlay loop to use it</span>
             <p>Replace the whole of build step 4 with this. Two things change beyond the new copy call: <code>replaces</code> and <code>append</code> are now probed with <code>PSObject.Properties.Name -contains</code> rather than tested for truthiness, because <code>Set-StrictMode -Version Latest</code> at line 19 turns a missing property into a throw. Task 5 adds an overlay with no <code>append</code> key, which would otherwise break the build.</p>
 <pre><code># --- 4. Apply per-skill HTML overlays (replaces + append + fork-owned files) ---
 #
@@ -1144,8 +1228,8 @@ if (Test-Path $overlaysDir) {
   }
 }</code></pre>
           </li>
-          <li><span class="s">Step 6: Assert in the verify step that every declared file landed</span>
-            <p>Append this to build step 7, after the residual-namespace check:</p>
+          <li><span class="s">Step 7: Assert in the verify step that every declared file landed</span>
+            <p>Append this to build step 7 of the build script, after the residual-namespace check:</p>
 <pre><code>foreach ($d in $declaredFiles.Keys) {
   if (-not (Test-Path -LiteralPath $d)) {
     Fail ("declared overlay file missing from dist: {0}" -f $declaredFiles[$d])
@@ -1154,12 +1238,12 @@ if (Test-Path $overlaysDir) {
 Write-Host ("build-mysuperpower: verified {0} overlay-supplied file(s)" -f $declaredFiles.Count)</code></pre>
             <p class="exp">Without this, a silently skipped copy passes the plugin-name, skill-count and residual-namespace checks while shipping a SKILL.md that tells the controller to run a script which is not there.</p>
           </li>
-          <li><span class="s">Step 7: Run the capability test and a real build</span>
+          <li><span class="s">Step 8: Run the capability test and a real build</span>
             <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/build-mysuperpower.ps1</code></pre>
             <p class="exp">Expected: <code>overlay files tests passed</code>, then a normal build ending with <code>build-mysuperpower: done. plugin=my-superpower &hellip;</code> and <code>verified 0 overlay-supplied file(s)</code> &mdash; no overlay declares <code>files</code> yet. The four existing overlays must still apply.</p>
           </li>
-          <li><span class="s">Step 8: Commit</span>
+          <li><span class="s">Step 9: Commit</span>
             <pre><code>git add scripts/build-mysuperpower.ps1 tests/mysuperpower/test-overlay-files.ps1
 git commit -m "feat(build): add validated overlay files capability"</code></pre>
           </li>
@@ -1419,10 +1503,12 @@ git ls-files -s overlays/subagent-driven-development/scripts/task-brief-html</co
             <p class="exp">Expected: <code>0</code>. Task 1&rsquo;s <code>.gitattributes</code> rules are what guarantee this rather than <code>core.autocrlf</code> happening to be set on the publishing machine.</p>
           </li>
           <li><span class="s">Step 6: Clean up the throwaway branch and commit</span>
-            <pre><code>git worktree prune
+            <pre><code>git worktree remove --force ../mysuperpower-release
+git worktree prune
 git branch -D release-exectest
 git add scripts/publish-mysuperpower.ps1
 git commit -m "fix(publish): chmod +x fork-owned overlay files at their published paths"</code></pre>
+            <p class="exp">The explicit <code>worktree remove</code> is required, not tidiness. Step 4 makes the publisher exit before its own cleanup runs, so <code>release-exectest</code> is still checked out in the sibling worktree. <code>git worktree prune</code> only drops stale registrations &mdash; it will not remove a valid one &mdash; so <code>git branch -D</code> would fail with &ldquo;used by worktree&rdquo;. If Step 4 was skipped, this first command reports nothing to remove, which is fine.</p>
           </li>
         </ol>
       </section>
@@ -1492,27 +1578,35 @@ git log --oneline -1</code></pre>
 bash scripts/bump-version.sh --check</code></pre>
             <p class="exp">Expected: nine manifests move from <code>6.3.0+fork.1</code> to <code>6.3.0+fork.2</code>, then <code>All declared files are in sync at 6.3.0+fork.2</code> and a clean audit. The upstream base is unchanged, so only the fork iteration advances &mdash; and both Claude Code and Codex detect updates by comparing the version <em>string</em>, not SemVer precedence.</p>
           </li>
-          <li><span class="s">Step 5: Write the CHANGELOG entry</span>
+          <li><span class="s">Step 5: Commit the bump before anything is built from it</span>
+            <pre><code>git add $(jq -r '.files[].path' .version-bump.json | tr -d '\r')
+git status --short
+git commit -m "Bump version to 6.3.0+fork.2"
+git show HEAD:.claude-plugin/plugin.json | grep '"version"'</code></pre>
+            <p class="exp"><code>bump-version.sh</code> edits the manifests but never stages or commits them &mdash; verify with <code>grep -n "git add" scripts/bump-version.sh</code>, which finds nothing. Staging them here, from the same <code>.version-bump.json</code> the bump script reads, is what keeps the commit and the published branch describing the same version. <code>tr -d '\r'</code> is required: jq emits CRLF on this machine. Expected: <code>git status --short</code> shows only the staged manifests, and the committed blob reads <code>6.3.0+fork.2</code>.</p>
+          </li>
+          <li><span class="s">Step 6: Write the CHANGELOG entry</span>
             <p>Add a new section at the top of <code>CHANGELOG.md</code>, above <code>## 6.3.0+fork.1</code>, in the same style as the existing entries. Cover: HTML task briefs for subagent-driven-development via a new fork-owned <code>task-brief-html</code>; the overlay <code>files</code> capability with build-time schema validation; the publish-side executable-bit mapping for fork-owned files; LF pinning for extensionless skill scripts; and the two migrated markdown call sites.</p>
             <p class="exp">Write what changed and why it matters to someone installing the plugin &mdash; not a list of commit subjects.</p>
           </li>
-          <li><span class="s">Step 6: Publish and push</span>
+          <li><span class="s">Step 7: Publish and push</span>
             <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/publish-mysuperpower.ps1 -Push</code></pre>
             <p class="exp">Expected: a build, then <code>restored +x on N published file(s)</code> where N is two higher than the previous release, then <code>committed release 6.3.0+fork.2</code> and a push to <code>origin/release</code>.</p>
           </li>
-          <li><span class="s">Step 7: Verify the published artifact</span>
+          <li><span class="s">Step 8: Verify the published artifact</span>
             <pre><code>git ls-tree release -- skills/subagent-driven-development/scripts/
 git ls-tree release -- plugins/my-superpower/skills/subagent-driven-development/scripts/
 git show release:skills/subagent-driven-development/scripts/task-brief-html | od -c | grep -c '\\r'
 git show release:.claude-plugin/plugin.json | grep version</code></pre>
             <p class="exp">Expected: <code>task-brief-html</code> is <code>100755</code> in <strong>both</strong> copies alongside the three upstream scripts; the CR count is <code>0</code>; the version reads <code>6.3.0+fork.2</code>.</p>
           </li>
-          <li><span class="s">Step 8: Final commit and tag</span>
-            <pre><code>git add CHANGELOG.md
+          <li><span class="s">Step 9: Final commit and tag</span>
+            <pre><code>git status --short
+git add CHANGELOG.md
 git commit -m "Release 6.3.0+fork.2: HTML task briefs for subagent-driven-development"
 git tag -a v6.3.0+fork.2 -m "mySuperpower 6.3.0+fork.2"
 git push origin mysuperpower --follow-tags</code></pre>
-            <p class="exp">The version bump from Step 4 is included in this commit. Tag the <code>mysuperpower</code> commit, not the release-branch commit.</p>
+            <p class="exp"><code>git status --short</code> must show nothing but <code>CHANGELOG.md</code> &mdash; the nine manifests were committed in Step 5. If any of them still appears here, the tag would point at a commit whose manifests read <code>6.3.0+fork.1</code> while the release branch was built as <code>6.3.0+fork.2</code>; stop and commit them before tagging. Tag the <code>mysuperpower</code> commit, not the release-branch commit.</p>
           </li>
         </ol>
       </section>
