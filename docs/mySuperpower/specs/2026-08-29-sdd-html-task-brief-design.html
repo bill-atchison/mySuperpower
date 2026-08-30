@@ -407,6 +407,17 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
         <h3>Call-site assertions</h3>
         <p>After a build, assert that <code>dist/</code> contains no occurrence of <code>docs/mySuperpower/</code> followed by a path ending in <code>.md</code>. That single check covers both migrated call sites and catches the next one an upstream merge introduces, which is the failure mode worth guarding &mdash; the cascade will keep manufacturing these silently.</p>
 
+        <h3>Acceptance run: one real plan, end to end</h3>
+        <p>Everything above tests code. The part of this change that is <em>not</em> code is the overlay text telling a controller which tool to reach for &mdash; and no unit test can observe an agent reading an instruction. One acceptance run covers it.</p>
+        <p>In a fresh session, point <code>subagent-driven-development</code> at a real HTML plan in <code>docs/mySuperpower/plans/</code> and let it reach the first implementer dispatch. Four things must hold:</p>
+        <ol>
+          <li>Setup runs <code>scripts/task-brief-html --plan</code> rather than opening the <code>.html</code> directly.</li>
+          <li>The pre-flight conflict scan produces its per-task and per-pair rows &mdash; evidence the full body arrived, not a summary.</li>
+          <li>The per-task dispatch runs <code>scripts/task-brief-html PLAN N</code>, not upstream <code>scripts/task-brief</code>.</li>
+          <li>The brief handed to the implementer contains decoded markup &mdash; <code>&lt;meta&gt;</code>, not <code>&amp;lt;meta&amp;gt;</code>. This is the whole point of the change, and it is the one thing a passing build still would not prove.</li>
+        </ol>
+        <p>The failure this catches is specific: a controller that ignores the overlay and calls upstream <code>task-brief</code>, which exits 3 on an HTML plan. Stop at the first dispatch &mdash; running the full plan to completion proves nothing further about the extraction path and costs a full implementation cycle.</p>
+
         <h3>Manual verification before release</h3>
         <ol>
           <li>Build; confirm <code>dist/skills/subagent-driven-development/scripts/task-brief-html</code> exists.</li>
@@ -423,6 +434,7 @@ release:plugins/my-superpower/skills/&lt;skill&gt;/scripts/task-brief-html (Code
           <li><span class="verdict">Out</span> <span class="out">Brief invalidation or staleness enforcement.</span> Provenance is recorded; comparison logic is not built.</li>
           <li><span class="verdict">Out</span> <span class="out">A general HTML-to-markdown converter.</span> The extractor targets the fork&rsquo;s own plan template, and fails loud rather than guessing at arbitrary HTML.</li>
           <li><span class="verdict">Out</span> <span class="out">Any change to upstream&rsquo;s <code>task-brief</code>, <code>sdd-workspace</code>, or <code>review-package</code>.</span></li>
+          <li><span class="verdict">Out</span> <span class="out">The full <code>evals/</code> skill-behavior ceremony</span> &mdash; <code>writing-skills</code> development plus multi-session adversarial pressure testing. <code>CLAUDE.md:93-104</code> requires it, but as a gate on <em>pull requests to this repo</em> (&ldquo;show before/after eval results in your PR&rdquo;); this is fork-local work that will never be one. The harness also lives in a separate <code>superpowers-evals</code> clone that is not present in this working tree. The overlay text being changed is tool-selection plumbing, not the tuned behavior-shaping content that rule exists to protect &mdash; the Red Flags tables and rationalization lists are untouched. The acceptance run above covers the behavioral risk that is actually present. Recorded as a decision, not an oversight: if this ever moves toward upstream, the ceremony applies.</li>
         </ul>
       </section>
 
