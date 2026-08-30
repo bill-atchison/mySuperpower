@@ -128,6 +128,12 @@
           <li><strong><code>split("", parts, "\n")</code> returns 0</strong>, so a naive per-line loop drops every blank line &mdash; including inside <code>&lt;pre&gt;</code> payloads, where they are content.</li>
         </ul>
         <p>The PowerShell path validation in Task 3 was likewise executed against this repo before being written down, including the StrictMode probe behavior and the <code>.gitattributes</code> pattern match in Task 1.</p>
+        <p>A Codex review of the finished plan then found three more, each reproduced before being fixed:</p>
+        <ul>
+          <li><strong>The capability test could never have gone green.</strong> It builds into an absolute temporary directory, but <code>Join-Path</code> splices a rooted value onto the repo root: <code>Join-Path 'C:\repo' 'C:\Temp\x'</code> returns <code>C:\repo\C:\Temp\x</code>. Every positive case would have failed before reaching the overlay logic. Fixed in Task 3, Step 3.</li>
+          <li><strong>A symlinked ancestor bypassed the containment check.</strong> <code>Resolve-Path</code> preserves a junction lexically while <code>Get-Item</code> inspects the real target leaf, so <code>from: "linkdir/secret"</code> satisfied both the prefix test and the reparse-point test and would have copied a file from outside the overlay into the release. Fixed in Task 3, Step 4, with a junction test case.</li>
+          <li><strong>The on-failure deletion guarantee had a hole.</strong> Only <code>fail_extract</code> deleted a stale brief, but <code>set -e</code> exits straight out of a failed <code>awk</code> or a failed <code>mv</code> without reaching it &mdash; leaving the previous brief at the expected path, looking current. Every failure between the temp file and the rename now runs through one cleanup point (Task 2).</li>
+        </ul>
       </section>
 
       <!-- ============ TASK 1 ============ -->
@@ -416,6 +422,12 @@ cp "$FIXTURES/plan-conflict.html" plan-sections.html   # section 2 is now headed
 check "conflict at default path exits 3" 3 $?
 if [ -e "$BRIEF2" ]; then fail "stale default-path brief deleted"; else pass "stale default-path brief deleted"; fi
 
+# Every failure path runs through one cleanup point, so a failed run must never
+# leave its temp file behind either -- a stray .task-brief-html.XXXXXX in the
+# workspace is the visible symptom of a cleanup path that was missed.
+leftover=$(find "$WS" -name '.task-brief-html.*' 2&gt;/dev/null | wc -l | tr -d ' ')
+check "no temp files left in the workspace" 0 "$leftover"
+
 echo "== an explicit OUTFILE is never deleted =="
 cp "$FIXTURES/plan-conflict.html" plan-conflict.html
 printf 'CALLER OWNED CONTENT\n' &gt; owned.md
@@ -537,9 +549,7 @@ outdir=$(dirname "$out")
 # wrong one.
 fail_extract() {
   echo "$1" &gt;&amp;2
-  if [ "$owns_out" -eq 1 ]; then
-    rm -f "$out"
-  else
+  if [ "$owns_out" -ne 1 ]; then
     echo "note: $out may hold a stale brief; not deleted (explicit OUTFILE)" &gt;&amp;2
   fi
   exit 3
@@ -550,7 +560,17 @@ stamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 
 # Temp file in the OUTPUT directory: same filesystem, so the rename is atomic.
 tmp=$(mktemp "$outdir/.task-brief-html.XXXXXX")
-trap 'rm -f "$tmp"' EXIT
+
+# Every failure between here and the rename runs through one cleanup point.
+# set -e exits directly out of a failed awk or a failed mv without reaching
+# fail_extract, so putting the deletion only there would leave a previously
+# good brief at the expected path looking current -- the exact artifact this
+# script exists to prevent. The trap is cleared once the rename succeeds.
+cleanup_incomplete() {
+  rm -f "$tmp"
+  if [ "$owns_out" -eq 1 ]; then rm -f "$out"; fi
+}
+trap cleanup_incomplete EXIT
 
 {
   printf 'Source plan: %s\n' "$plan"
@@ -950,6 +970,21 @@ try {
     if (Invoke-Build $dir $out ([ref]$log)) { Failed ("{0}: build should have failed" -f $c.name) }
     else { Pass $c.name }
   }
+
+  Write-Host "== a symlinked ancestor in 'from' is rejected =="
+  if ($IsWindows) {
+    $dir = Join-Path $tmp 'junction'
+    $ovj = Join-Path $dir 'sdd'
+    New-Overlay $ovj ('{"skill":"' + $SKILL + '","replaces":[],"files":[{"from":"linkdir/secret","to":"scripts/x"}]}') @{}
+    $outside = Join-Path $tmp 'outside'
+    New-Item -ItemType Directory -Force -Path $outside | Out-Null
+    Set-Content -LiteralPath (Join-Path $outside 'secret') -Value 'outside the overlay'
+    New-Item -ItemType Junction -Path (Join-Path $ovj 'linkdir') -Target $outside | Out-Null
+    if (Invoke-Build $dir $out ([ref]$log)) { Failed "a symlinked ancestor should have failed the build" }
+    else { Pass "symlinked ancestor rejected" }
+  } else {
+    Write-Host "  skip (junctions are a Windows construct)"
+  }
 }
 finally {
   Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
@@ -963,14 +998,24 @@ else { Write-Host "$fails assertion(s) failed"; exit 1 }</code></pre>
             <pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File tests/mysuperpower/test-overlay-files.ps1</code></pre>
             <p class="exp">Expected: failures. <code>-OverlaysDir</code> is not a parameter yet, so every build invocation errors out; the positive cases fail and the negative cases &ldquo;pass&rdquo; for the wrong reason. Both are fixed by the same change.</p>
           </li>
-          <li><span class="s">Step 3: Add the <code>-OverlaysDir</code> parameter</span>
-            <p>Replace the <code>param</code> block at the top of <code>scripts/build-mysuperpower.ps1</code>:</p>
+          <li><span class="s">Step 3: Add <code>-OverlaysDir</code>, and let both directory parameters take absolute paths</span>
+            <p>Replace everything from the <code>param</code> block down to and including the <code>$dist</code> assignment at the top of <code>scripts/build-mysuperpower.ps1</code>:</p>
 <pre><code>[CmdletBinding()]
 param(
   [string]$OutDir = "dist",
   [string]$OverlaysDir = ""
-)</code></pre>
-            <p class="exp">Symmetric with the existing <code>-OutDir</code>. It exists so the schema rules below can be tested against fixture overlays without a hermetic copy of the whole repo.</p>
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+$root = Split-Path -Parent $PSScriptRoot
+# Both directory parameters accept an absolute path. Join-Path splices a rooted
+# value onto the repo root instead of replacing it -- Join-Path 'C:\repo'
+# 'C:\Temp\x' returns 'C:\repo\C:\Temp\x' -- so a test that builds into a
+# temporary directory could never succeed without this.
+$dist = if ([System.IO.Path]::IsPathRooted($OutDir)) { $OutDir } else { Join-Path $root $OutDir }</code></pre>
+            <p class="exp"><code>-OverlaysDir</code> is symmetric with the existing <code>-OutDir</code>, and exists so the schema rules below can be tested against fixture overlays without a hermetic copy of the whole repo. The <code>$dist</code> change is what makes that testable at all: <code>Join-Path</code> splices a rooted value onto the repo root rather than replacing it, so <code>-OutDir C:\Temp\x</code> would have built into <code>C:\repo\C:\Temp\x</code> and failed before reaching any overlay logic.</p>
           </li>
           <li><span class="s">Step 4: Add the validated copy function</span>
             <p>Insert this after the <code>Fail</code> function definition, before step 1 of the build. It reads <code>$dist</code> from the enclosing script scope, the same way <code>Apply-Overrides</code> already does.</p>
@@ -1019,6 +1064,17 @@ function Copy-OverlayFiles($cfg, [string]$overlayRoot, [hashtable]$declared) {
     }
     if (((Get-Item -LiteralPath $srcFull -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
       Fail ("overlay {0}: files 'from' is a symlink, not a regular file: '{1}'" -f $cfg.skill, $from)
+    }
+    # The leaf check is not enough. Resolve-Path preserves a symlinked ANCESTOR
+    # lexically, and Get-Item then inspects the real target leaf, so a path like
+    # linkdir/secret satisfies the containment test above while pointing outside
+    # the overlay entirely. Walk the ancestors up to the overlay root.
+    $probe = Split-Path -Parent $srcFull
+    while ($probe -and $probe.Length -gt $overlayRootFull.Length) {
+      if (((Get-Item -LiteralPath $probe -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        Fail ("overlay {0}: files 'from' traverses a symlinked directory: '{1}'" -f $cfg.skill, $from)
+      }
+      $probe = Split-Path -Parent $probe
     }
 
     # Compare CANONICAL destinations: two overlays for different skills may both
