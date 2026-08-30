@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture Plan</title>
+<style>body{font-family:var(--serif);background:#f4efe1;}</style>
+</head>
+<body>
+  <div class="wrap">
+    <main>
+      <section class="overview"><h2>Overview</h2><p>Fixture overview text.</p></section>
+
+      <section class="task">
+        <h3>Task 1 &mdash; ALPHAONLY</h3>
+        <div class="files">
+          <div><span class="k">Create</span> src/alpha.txt</div>
+        </div>
+        <ol class="steps">
+          <li><span class="s">Step 1: write alpha</span>
+            <pre><code>echo alpha</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h3>Task 2 &mdash; BETAONLY</h3>
+        <div class="files">
+          <div><span class="k">Create</span> src/beta.txt</div>
+          <div><span class="k">Modify</span> src/shared.txt</div>
+        </div>
+        <p>Entities: &lt;meta&gt; and double &amp;lt;kept&amp;gt; and &middot; &rarr; &mdash;.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: indented code survives</span>
+            <pre><code>def f():
+    if True:
+        return 1</code></pre>
+          </li>
+          <li><span class="s">Step 2: a payload containing its own fence</span>
+            <pre><code># README
+
+```
+inner fenced content
+```
+
+tail after the inner fence</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h3>Task 3 &mdash; GAMMAONLY</h3>
+        <p>Third task body.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
