@@ -20,3 +20,11 @@ hooks/session-start text eol=lf
 # mySuperpower: the root marketplace catalog is our owned identity (source -> ./dist).
 # Never take upstream's version on merge; the build/regenerate folds in any upstream changes.
 .claude-plugin/marketplace.json merge=ours
+
+# mySuperpower: the SDD skill scripts are extensionless, so *.sh does not
+# reach them. They ship with a #!/usr/bin/env bash shebang; a CR would make
+# every one of them fail to start on macOS and Linux. Both rules are required:
+# the first covers the scripts at their published location, the second covers a
+# fork-owned script at its SOURCE location, which is where the build copies from.
+skills/**/scripts/*   text eol=lf
+overlays/**/scripts/* text eol=lf
