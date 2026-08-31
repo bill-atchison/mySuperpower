@@ -144,12 +144,6 @@ foreach ($rel in $srcExec) {
 # source file committed 100644 by accident -- the most likely way this goes
 # wrong, since Windows checkouts have no mode bit to preserve -- must fail the
 # release rather than produce no chmod, no error, and a broken plugin.
-$srcModes = @{}
-git -C $root ls-files -s | ForEach-Object {
-  $parts = $_ -split "`t", 2
-  $srcModes[$parts[1]] = ($parts[0] -split '\s+')[0]
-}
-
 foreach ($overlayDir in (Get-ChildItem -Directory (Join-Path $root 'overlays'))) {
   $cfgPath = Join-Path $overlayDir.FullName 'overlay.json'
   if (-not (Test-Path $cfgPath)) { continue }
@@ -159,8 +153,11 @@ foreach ($overlayDir in (Get-ChildItem -Directory (Join-Path $root 'overlays')))
     $isExec = ($fe.PSObject.Properties.Name -contains 'exec') -and ([bool]$fe.exec)
     if (-not $isExec) { continue }
 
+    # $srcExec above is already "every path the index holds at 100755", read from
+    # the same git ls-files -s call, so it answers this question without a second
+    # full scan of the index.
     $srcRel = ("overlays/{0}/{1}" -f $overlayDir.Name, $fe.from) -replace '\\', '/'
-    if ($srcModes[$srcRel] -ne '100755') {
+    if ($srcExec -notcontains $srcRel) {
       Fail ("overlay {0} declares exec:true for {1}, but {2} is not 100755 in the index. Fix with: git update-index --chmod=+x -- {2}" -f $overlayDir.Name, $fe.from, $srcRel)
     }
 
