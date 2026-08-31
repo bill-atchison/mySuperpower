@@ -134,6 +134,48 @@ foreach ($rel in $srcExec) {
     }
   }
 }
+# A fork-owned file never appears in the source index at its PUBLISHED path: its
+# source lives under overlays/, which is excluded from dist/. So the loop above
+# matches neither target and the file would publish 100644 -- exactly the
+# "Permission denied" failure 6.2.0+fork.2 fixed, re-entering through a new door.
+#
+# Map each declared exec file from its overlay source to both published copies.
+# The intent is DECLARED (exec: true), never sniffed from the source mode: a
+# source file committed 100644 by accident -- the most likely way this goes
+# wrong, since Windows checkouts have no mode bit to preserve -- must fail the
+# release rather than produce no chmod, no error, and a broken plugin.
+$srcModes = @{}
+git -C $root ls-files -s | ForEach-Object {
+  $parts = $_ -split "`t", 2
+  $srcModes[$parts[1]] = ($parts[0] -split '\s+')[0]
+}
+
+foreach ($overlayDir in (Get-ChildItem -Directory (Join-Path $root 'overlays'))) {
+  $cfgPath = Join-Path $overlayDir.FullName 'overlay.json'
+  if (-not (Test-Path $cfgPath)) { continue }
+  $cfg = Get-Content -Raw $cfgPath | ConvertFrom-Json
+  if ($cfg.PSObject.Properties.Name -notcontains 'files') { continue }
+  foreach ($fe in $cfg.files) {
+    $isExec = ($fe.PSObject.Properties.Name -contains 'exec') -and ([bool]$fe.exec)
+    if (-not $isExec) { continue }
+
+    $srcRel = ("overlays/{0}/{1}" -f $overlayDir.Name, $fe.from) -replace '\\', '/'
+    if ($srcModes[$srcRel] -ne '100755') {
+      Fail ("overlay {0} declares exec:true for {1}, but {2} is not 100755 in the index. Fix with: git update-index --chmod=+x -- {2}" -f $overlayDir.Name, $fe.from, $srcRel)
+    }
+
+    $pubRel = ("skills/{0}/{1}" -f $cfg.skill, $fe.to) -replace '\\', '/'
+    foreach ($target in @($pubRel, "$codexPluginRel/$pubRel")) {
+      if (-not (Test-Path (Join-Path $wt $target))) {
+        Fail "declared exec file missing from the release tree: $target"
+      }
+      git update-index --chmod=+x -- $target
+      if ($LASTEXITCODE -ne 0) { Fail "could not set +x on $target" }
+      $chmodCount++
+    }
+  }
+}
+
 Write-Host "publish-mysuperpower: restored +x on $chmodCount published file(s)"
 
 if (@(git status --porcelain).Count -eq 0) {
