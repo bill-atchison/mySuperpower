@@ -2,6 +2,16 @@
   "skill": "subagent-driven-development",
   "replaces": [
     {
+      "find": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task.",
+      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **If PLAN_FILE ends in `.html`, do not open it directly** —\nrun `scripts/task-brief-html --plan PLAN_FILE` and read the file it writes.",
+      "required": true
+    },
+    {
+      "find": "  `scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a",
+      "replace": "  `scripts/task-brief PLAN_FILE N` — or `scripts/task-brief-html PLAN_FILE N`\n  when PLAN_FILE ends in `.html` — it extracts the task's full text to a",
+      "required": true
+    },
+    {
       "find": "[Read plan file once: docs/superpowers/plans/feature-plan.md]",
       "replace": "[Read plan body once: scripts/task-brief-html --plan docs/superpowers/plans/feature-plan.html]",
       "required": true
@@ -14,6 +24,10 @@
   ],
   "append": "additions.md",
   "files": [
-    { "from": "scripts/task-brief-html", "to": "scripts/task-brief-html", "exec": true }
+    {
+      "from": "scripts/task-brief-html",
+      "to": "scripts/task-brief-html",
+      "exec": true
+    }
   ]
 }

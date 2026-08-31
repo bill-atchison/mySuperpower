@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceptance Fixture Plan</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);line-height:1.04;margin:0 0 .9rem;}
+  .subtitle{font-style:italic;font-weight:700;font-size:1.3rem;margin:0 0 1.9rem;max-width:52ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;row-gap:.55rem;
+             background:var(--meta-bg);border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;}
+  main{margin-top:2.6rem;}
+  main h2{font-family:var(--mono);text-transform:uppercase;letter-spacing:.18em;font-size:.82rem;
+          color:var(--maroon);border-top:1px solid #d8cdb3;padding-top:1.1rem;margin:2rem 0 .9rem;}
+  section.task{border:1px solid #d8cdb3;border-radius:14px;padding:1.4rem 1.7rem;margin:1.6rem 0;background:#faf7ef;}
+  section.task h3{font-weight:700;font-size:1.45rem;margin:0 0 .8rem;color:var(--maroon);}
+  .files{font-family:var(--mono);font-size:.86rem;background:var(--meta-bg);border-radius:9px;padding:.7rem 1rem;margin:0 0 1rem;}
+  .files .k{color:var(--maroon);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;}
+  ol.steps{list-style:none;padding:0;margin:1rem 0 0;}
+  ol.steps>li{padding:.2rem 0 1.1rem 2.1rem;}
+  ol.steps>li .s{font-weight:700;display:block;margin-bottom:.3rem;}
+  pre{font-family:var(--mono);font-size:.82rem;background:#efe7d4;border-left:4px solid var(--maroon);
+      border-radius:9px;padding:.85rem 1.1rem;overflow:auto;margin:.5rem 0;}
+  code{font-family:var(--mono);font-size:.88em;background:var(--meta-bg);border-radius:5px;padding:.08rem .35rem;}
+  .exp{font-family:var(--mono);font-size:.82rem;color:var(--label);margin:.3rem 0 0;}
+  .constraints{background:#efe6d2;border-left:5px solid var(--maroon);border-radius:10px;padding:1rem 1.4rem;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Plan &middot; Implementation</p>
+      <h1>Acceptance Fixture</h1>
+      <p class="subtitle">A throwaway plan whose only purpose is to be dispatched from, so the SDD tool-selection path can be observed end to end.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-08-30</dd>
+        <dt>Branch</dt><dd>feature/sdd-html-task-brief</dd>
+        <dt>Spec</dt><dd>none &mdash; this is a test fixture, not real work</dd>
+      </dl>
+    </header>
+
+    <main>
+      <section class="overview">
+        <h2>Overview</h2>
+        <p><strong>Goal:</strong> exercise the subagent-driven-development dispatch path against an HTML plan. This plan is a fixture. Its tasks are deliberately trivial and write only into a scratch directory.</p>
+        <p><strong>Architecture:</strong> three tasks that build one small shell script in <code>.superpowers/acceptance/</code>, which is git-ignored. Tasks 1 and 2 both touch <code>greet.sh</code>, so the pre-flight conflict scan has a genuine pair to report.</p>
+        <p><strong>Tech Stack:</strong> bash.</p>
+      </section>
+
+      <section>
+        <h2>Global Constraints</h2>
+        <ul class="constraints">
+          <li>Everything this plan creates lives under <code>.superpowers/acceptance/</code>, which is git-ignored. Nothing is committed.</li>
+          <li>The script must print exactly one line and exit 0.</li>
+        </ul>
+      </section>
+
+      <section class="task">
+        <h3>Task 1 &mdash; Create the greeting script</h3>
+        <div class="files">
+          <div><span class="k">Create</span> .superpowers/acceptance/greet.sh</div>
+        </div>
+        <p><strong>Interfaces &mdash; Produces:</strong> <code>greet.sh</code>, which Task 2 extends and Task 3 verifies.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Create the script</span>
+            <pre><code>mkdir -p .superpowers/acceptance
+cat &gt; .superpowers/acceptance/greet.sh &lt;&lt;'EOF'
+#!/usr/bin/env bash
+echo "hello from the acceptance fixture"
+EOF
+chmod +x .superpowers/acceptance/greet.sh</code></pre>
+          </li>
+          <li><span class="s">Step 2: Run it</span>
+            <pre><code>bash .superpowers/acceptance/greet.sh</code></pre>
+            <p class="exp">Expected: <code>hello from the acceptance fixture</code>, exit 0.</p>
+          </li>
+          <li><span class="s">Step 3: Note the entity-decoding check</span>
+            <p>This step exists so the brief carries escaped markup. The implementer must report, verbatim, the tag named here: strip the <code>&lt;meta http-equiv="refresh"&gt;</code> tag. If the brief shows <code>&amp;lt;meta&amp;gt;</code> instead of <code>&lt;meta&gt;</code>, the extraction is wrong and the task must stop.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h3>Task 2 &mdash; Add a name argument</h3>
+        <div class="files">
+          <div><span class="k">Modify</span> .superpowers/acceptance/greet.sh</div>
+        </div>
+        <p><strong>Interfaces &mdash; Consumes:</strong> <code>greet.sh</code> from Task 1. <strong>Produces:</strong> the same script, now accepting <code>$1</code>.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Accept an optional name</span>
+            <pre><code>cat &gt; .superpowers/acceptance/greet.sh &lt;&lt;'EOF'
+#!/usr/bin/env bash
+name=${1:-fixture}
+echo "hello from the acceptance $name"
+EOF</code></pre>
+          </li>
+          <li><span class="s">Step 2: Run it both ways</span>
+            <pre><code>bash .superpowers/acceptance/greet.sh
+bash .superpowers/acceptance/greet.sh world</code></pre>
+            <p class="exp">Expected: <code>hello from the acceptance fixture</code>, then <code>hello from the acceptance world</code>.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h3>Task 3 &mdash; Verify and clean up</h3>
+        <div class="files">
+          <div><span class="k">Verify</span> .superpowers/acceptance/greet.sh</div>
+        </div>
+        <p><strong>Interfaces &mdash; Consumes:</strong> <code>greet.sh</code> from Task 2.</p>
+        <ol class="steps">
+          <li><span class="s">Step 1: Confirm one line, exit 0</span>
+            <pre><code>out=$(bash .superpowers/acceptance/greet.sh)
+test "$(printf '%s' "$out" | wc -l)" -eq 0 &amp;&amp; echo "single line: ok"</code></pre>
+          </li>
+          <li><span class="s">Step 2: Remove the scratch directory</span>
+            <pre><code>rm -rf .superpowers/acceptance</code></pre>
+          </li>
+        </ol>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
