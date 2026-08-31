@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML Task Briefs</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b; --olive:#7a6a2e;
+    --rule:#ddd3bc; --subrule:#ece4d0; --green:#3f7d3f; --card:#faf7ef;
+    --code-bg:#2b2820; --code-ink:#f4efe1; --add:#3f7d3f; --del:#8a2b27;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;margin:0 0 1.9rem;max-width:48ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;row-gap:.55rem;
+             align-items:baseline;background:var(--meta-bg);border-radius:14px;
+             border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);border-radius:999px;
+               padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
+               line-height:1.45;background:transparent;}
+  .section-label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.2em;font-size:.95rem;
+                 font-weight:700;color:var(--ink);border-bottom:2px solid var(--ink);
+                 padding-bottom:.5rem;margin:2.6rem 0 1.4rem;}
+  table.tasks{width:100%;border-collapse:collapse;}
+  table.tasks th{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;
+                 color:var(--label);text-align:left;font-weight:400;padding:.4rem .75rem;}
+  table.tasks td{padding:.6rem .75rem;vertical-align:middle;}
+  td.num{font-family:var(--mono);color:var(--label);width:3rem;}
+  td.st{width:1%;white-space:nowrap;text-align:right;}
+  tr.task-row td{border-top:2px solid var(--ink);font-size:1.05rem;}
+  tr.task-row td.desc{font-weight:700;}
+  tr.sub td{border-top:1px solid var(--subrule);}
+  td.subtask{padding-left:2.1rem;color:var(--label);font-size:.95rem;}
+  .tstatus{font-family:var(--mono);font-size:.78rem;padding:.22rem .65rem;border-radius:7px;white-space:nowrap;}
+  .tstatus.done{background:#d6e8cf;color:var(--green);}
+  .tstatus.inprogress{background:#ecdcbf;color:#9a6a1f;}
+  .tstatus.pending{background:#e7dfca;color:var(--label);}
+  .tglabel{font-family:var(--serif);font-weight:700;font-size:1.55rem;color:var(--maroon);margin:2.8rem 0 .2rem;padding-bottom:.3rem;border-bottom:2px solid var(--rule);}
+  .tglabel .st-mini{font-family:var(--mono);font-size:.72rem;font-weight:400;color:var(--label);letter-spacing:.05em;}
+  .cc{margin:1.7rem 0;}
+  .cc h3{font-family:var(--serif);font-weight:700;font-size:1.25rem;margin:.3rem 0 .3rem;color:var(--maroon);}
+  .cc .loc{font-family:var(--mono);font-size:.8rem;color:var(--label);margin:0 0 .6rem;}
+  .cc .ba{display:grid;grid-template-columns:1fr;gap:.5rem;}
+  .cc .lbl{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.68rem;font-weight:700;margin:.2rem 0 -.2rem;}
+  .cc .lbl.before{color:var(--del);}
+  .cc .lbl.after{color:var(--add);}
+  pre{font-family:var(--mono);font-size:.8rem;line-height:1.5;background:var(--code-bg);color:var(--code-ink);
+      border-radius:10px;padding:1rem 1.2rem;overflow-x:auto;margin:.3rem 0;}
+  pre.before{border-left:4px solid var(--del);}
+  pre.after{border-left:4px solid var(--add);}
+  pre code{background:none;padding:0;font-size:1em;color:inherit;border:none;}
+  .pending-note{font-family:var(--mono);font-size:.85rem;color:var(--label);font-style:italic;}
+  .dd-card{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:14px;
+           padding:1.7rem 1.85rem 1.4rem;margin:1.7rem 0;}
+  .dd-tag{position:absolute;top:-0.75rem;left:1.5rem;background:var(--maroon);color:var(--paper);
+          font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;
+          font-weight:700;padding:.28rem .7rem;border-radius:6px;}
+  .dd-card h3{font-family:var(--serif);font-weight:700;font-size:1.3rem;margin:.3rem 0 .8rem;}
+  .dd-card p{font-size:1.05rem;line-height:1.55;margin:.5rem 0;}
+  .dd-card ul{margin:.6rem 0;padding-left:1.4rem;}
+  .dd-card li{margin:.5rem 0;line-height:1.55;}
+  code{font-family:var(--mono);background:var(--meta-bg);border:1px solid var(--rule);
+       padding:.05em .35em;border-radius:5px;font-size:.85em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Notes &middot; Implementation</p>
+      <h1>HTML Task Briefs</h1>
+      <p class="subtitle">Teaching the SDD brief pipeline to read the fork&rsquo;s HTML plans, entirely through the overlay system.</p>
+      <dl class="meta-card">
+        <dt>Started</dt><dd>2026-08-29</dd>
+        <dt>Branch</dt><dd>feature/sdd-html-task-brief</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-08-29-sdd-html-task-brief-design.html</dd>
+        <dt>Plan</dt><dd>docs/mySuperpower/plans/2026-08-29-sdd-html-task-brief.html</dd>
+        <dt>Status</dt><dd><span class="status-pill">Implementation &mdash; Complete</span></dd>
+      </dl>
+    </header>
+
+    <section class="task-status">
+      <h2 class="section-label">Task Status</h2>
+      <table class="tasks">
+        <thead><tr><th>Task</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="task-row"><td class="num">1</td><td class="desc">Pin extensionless skill scripts to LF</td><td class="st"><span class="tstatus done">&check; done &middot; 562df1c</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; confirm CRLF in the working tree (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; add the two .gitattributes rules</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; re-materialize at LF and verify</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">2</td><td class="desc">The task-brief-html extractor</td><td class="st"><span class="tstatus done">&check; done &middot; 8c60e71</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; create the five fixtures</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write the failing test suite (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write the extractor (green)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify against a real plan</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit with +x in the index</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">3</td><td class="desc">The overlay files capability</td><td class="st"><span class="tstatus done">&check; done &middot; 5df19ed</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write the failing capability test (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; add -OverlaysDir + destructive-path validation</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; keep generated output out of the copy</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; add the validated copy function</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; rewrite the overlay loop</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; assert declared files landed</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">4</td><td class="desc">Ship the extractor and migrate the SDD worked example</td><td class="st"><span class="tstatus done">&check; done &middot; 04026b3</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; declare files + the two replaces anchors</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; append the instruction text</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; rebuild and verify the script shipped</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; run it from its published location</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">5</td><td class="desc">A second overlay: requesting-code-review</td><td class="st"><span class="tstatus done">&check; done &middot; 9fc25a8</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write the failing call-site assertion (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; add the overlay</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; rebuild and re-run every test</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">6</td><td class="desc">Publish fork-owned executables at their published paths</td><td class="st"><span class="tstatus done">&check; done &middot; d1ff858</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; reproduce 100644 on a throwaway branch (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; add the overlay-driven chmod mapping</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; verify both copies + the declared-intent failure</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; clean up and commit</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">7</td><td class="desc">Acceptance run: one real plan, end to end</td><td class="st"><span class="tstatus done">&check; done &middot; 3rd attempt</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; run a fresh session to the first dispatch</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; assert the four observations</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="task-row"><td class="num">8</td><td class="desc">Release 6.3.0+fork.2</td><td class="st"><span class="tstatus done">&check; done &middot; 8ca323d</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; /simplify + run every test</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; merge, bump, commit the bump</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; publish and verify the release blobs</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; tag and push</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <!-- One task-row per plan task + its subtask rows. START all "pending"; flip live:
+          <tr class="task-row"><td class="num">1</td><td class="desc">Task title</td><td class="st"><span class="tstatus done">&check; done &middot; abc1234</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; write failing test (red)</td><td class="st"><span class="tstatus done">&check; done</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; implement (green)</td><td class="st"><span class="tstatus inprogress">in progress</span></td></tr>
+          <tr class="sub"><td></td><td class="subtask">&#8627; commit</td><td class="st"><span class="tstatus pending">pending</span></td></tr>
+          -->
+        </tbody>
+      </table>
+    </section>
+
+    <section class="log">
+      <h2 class="section-label">Implementation Log &middot; By Task</h2>
+      <p class="pending-note">Everything for each task together &mdash; decisions/deviations and the before&rarr;after code.</p>
+      
+      <h3 class="tglabel">Task 1 &mdash; Pin extensionless skill scripts to LF <span class="st-mini">&middot; 562df1c</span></h3>
+      <div class="dd-card">
+        <h3>The guarantee was a side effect, not a rule</h3>
+        <p><code>git ls-files --eol</code> confirmed the defect before the change: all three SDD
+        scripts read <code>i/lf&nbsp;&nbsp;w/crlf&nbsp;&nbsp;attr/</code> &mdash; LF in the index,
+        CRLF in the working tree, and <strong>no attribute governing them</strong>. Since the build
+        copies from the working tree, <code>dist/</code> inherited CRLF; the released blob only
+        came out LF because <code>core.autocrlf</code> re-normalized it inside the publish
+        worktree. A publishing machine with <code>core.autocrlf=false</code> would have shipped a
+        CR-terminated shebang.</p>
+        <p>Both rules were needed. <code>skills/**/scripts/*</code> covers the published location;
+        <code>overlays/**/scripts/*</code> covers a fork-owned script at its <em>source</em>
+        location, which is where the build reads from &mdash; a rule on <code>skills/</code> alone
+        would let a CRLF working copy flow straight into <code>dist/</code>.</p>
+        <p><strong>No upstream file content changed.</strong> The index blobs were already LF, so
+        <code>git add --renormalize .</code> staged nothing but <code>.gitattributes</code>; the
+        delete-and-checkout only re-materialized the working tree under the new attribute. That
+        was the check that mattered, and it passed.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; git ls-files --eol</p><pre><code>i/lf    w/crlf  attr/                 skills/subagent-driven-development/scripts/review-package
+i/lf    w/crlf  attr/                 skills/subagent-driven-development/scripts/sdd-workspace
+i/lf    w/crlf  attr/                 skills/subagent-driven-development/scripts/task-brief</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>i/lf    w/lf    attr/text eol=lf      skills/subagent-driven-development/scripts/review-package
+i/lf    w/lf    attr/text eol=lf      skills/subagent-driven-development/scripts/sdd-workspace
+i/lf    w/lf    attr/text eol=lf      skills/subagent-driven-development/scripts/task-brief</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 2 &mdash; The task-brief-html extractor <span class="st-mini">&middot; 8c60e71</span></h3>
+      <div class="dd-card">
+        <h3>Red phase was real, and the executable bit needed forcing</h3>
+        <p>The suite was written and run before the extractor existed: it failed with
+        <code>task-brief-html is missing or not executable</code>, exit 1. With the extractor in
+        place all <strong>63 assertions</strong> pass.</p>
+        <p><code>core.filemode</code> is <code>false</code> in this repo, so the <code>chmod +x</code>
+        changed the working tree and staged nothing. <code>git update-index --chmod=+x</code> naming
+        <em>both</em> the extractor and the test script is what actually produced
+        <code>100755</code> in the index &mdash; verified before committing. Task 6 will fail the
+        release loudly if the extractor were missed here; nothing would have caught the test script.</p>
+        <p>Task 1&rsquo;s attribute did its job on a brand-new file: <code>git check-attr</code>
+        reports <code>eol: lf</code> for the extractor at its <em>source</em> path under
+        <code>overlays/</code>, which is where the build will copy from.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Verified against a real plan, not just fixtures</h3>
+        <p>Task 9 of <code>2026-05-25-mysuperpower-conversion.html</code> writes a README, so its
+        <code>&lt;pre&gt;&lt;code&gt;</code> payload contains its own triple-backtick fences. The
+        extractor widened the wrapper to four backticks (lines 11 and 56) and the eight inner
+        fences round-tripped intact. A fixed <code>```</code> wrapper would have been closed by the
+        first inner fence, silently demoting the rest of the payload to prose &mdash; a brief that
+        looks complete while reclassifying requirements as commentary.</p>
+        <p>Leak check on the same brief: zero occurrences of the neighbouring task titles.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; upstream task-brief on an HTML plan</p><pre><code>$ task-brief plan.html 2
+task 2 not found in plan.html (no heading matching 'Task 2')
+$ echo $?
+3</code></pre></div>
+        <div class="after"><p class="cc-label">After &mdash; task-brief-html</p><pre><code>$ task-brief-html plan.html 2
+wrote .superpowers/sdd/plan.html/task-2-brief.md: 70 lines
+
+Task 2 &mdash; BETAONLY
+Entities: &lt;meta&gt; and double &amp;lt;kept&amp;gt; and &middot; &rarr; &mdash;.</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 3 &mdash; The overlay files capability <span class="st-mini">&middot; 5df19ed</span></h3>
+      <div class="dd-card">
+        <h3>Deviation &mdash; the collision check had to move above the existence check</h3>
+        <p>The plan ordered these as existence-then-collision. Running the tests showed why that is
+        wrong: each entry is copied <em>as it is validated</em>, so by the time a duplicate
+        <code>to</code> is reached, its twin is already on disk. The existence check fired first and
+        reported a same-build collision as <em>&ldquo;already exists in dist; overlays must not
+        replace upstream files&rdquo;</em> &mdash; naming the wrong problem, and pointing at a file
+        the build had written itself moments earlier.</p>
+        <p>Swapping them makes both diagnoses accurate: a duplicate reports a collision naming the
+        entry it clashes with, and only a genuine pre-existing upstream file reports the
+        replace-refusal. <strong>Fixed in the implementation</strong>; the plan text still carries
+        the original order.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Deviation &mdash; the test&rsquo;s placeholder collided with the key it sat inside</h3>
+        <p>All seven schema cases failed with <code>The property 'skill' cannot be found on this
+        object</code>. PowerShell&rsquo;s <code>-replace</code> is <strong>case-insensitive by
+        default</strong>, so the <code>'SK'</code> placeholder matched the <code>sk</code> in the
+        key <code>"skill"</code> and renamed the property to
+        <code>subagent-driven-developmentill</code>. Fixed with non-colliding
+        <code>@@SKILL@@</code>/<code>@@ABS@@</code> tokens and case-sensitive
+        <code>-creplace</code>; the absolute path also needs its backslashes doubled for JSON.</p>
+        <p>Worth recording <em>how</em> this was caught: the cases reported <em>&ldquo;failed for
+        the wrong reason&rdquo;</em>, not a bare failure. An earlier draft of this test accepted any
+        nonzero exit, and under that version all seven would have reported <code>ok</code> here
+        while proving nothing about the rules they name.</p>
+      </div>
+      <div class="dd-card">
+        <h3>The destructive-path guards fired correctly on first run</h3>
+        <p>All three &mdash; OutDir as the repository, as an ancestor, and nested with lowercased
+        casing &mdash; passed immediately, and each asserts the fake root still exists afterwards.
+        They run against a throwaway copy of the build script whose <code>$root</code> is a temp
+        directory, so a missing guard destroys scratch space rather than the working copy.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; existence checked first</p><pre><code>if (Test-Path -LiteralPath $destFull) {
+  Fail ("... 'to' already exists in dist; overlays must not replace upstream files ...")
+}
+if ($declared.ContainsKey($destFull)) {
+  Fail ("... 'to' collides with {1} ...")
+}</code></pre></div>
+        <div class="after"><p class="cc-label">After &mdash; collision first</p><pre><code>if ($declared.ContainsKey($destFull)) {
+  Fail ("... 'to' collides with {1} ...")
+}
+if (Test-Path -LiteralPath $destFull) {
+  Fail ("... 'to' already exists in dist; overlays must not replace upstream files ...")
+}</code></pre></div>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; case-insensitive placeholder</p><pre><code>json = '{"skill":"SK", ...}'
+$json = ($c.json -replace 'SK', $SKILL) -replace 'ABS', ($build -replace '\', '\\')
+# -> {"subagent-driven-developmentill": ...}</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>json = '{"skill":"@@SKILL@@", ...}'
+$json = ($c.json -creplace '@@SKILL@@', $SKILL) -creplace '@@ABS@@', ($build -replace '\', '\')</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 4 &mdash; Ship the extractor and migrate the SDD worked example <span class="st-mini">&middot; 04026b3</span></h3>
+      <div class="dd-card">
+        <h3>The anchor/cascade ordering worked exactly as designed</h3>
+        <p>Both <code>replaces</code> anchors were written against <strong>pristine</strong>
+        <code>docs/superpowers/</code> text and changed only the extension. Overlays run at build
+        step 4 and the rebrand cascade at step 5, so the cascade then rewrote the directory: lines
+        509&ndash;510 of the built SKILL.md now read
+        <code>docs/mySuperpower/plans/feature-plan.html</code>. An anchor written against the
+        branded path would have matched nothing and failed the build, since both are
+        <code>required: true</code>.</p>
+        <p>A scan of the whole built skill for <code>docs/mySuperpower/*.md</code> returns nothing
+        &mdash; the shape that cannot exist in this fork is gone from it.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Deviation &mdash; the plan&rsquo;s Step 5 verification could not prove its own claim</h3>
+        <p>The plan ran the published extractor with an explicit <code>OUTFILE</code> and said this
+        &ldquo;confirms it resolves <code>sdd-workspace</code> correctly from its published
+        location&rdquo;. It cannot: when an <code>OUTFILE</code> is given the script never calls
+        <code>sdd-workspace</code> at all.</p>
+        <p>Run <em>without</em> an outfile instead, which is the real test. Both modes resolved the
+        sibling script and landed in one directory:
+        <code>.superpowers/sdd/2026-06-21-live-implementation-notes.html/</code> holding both
+        <code>plan-body.md</code> and <code>task-2-brief.md</code>. That single-directory result is
+        the invariant behind the decision not to strip <code>.html</code> from the workspace name
+        &mdash; a prettier slug in one caller would split the workspace and strand the ledger.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; built SKILL.md 509-510</p><pre><code>[Read plan file once: docs/mySuperpower/plans/feature-plan.md]
+[Resolve workspace: scripts/sdd-workspace docs/mySuperpower/plans/feature-plan.md &mdash; no ledger inside, fresh start]</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>[Read plan body once: scripts/task-brief-html --plan docs/mySuperpower/plans/feature-plan.html]
+[Resolve workspace: scripts/sdd-workspace docs/mySuperpower/plans/feature-plan.html &mdash; no ledger inside, fresh start]</code></pre></div>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; build output</p><pre><code>build-mysuperpower: verified 0 overlay-supplied file(s)
+dist/skills/subagent-driven-development/scripts/
+  review-package  sdd-workspace  task-brief</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>overlay file: scripts/task-brief-html -> skills/subagent-driven-development/scripts/task-brief-html
+build-mysuperpower: verified 1 overlay-supplied file(s)
+dist/skills/subagent-driven-development/scripts/
+  review-package  sdd-workspace  task-brief  task-brief-html   (diff: identical)</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 5 &mdash; A second overlay: requesting-code-review <span class="st-mini">&middot; 9fc25a8</span></h3>
+      <div class="dd-card">
+        <h3>The StrictMode probe earned its keep on first contact</h3>
+        <p>This is the first overlay in the repo with <strong>no <code>append</code> key</strong>.
+        Under the original <code>if ($cfg.append)</code> it would have thrown outright &mdash;
+        <code>Set-StrictMode -Version Latest</code> turns a missing property on a
+        <code>ConvertFrom-Json</code> object into a terminating error, not a null. The
+        <code>PSObject.Properties.Name -contains</code> probe added in Task 3 is the only reason
+        the build got past it. Five overlays now apply cleanly, one of them with neither
+        <code>append</code> content nor any <code>files</code> entries.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Red phase named the exact line, and it was the last one</h3>
+        <p>The assertion failed against the existing build with
+        <code>dist/skills/requesting-code-review/SKILL.md:60</code> &mdash; and nothing else. Task
+        4 had already cleared the other two call sites, so this run doubled as confirmation that
+        the SDD migration was complete. After the overlay, line 60 reads
+        <code>docs/mySuperpower/plans/deployment-plan.html</code>.</p>
+        <p>The check deliberately scans the whole built tree rather than this one line. The cascade
+        rewrites the directory and leaves the extension on <em>every</em> upstream merge, so it will
+        keep manufacturing this shape; a whole-tree assertion is what makes the next one visible
+        instead of silent.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; the assertion, red</p><pre><code>$ bash tests/mysuperpower/test-dist-call-sites.sh
+FAIL: built skills reference fork doc paths that are still markdown:
+dist/skills/requesting-code-review/SKILL.md:60:  PLAN_OR_REQUIREMENTS: Task 2 from docs/mySuperpower/plans/deployment-plan.md
+exit=1</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>$ bash tests/mysuperpower/test-dist-call-sites.sh
+dist call-site check passed: no docs/mySuperpower/*.md references
+exit=0
+
+SKILL.md:60:  PLAN_OR_REQUIREMENTS: Task 2 from docs/mySuperpower/plans/deployment-plan.html</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 6 &mdash; Publish fork-owned executables at their published paths <span class="st-mini">&middot; d1ff858</span></h3>
+      <div class="dd-card">
+        <h3>The defect reproduced exactly, and so did the fix</h3>
+        <p>Cut to a throwaway branch before any change, the extractor published <code>100644</code>
+        in <strong>both</strong> copies while the three upstream scripts beside it were
+        <code>100755</code>. Its source path is <code>overlays/&hellip;</code>, which is excluded
+        from <code>dist/</code>, so the existing index-derived loop matched neither published
+        target. After the fix: <code>restored +x on 20 published file(s)</code> &mdash; exactly two
+        more than before &mdash; and <code>100755</code> at the branch root and under
+        <code>plugins/my-superpower/</code>.</p>
+        <p>The declared-intent rule was verified the only way that means anything: by flipping the
+        source bit off. The publish failed naming the file and the exact
+        <code>git update-index --chmod=+x</code> that fixes it, and
+        <strong>the release branch did not advance</strong> &mdash; it failed before the commit,
+        not after. The bit was restored and re-checked at <code>100755</code> before the task
+        closed.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Two verification steps the plan got wrong</h3>
+        <p><strong>The leftover worktree was real.</strong> Step 4 makes the publisher exit before
+        its own cleanup, so <code>release-exectest</code> stayed checked out in the sibling
+        worktree. <code>git branch -D</code> alone failed with <em>&ldquo;cannot delete branch
+        'release-exectest' used by worktree&rdquo;</em> &mdash; confirming the review finding
+        exactly. The explicit <code>git worktree remove --force</code> the plan added is what
+        makes the cleanup work.</p>
+        <p><strong>The line-ending check was unsound.</strong> The plan used
+        <code>git show &hellip; | od -c | grep -c '\r'</code>, which reported <strong>277</strong>
+        on a file with no CR bytes at all: <code>od -c</code> renders a literal backslash as two
+        characters, so ordinary <code>\t</code> and <code>\n</code> escapes in the awk source
+        satisfy the pattern. Replaced with <code>tr -cd '\r' | wc -c</code>, which counts CR bytes
+        and reports <strong>0</strong> for all three published scripts. Task 8 uses the same
+        command and needs the same correction.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; git ls-tree on the release</p><pre><code>100755 skills/subagent-driven-development/scripts/review-package
+100755 skills/subagent-driven-development/scripts/sdd-workspace
+100755 skills/subagent-driven-development/scripts/task-brief
+100644 skills/subagent-driven-development/scripts/task-brief-html
+publish-mysuperpower: restored +x on 18 published file(s)</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>100755 skills/subagent-driven-development/scripts/review-package
+100755 skills/subagent-driven-development/scripts/sdd-workspace
+100755 skills/subagent-driven-development/scripts/task-brief
+100755 skills/subagent-driven-development/scripts/task-brief-html
+100755 plugins/my-superpower/skills/.../scripts/task-brief-html
+publish-mysuperpower: restored +x on 20 published file(s)</code></pre></div>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; unsound EOL check</p><pre><code>$ git show ...:task-brief-html | od -c | grep -c '\r'
+277        # but the file has no CR bytes</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>$ git show ...:task-brief-html | tr -cd '\r' | wc -c
+0</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 7 &mdash; Acceptance run: one real plan, end to end <span class="st-mini">&middot; passed on the third attempt</span></h3>
+      <div class="dd-card">
+        <h3>All four observations passed &mdash; verified from artifacts, not the transcript</h3>
+        <ul>
+          <li><strong>1. Setup ran <code>--plan</code>.</strong> <code>plan-body.md</code> written at 21:56:43, minutes into the run. On the first attempt this same file still carried the previous day&rsquo;s timestamp, which is how the failure was proven.</li>
+          <li><strong>2. The pre-flight scan produced both row types.</strong> Three per-pair rows (T1&rarr;T2, T1&rarr;T3, T2&rarr;T3) with producer output against consumer expectation, plus three per-task self-consistency rows. That table cannot be written without every task&rsquo;s full body, so it is the evidence <code>--plan</code> emitted the whole thing rather than a summary.</li>
+          <li><strong>3. Dispatch used <code>task-brief-html</code>.</strong> <code>task-1-brief.md</code> and <code>task-2-brief.md</code> both carry the provenance header &mdash; source plan, plan hash, extraction timestamp &mdash; which upstream <code>task-brief</code> does not write. Against this plan upstream would have exited 3 and written nothing at all.</li>
+          <li><strong>4. The brief carried decoded markup.</strong> The implementer received <code>&lt;meta http-equiv="refresh"&gt;</code>, and the deliberately double-escaped form survived as <code>&amp;lt;meta&amp;gt;</code> in the same sentence &mdash; both correct, and distinguishable.</li>
+        </ul>
+        <p>The run went past the stop point on its own, completing Task 1 and extracting Task 2 before being interrupted. It added no commits and left nothing outside git-ignored scratch.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Three attempts, and the first two failed for reasons the plan created</h3>
+        <p><strong>Attempt 1</strong> was pointed at an already-implemented plan, so the controller correctly refused to dispatch and observations 2&ndash;4 were unreachable. Observation 1 did fail, though, and provably: the workspace file still carried the prior day&rsquo;s timestamp. Cause was distance &mdash; the override sat 374 lines after the instruction it was meant to override. Two anchored <code>replaces</code> now put it at both points of use.</p>
+        <p><strong>Attempt 2</strong> ran against a plugin that did not contain the code. The plugin cache is keyed by version <em>string</em>, so uninstall and reinstall at an unchanged version serves the stale copy. <strong>This was a dependency the plan missed:</strong> Task 7 needs the code installed, the install comes from <code>origin/release</code>, and publishing is Task 8&rsquo;s job. The cycle was broken by publishing first.</p>
+        <p>Both sessions stopped rather than run an invalid test. That is the acceptance gate behaving correctly even while failing to produce its answer.</p>
+      </div>
+      <div class="dd-card">
+        <h3>The controller found a real flaw in the fixture</h3>
+        <p>Its ledger records a finding I had not anticipated: the fixture&rsquo;s Global Constraints say &ldquo;nothing is committed&rdquo;, but the SDD loop dispatches <code>review-package PLAN_FILE BASE HEAD</code> &mdash; so with BASE == HEAD every review package is an empty diff. It ruled that implementers do not commit, told the reviewer the diff is empty by design, and named the working-tree file as the review surface. A sound ruling on a genuine defect in my fixture.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Attempt 1 &mdash; observation 1 failed</p><pre><code>$ ls -l --time-style=full-iso .superpowers/sdd/2026-06-21-...html/
+2026-08-29 23:58:54  plan-body.md     &lt;- previous day: setup never ran --plan
+2026-08-29 23:59:01  task-2-brief.md</code></pre></div>
+        <div class="after"><p class="cc-label">Attempt 3 &mdash; all four passed</p><pre><code>$ ls -l --time-style=full-iso .superpowers/sdd/acceptance-plan.html/
+2026-08-30 21:56:43  plan-body.md     &lt;- setup ran --plan
+2026-08-30 21:58:53  task-1-brief.md  &lt;- dispatch used task-brief-html
+2026-08-30 21:59:50  task-1-report.md
+2026-08-30 22:01:20  progress.md      &lt;- per-pair + per-task scan rows
+2026-08-30 22:01:23  task-2-brief.md</code></pre></div>
+      </div>
+
+      <h3 class="tglabel">Task 8 &mdash; Release 6.3.0+fork.2 <span class="st-mini">&middot; 8ca323d</span></h3>
+      <div class="dd-card">
+        <h3>Simplify pass: two findings applied, four skipped with reasons</h3>
+        <p>Four review angles ran in parallel. <strong>Three of the four independently flagged the
+        same defect</strong> &mdash; <code>publish-mysuperpower.ps1</code> ran
+        <code>git ls-files -s</code> over the whole index a second time purely to ask whether one
+        path is <code>100755</code>, when <code>$srcExec</code> twenty-five lines above is already
+        exactly that set. Removed. The other applied finding was an awk array named
+        <code>_ignore</code> that nothing ever read, left over from an abandoned generic
+        entity-parsing approach.</p>
+        <p>Skipped, each for a stated reason rather than an argument:</p>
+        <ul>
+          <li><strong>The post-copy existence check</strong> was flagged as unreachable under
+          <code>$ErrorActionPreference = "Stop"</code>. True today, but the spec requires it by
+          name: the build's other checks are plugin name, skill count and residual namespace, and
+          a silently skipped copy passes all three while shipping a SKILL.md that points at a
+          script which is not there. Removing it would put the build out of compliance with an
+          approved spec to save five lines.</li>
+          <li><strong>13 full builds per capability-test run (~65s)</strong> is a real cost, but the
+          fix is to make <code>Copy-OverlayFiles</code> dot-sourceable &mdash; restructuring
+          production code for testability, well outside this diff.</li>
+          <li><strong><code>"files": []</code> in the requesting-code-review overlay</strong> is
+          inert, but spec-specified and it documents intent: this overlay deliberately ships no
+          files.</li>
+          <li><strong><code>-OverlaysDir</code> as test-only scaffolding</strong> &mdash; the
+          reviewer that raised it also called it a defensible compromise, and it is what allows the
+          fail-loud paths to be tested through the real entry point.</li>
+        </ul>
+        <p>Both applied fixes were verified rather than assumed: 63/63 extractor assertions
+        including every entity case, a throwaway publish still chmodding 20 files with the
+        extractor <code>100755</code> in both copies, and the declared-intent failure path still
+        refusing to publish a <code>100644</code> source.</p>
+      </div>
+      <div class="dd-card">
+        <h3>Deviation &mdash; the release was cut before acceptance, not after</h3>
+        <p>The plan ordered acceptance (Task 7) before release (Task 8). That could not hold: the
+        acceptance run needs the code installed, the install comes from <code>origin/release</code>,
+        and publishing there is Task 8's job. The cycle was broken by publishing first, on the
+        owner's decision, with the merge and tag held back until acceptance passed &mdash; so a
+        failure would have cost a republish rather than a bad tag on <code>mysuperpower</code>.</p>
+        <p>The release was then cut a second time after the simplify pass, so the published tree
+        matches the tagged commit exactly. Verified: the dead <code>_ignore</code> line appears zero
+        times in the published copy.</p>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Before &mdash; second full index scan</p><pre><code>$srcModes = @{}
+git -C $root ls-files -s | ForEach-Object {
+  $parts = $_ -split "`t", 2
+  $srcModes[$parts[1]] = ($parts[0] -split '\s+')[0]
+}
+...
+    if ($srcModes[$srcRel] -ne '100755') {</code></pre></div>
+        <div class="after"><p class="cc-label">After &mdash; reuse $srcExec</p><pre><code># $srcExec above is already "every path the index holds at 100755", read from
+# the same git ls-files -s call, so it answers this question without a second
+# full scan of the index.
+    if ($srcExec -notcontains $srcRel) {</code></pre></div>
+      </div>
+      <div class="cc">
+        <div class="before"><p class="cc-label">Final state &mdash; before</p><pre><code>mysuperpower  c864a1e   (plan only, no implementation)
+release       abc99cd   6.3.0+fork.1, no task-brief-html
+tag           v6.3.0+fork.1</code></pre></div>
+        <div class="after"><p class="cc-label">After</p><pre><code>mysuperpower  8ca323d = origin/mysuperpower
+release       c022690 = origin/release   6.3.0+fork.2
+tag           v6.3.0+fork.2 -> 8ca323d
+task-brief-html 100755 in both published copies, 0 CR bytes</code></pre></div>
+      </div>
+
+      <!-- Append one GROUP per task as it completes: an h3.tglabel heading, then that task's
+           dd-card decision/deviation cards (substantive items only — off-spec decisions, plan
+           deviations, important fixes, cross-task interactions, tradeoffs; NOT routine
+           progress), then one .cc card per applied code change (BEFORE/AFTER excerpts, elide
+           unchanged runs with "..."). A run may open with a PRE-IMPL · CONTEXT dd-card
+           (no tglabel) for process context. Example group:
+
+      <h3 class="tglabel">Task 1 &mdash; Short task title <span class="st-mini">&middot; abc1234</span></h3>
+      <div class="dd-card">
+        <span class="dd-tag">Task 1 &middot; Done &middot; abc1234</span>
+        <h3>Short decision title</h3>
+        <p><strong>Decision (off-spec).</strong> What was decided and why; use inline <code>code</code> chips.</p>
+        <ul><li><strong>Rationale:</strong> …</li><li><strong>Interaction for Task N:</strong> …</li></ul>
+      </div>
+      <div class="cc">
+        <h3>Task 1 &middot; Change 1 &mdash; short change title</h3>
+        <p class="loc"><code>path/to/file.ext</code> &mdash; where in the file. Committed <code>abc1234</code>.</p>
+        <div class="ba">
+          <p class="lbl before">Before</p>
+          <pre class="before"><code>old lines (minimal excerpt; "..." for elided runs)</code></pre>
+          <p class="lbl after">After</p>
+          <pre class="after"><code>new lines</code></pre>
+        </div>
+      </div>
+      -->
+      <!-- TASK_LOG: append the next task group here (h3.tglabel heading, then its dd-card decisions, then its .cc before/after blocks) -->
+    </section>
+  </div>
+</body>
+</html>
