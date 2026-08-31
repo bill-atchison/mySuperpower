@@ -8,6 +8,52 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.3.0+fork.2 — 2026-08-30
+
+- **HTML task briefs for subagent-driven-development.** The fork's `writing-plans` skill
+  emits plans as self-contained HTML, but upstream's `task-brief` selects a task with awk
+  on a markdown heading — it matched nothing in a fork plan, wrote a zero-byte file and
+  exited 3, a hard stop before the first implementer was ever dispatched. A new fork-owned
+  `scripts/task-brief-html` reads them properly. Upstream's `task-brief`, `sdd-workspace`
+  and `review-package` are untouched.
+  - Same argument order, same default output location and same exit codes as upstream, so
+    the controller's only branch is on the plan's file extension.
+  - Selection keys on structure: the Nth `<section class="task">`, cross-checked against
+    its first heading, with a heading-only fallback for plans that have no task sections.
+    Task identity in fork plans is **positional** — the 2026-05-25 plan numbers no heading
+    at all — so position governs, a heading that disagrees is a hard error rather than a
+    guess, and an out-of-range task never falls through to the heading search.
+  - Entities are decoded, so an implementer receives `<meta>` rather than `&lt;meta&gt;`.
+    `&amp;` is decoded last, so a double-escaped `&amp;lt;` stays `&lt;`.
+  - Code fences are sized to outrun the longest backtick run in the payload. Plan code
+    blocks really do contain their own fences; a fixed ``` wrapper would be closed by the
+    first inner one, silently demoting the rest of the requirements to prose.
+  - Every failure between the temp file and the rename runs through one cleanup point, so
+    a failed extraction never leaves a previously good brief looking current. A caller's
+    explicit `OUTFILE` is never deleted.
+  - `--plan` renders the whole plan body for setup — not a summary, because the pre-flight
+    conflict scan needs every task's full text.
+- **Overlays can ship files.** `overlay.json` gains a third verb beside `replaces` and
+  `append`: `files: [{ from, to, exec }]`, copying a fork-owned file into
+  `dist/skills/<skill>/`. Every schema rule fails the build loudly and names the offending
+  entry — an unvalidated copy step is a file-write primitive pointed at the build output.
+  The build then asserts every declared file actually landed.
+- **Publish maps fork-owned executables to their published paths.** A fork file's source
+  lives under `overlays/`, which is excluded from `dist/`, so the index-derived chmod list
+  missed it entirely and it published `100644` — the same "Permission denied" failure
+  6.2.0+fork.2 fixed, arriving through a new door. The executable bit is now *declared*
+  (`exec: true`) rather than sniffed, so a source committed `100644` by accident fails the
+  release instead of shipping a broken plugin.
+- **Extensionless skill scripts are pinned to LF.** `*.sh` never reached them, so their
+  released blobs were LF only because `core.autocrlf` happened to normalize them inside the
+  publish worktree. A publishing machine with `core.autocrlf=false` would have shipped a
+  CR-terminated shebang.
+- **Two stale markdown call sites migrated.** The rebrand cascade rewrites
+  `docs/superpowers/` to `docs/mySuperpower/` and never touches the extension, so upstream's
+  examples shipped with fork paths and markdown suffixes — a path shape that cannot exist
+  in this fork. Fixed in the SDD worked example and the `requesting-code-review` dispatch
+  example, with a build-time assertion that scans the whole built tree for the next one.
+
 ## 6.3.0+fork.1 — 2026-08-28
 
 - **Synced to upstream superpowers 6.3.0** (from base 6.2.0). Merged 2 upstream commits
