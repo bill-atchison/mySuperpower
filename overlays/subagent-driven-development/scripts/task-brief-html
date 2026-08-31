@@ -1,0 +1,388 @@
+#!/usr/bin/env bash
+# Extract one task's full text from an HTML implementation plan into a markdown
+# brief the implementer reads in one call. The mySuperpower fork's writing-plans
+# skill emits plans as self-contained HTML; upstream's task-brief only matches
+# markdown headings, so it exits 3 on every fork plan.
+#
+# Usage: task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]
+#        task-brief-html --plan PLAN_FILE [OUTFILE]
+#
+# Default OUTFILE: <sdd-workspace>/task-<N>-brief.md  (task mode)
+#                  <sdd-workspace>/plan-body.md       (--plan mode)
+#
+# Congruent with upstream task-brief: same argument order, same default
+# location, same exit codes (2 usage/missing, 3 not found), same closing line.
+set -euo pipefail
+
+usage() {
+  echo "usage: task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]" >&2
+  echo "       task-brief-html --plan PLAN_FILE [OUTFILE]" >&2
+}
+
+mode=task
+if [ "${1-}" = "--plan" ]; then
+  mode=plan
+  shift
+  if [ $# -lt 1 ] || [ $# -gt 2 ]; then usage; exit 2; fi
+  plan=$1
+  n=0
+  explicit_out=${2-}
+else
+  if [ $# -lt 2 ] || [ $# -gt 3 ]; then usage; exit 2; fi
+  plan=$1
+  n=$2
+  explicit_out=${3-}
+  case $n in
+    ''|*[!0-9]*) echo "task number must be a positive integer: $n" >&2; exit 2 ;;
+  esac
+  [ "$n" -ge 1 ] || { echo "task number must be a positive integer: $n" >&2; exit 2; }
+fi
+
+[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
+
+# Resolve the output path. The default lives in the plan's SDD workspace, which
+# this script owns; an explicit OUTFILE belongs to the caller and is never
+# deleted (see the failure path below).
+if [ -n "$explicit_out" ]; then
+  out=$explicit_out
+  owns_out=0
+else
+  dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
+  if [ "$mode" = plan ]; then out="$dir/plan-body.md"; else out="$dir/task-${n}-brief.md"; fi
+  owns_out=1
+fi
+
+outdir=$(dirname "$out")
+[ -d "$outdir" ] || { echo "output directory does not exist: $outdir" >&2; exit 2; }
+
+# On any failure, a brief left at the default path would look current while
+# describing a superseded plan. Delete it -- but only at the path this script
+# owns. A tool that removes a file the caller named eventually removes the
+# wrong one.
+fail_extract() {
+  echo "$1" >&2
+  if [ "$owns_out" -ne 1 ]; then
+    echo "note: $out may hold a stale brief; not deleted (explicit OUTFILE)" >&2
+  fi
+  exit 3
+}
+
+plan_hash=$(git hash-object "$plan" 2>/dev/null || echo "unknown")
+stamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+# Temp file in the OUTPUT directory: same filesystem, so the rename is atomic.
+# Installed BEFORE mktemp: if temp creation itself fails -- an unwritable
+# workspace, a full disk -- set -e exits, and a trap installed after mktemp
+# would never have run, leaving a stale brief at the expected path.
+tmp=""
+cleanup_incomplete() {
+  if [ -n "$tmp" ]; then rm -f "$tmp"; fi
+  if [ "$owns_out" -eq 1 ]; then rm -f "$out"; fi
+}
+trap cleanup_incomplete EXIT
+
+tmp=$(mktemp "$outdir/.task-brief-html.XXXXXX")
+
+# Every failure between here and the rename runs through that one cleanup point.
+# set -e exits directly out of a failed awk or a failed mv without reaching
+# fail_extract, so putting the deletion only there would leave a previously
+# good brief at the expected path looking current -- the exact artifact this
+# script exists to prevent. The trap is cleared once the rename succeeds.
+{
+  printf 'Source plan: %s\n' "$plan"
+  printf 'Plan hash:   %s\n' "$plan_hash"
+  printf 'Extracted:   %s\n' "$stamp"
+  printf '\n'
+} > "$tmp"
+
+# ---- Stage 1: select the fragment -------------------------------------------
+#
+# Task identity in fork plans is POSITIONAL, not label-based. 2026-06-21 writes
+# <section class="task"><h3>Task 1 - Title</h3>; 2026-05-25 writes
+# <section class="task"><h2>Wire the upstream remote</h2> with no number at all.
+# So: the Nth section.task is task N, cross-checked against its first heading.
+#
+# Counting raw "<section" is safe: the plan template mandates that code inside
+# <pre><code> be escaped, so a literal "<section" cannot appear in a payload.
+select_status=0
+fragment=$(awk '{ line = $0
+    gsub(/<section[^>]*>/,  "\n&\n", line)
+    gsub(/<\/section>/, "\n&\n", line)
+    gsub(/<body[^>]*>/,     "\n&\n", line)
+    gsub(/<\/body>/,    "\n&\n", line)
+    print line }' "$plan" | awk -v want="$n" -v mode="$mode" -v planpath="$plan" '
+  function count(s, t,   c, i) { c = 0; i = index(s, t)
+    while (i > 0) { c++; s = substr(s, i + length(t)); i = index(s, t) } return c }
+
+  BEGIN { depth = 0; seen = 0; cap = 0; capdepth = 0; found = 0; headnum = -1; sawhead = 0 }
+
+  mode == "plan" {
+    if (!inbody) { if ($0 ~ /<body[^>]*>/) { inbody = 1 } ; next }
+    if ($0 ~ /<\/body>/) { inbody = 0; next }
+    print; found = 1; next
+  }
+
+  {
+    opens  = count($0, "<section")
+    closes = count($0, "</section")
+
+    if (!cap && $0 ~ /<section[^>]*class="[^"]*task[^"]*"/) {
+      seen++
+      if (seen == want) { cap = 1; capdepth = 1; found = 1; next }
+    }
+
+    # A task section missing its closing tag would otherwise swallow the rest of
+    # the document. Stop at the next task boundary and say so: an LLM-authored
+    # plan with one stray tag should still yield a usable brief.
+    if (cap && $0 ~ /<section[^>]*class="[^"]*task[^"]*"/) {
+      printf "task-brief-html: task %d in %s is missing a closing </section>; extracted to the next task boundary\n", want, planpath > "/dev/stderr"
+      cap = 0
+      next
+    }
+
+    if (cap) {
+      capdepth += opens - closes
+      if (capdepth <= 0) { cap = 0; next }
+      # First heading in the section decides the cross-check.
+      if (!sawhead && $0 ~ /<h[1-6][^>]*>/) {
+        sawhead = 1
+        h = $0
+        sub(/^[^<]*<h[1-6][^>]*>/, "", h)
+        sub(/<\/h[1-6]>.*$/, "", h)
+        gsub(/<[^>]*>/, "", h)
+        if (match(h, /Task[ \t]+[0-9]+/)) {
+          t = substr(h, RSTART, RLENGTH)
+          gsub(/[^0-9]/, "", t)
+          headnum = t + 0
+        }
+      }
+      print
+    }
+  }
+
+  END {
+    if (mode == "plan") { exit (found ? 0 : 4) }
+    if (seen > 0 && !found) {
+      printf "task-brief-html: %s has only %d task section(s); task %d is out of range\n", planpath, seen, want > "/dev/stderr"
+      exit 6
+    }
+    if (found) {
+      if (headnum >= 0 && headnum != want) {
+        printf "task-brief-html: section %d of %s is headed \"Task %d\" -- plan numbering disagrees with section order\n", want, planpath, headnum > "/dev/stderr"
+        exit 5
+      }
+      exit 0
+    }
+    exit 4
+  }
+') || select_status=$?
+
+if [ "$select_status" -eq 6 ]; then
+  fail_extract "task ${n} not found in ${plan}"
+fi
+
+if [ "$select_status" -eq 5 ]; then
+  fail_extract "task ${n} not extracted from ${plan}: fix the plan's task numbering"
+fi
+
+# Fallback: no task sections at all. Select on any heading naming Task N, and
+# stop at the next heading naming any Task number -- the same boundary rule
+# upstream's awk uses, which flips on any Task heading regardless of depth.
+if [ "$select_status" -eq 4 ] && [ "$mode" = task ]; then
+  fragment=$(awk -v want="$n" '
+    /<h[1-6][^>]*>/ {
+      h = $0
+      gsub(/<[^>]*>/, " ", h)
+      if (match(h, /Task[ \t]+[0-9]+/)) {
+        t = substr(h, RSTART, RLENGTH); gsub(/[^0-9]/, "", t)
+        intask = ((t + 0) == want)
+        if (intask) found = 1
+      }
+    }
+    intask { print }
+    END { exit (found ? 0 : 4) }
+  ' "$plan") || select_status=$?
+  if [ -n "$fragment" ]; then select_status=0; fi
+fi
+
+if [ "$select_status" -ne 0 ]; then
+  if [ "$mode" = plan ]; then
+    fail_extract "no <body> content found in ${plan}"
+  fi
+  fail_extract "task ${n} not found in ${plan} (no <section class=\"task\"> number ${n} and no heading matching 'Task ${n}')"
+fi
+
+# ---- Stage 2: convert the fragment to markdown ------------------------------
+printf '%s\n' "$fragment" | awk '
+  BEGIN {
+    PRE = "<<<TBH-PRE>>>"; ENDPRE = "<<<TBH-ENDPRE>>>"
+    ename[1]="lt";     eval[1]="<"
+    ename[2]="gt";     eval[2]=">"
+    ename[3]="quot";   eval[3]="\""
+    ename[4]="apos";   eval[4]="'"'"'"
+    ename[5]="nbsp";   eval[5]=" "
+    ename[6]="mdash";  eval[6]="—"
+    ename[7]="ndash";  eval[7]="–"
+    ename[8]="hellip"; eval[8]="…"
+    ename[9]="middot"; eval[9]="·"
+    ename[10]="rarr";  eval[10]="→"
+    ename[11]="larr";  eval[11]="←"
+    ename[12]="lsquo"; eval[12]="‘"
+    ename[13]="rsquo"; eval[13]="’"
+    ename[14]="ldquo"; eval[14]="“"
+    ename[15]="rdquo"; eval[15]="”"
+    ename[16]="times"; eval[16]="×"
+    NENT = 16
+    # Numeric code points for the same set, so &#8212; decodes like &mdash;.
+    num[60]="<"; num[62]=">"; num[34]="\""; num[39]="'"'"'"; num[160]=" "
+    num[8212]="—"; num[8211]="–"; num[8230]="…"; num[183]="·"
+    num[8594]="→"; num[8592]="←"; num[8216]="‘"; num[8217]="’"
+    num[8220]="“"; num[8221]="”"; num[215]="×"; num[38]="&"
+    listtop = 0; inpre = 0; prebuf = ""; blank = 0; infiles = 0; filesdepth = 0
+  }
+
+  function count(s, t,   c, i) { c = 0; i = index(s, t)
+    while (i > 0) { c++; s = substr(s, i + length(t)); i = index(s, t) } return c }
+
+  function hexval(h,   i, c, v, d) {
+    v = 0
+    for (i = 1; i <= length(h); i++) {
+      c = tolower(substr(h, i, 1))
+      d = index("0123456789abcdef", c) - 1
+      v = v * 16 + d
+    }
+    return v
+  }
+
+  # Decode named entities, then numeric, then &amp; LAST so that &amp;lt;
+  # becomes &lt; and not <.
+  function decode(s,   i, out, pre, m, body, cp, rep) {
+    for (i = 1; i <= NENT; i++) {
+      if (ename[i] == "amp") continue
+      gsub("&" ename[i] ";", eval[i], s)
+    }
+    out = ""
+    while (match(s, /&#[0-9]+;|&#[xX][0-9a-fA-F]+;/)) {
+      pre = substr(s, 1, RSTART - 1)
+      m   = substr(s, RSTART, RLENGTH)
+      s   = substr(s, RSTART + RLENGTH)
+      body = substr(m, 3, length(m) - 3)
+      if (body ~ /^[xX]/) cp = hexval(substr(body, 2)); else cp = body + 0
+      if (cp in num)                    rep = num[cp]
+      else if (cp >= 32 && cp <= 126)   rep = sprintf("%c", cp)
+      else { rep = m; warn(m) }
+      out = out pre rep
+    }
+    s = out s
+    # Anything still shaped like a named entity is outside the table.
+    body = s
+    while (match(body, /&[A-Za-z][A-Za-z0-9]*;/)) {
+      m = substr(body, RSTART, RLENGTH)
+      if (m != "&amp;") warn(m)
+      body = substr(body, RSTART + RLENGTH)
+    }
+    gsub(/&amp;/, "\\&", s)
+    return s
+  }
+
+  function warn(e) {
+    if (!(e in warned)) { warned[e] = 1
+      printf "task-brief-html: undecoded entity %s left as-is\n", e > "/dev/stderr" }
+  }
+
+  function emit(line) {
+    if (line ~ /^[ \t]*$/) { blank++; return }
+    if (blank > 0 && printed) print ""
+    blank = 0
+    print line
+    printed = 1
+  }
+
+  function flushpre(   i, k, run, best, fence, lines, cnt, body) {
+    sub(/\n+$/, "", prebuf)
+    body = decode(prebuf)
+    # The fence must outrun the longest backtick run in the payload. Plan code
+    # blocks really do contain ``` fences (2026-05-25 writes a README).
+    best = 0; run = 0
+    for (i = 1; i <= length(body); i++) {
+      if (substr(body, i, 1) == "`") { run++; if (run > best) best = run } else run = 0
+    }
+    fence = ""
+    k = (best + 1 > 3) ? best + 1 : 3
+    for (i = 0; i < k; i++) fence = fence "`"
+    if (blank > 0 && printed) print ""
+    blank = 0
+    print fence
+    printed = 1
+    cnt = split(body, lines, "\n")
+    for (i = 1; i <= cnt; i++) print lines[i]
+    print fence
+    prebuf = ""
+  }
+
+  function handle(s,   prefix, i, cnt, parts, first, t) {
+    if (s == PRE)    { inpre = 1; prebuf = ""; return }
+    if (s == ENDPRE) { flushpre(); inpre = 0; return }
+    if (inpre)       { prebuf = prebuf s "\n"; return }
+    if (s ~ /^[ \t]*$/) { emit(""); return }
+
+    prefix = ""
+
+    # Files block -> a plain Files list.
+    if (s ~ /<div[^>]*class="[^"]*files[^"]*"/) {
+      infiles = 1; filesdepth = 0
+      emit("Files:")
+      filesdepth += count(s, "<div") - count(s, "</div")
+      return
+    }
+    if (infiles) {
+      if (count(s, "<div") > 0) prefix = "- "
+      filesdepth += count(s, "<div") - count(s, "</div")
+      if (filesdepth <= 0) infiles = 0
+      if (prefix == "") { if (s ~ /^[ \t]*<\/div>[ \t]*$/) return }
+    }
+
+    # List context.
+    if (s ~ /<ol[^>]*>/) { listtop++; kind[listtop] = "ol"; ctr[listtop] = 0 }
+    if (s ~ /<ul[^>]*>/) { listtop++; kind[listtop] = "ul" }
+    if (s ~ /<li[^>]*>/ && listtop > 0 && prefix == "") {
+      if (kind[listtop] == "ol") { ctr[listtop]++; prefix = ctr[listtop] ". " }
+      else prefix = "- "
+    }
+    if (s ~ /<\/ol>/ || s ~ /<\/ul>/) { if (listtop > 0) listtop-- }
+
+    # Block-level tags become line breaks; inline tags are dropped.
+    gsub(/<\/?(p|div|h[1-6]|ul|ol|li|table|thead|tbody|tr|td|th|br|hr|blockquote|section|main|header|footer|nav|dl|dt|dd|figure|figcaption)(>|[\t \/][^>]*>)/, "\n", s)
+    gsub(/<[^>]*>/, "", s)
+    s = decode(s)
+
+    cnt = split(s, parts, "\n")
+    first = 1
+    for (i = 1; i <= cnt; i++) {
+      t = parts[i]
+      gsub(/[ \t]+$/, "", t)
+      if (t ~ /^[ \t]*$/) continue
+      sub(/^[ \t]+/, "", t)
+      if (first && prefix != "") { t = prefix t; first = 0 }
+      emit(t)
+    }
+  }
+
+  {
+    line = $0
+    gsub(/<pre[^>]*>[ \t]*<code[^>]*>/, "\n" PRE "\n", line)
+    gsub(/<pre[^>]*>/,                  "\n" PRE "\n", line)
+    gsub(/<\/code>[ \t]*<\/pre>/,       "\n" ENDPRE "\n", line)
+    gsub(/<\/pre>/,                     "\n" ENDPRE "\n", line)
+    n = split(line, parts, "\n")
+    if (n == 0) { handle("") }
+    else { for (i = 1; i <= n; i++) handle(parts[i]) }
+  }
+
+  END { if (inpre) { printf "task-brief-html: unbalanced <pre> in the selected section; extracted to the boundary\n" > "/dev/stderr"; flushpre() } }
+' >> "$tmp"
+
+mv -f "$tmp" "$out"
+trap - EXIT
+
+echo "wrote ${out}: $(wc -l < "$out" | tr -d ' ') lines"

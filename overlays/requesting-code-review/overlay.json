@@ -1,0 +1,11 @@
+{
+  "skill": "requesting-code-review",
+  "replaces": [
+    {
+      "find": "docs/superpowers/plans/deployment-plan.md",
+      "replace": "docs/superpowers/plans/deployment-plan.html",
+      "required": true
+    }
+  ],
+  "files": []
+}
