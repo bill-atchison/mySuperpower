@@ -216,7 +216,6 @@ fi
 printf '%s\n' "$fragment" | awk '
   BEGIN {
     PRE = "<<<TBH-PRE>>>"; ENDPRE = "<<<TBH-ENDPRE>>>"
-    split("lt:< gt:> quot:\" apos:'"'"' nbsp:  amp:&", _ignore, " ")
     ename[1]="lt";     eval[1]="<"
     ename[2]="gt";     eval[2]=">"
     ename[3]="quot";   eval[3]="\""
