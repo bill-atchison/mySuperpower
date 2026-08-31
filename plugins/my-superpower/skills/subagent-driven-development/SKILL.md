@@ -154,7 +154,8 @@ a ledger file, not only in todos.
   that happens, recover from `git log`.
 
 Read the plan once, note its context and Global Constraints, and create a
-todo per task. If the plan names a Spec, read that too: the spec is the
+todo per task. **If PLAN_FILE ends in `.html`, do not open it directly** —
+run `scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. If the plan names a Spec, read that too: the spec is the
 authority the plan argues from, and conflicts inside the plan resolve
 against it. A plan with no reachable spec gets a ledger note saying so —
 rulings made without one are provisional.
@@ -249,7 +250,8 @@ Record BASE (`git rev-parse HEAD`) before dispatching — the review package
 and fix-round diffs need it.
 
 - **Task brief:** before dispatching an implementer, run this skill's
-  `scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a
+  `scripts/task-brief PLAN_FILE N` — or `scripts/task-brief-html PLAN_FILE N`
+  when PLAN_FILE ends in `.html` — it extracts the task's full text to a
   uniquely named file and prints the path. Compose the dispatch so the
   brief stays the single source of
   requirements. Your dispatch should contain: (1) one line on where this
@@ -506,8 +508,8 @@ Use my-superpower:finishing-a-development-branch.
 You: I'm using Subagent-Driven Development to execute this plan.
 
 [Setup: worktree verified]
-[Read plan file once: docs/mySuperpower/plans/feature-plan.md]
-[Resolve workspace: scripts/sdd-workspace docs/mySuperpower/plans/feature-plan.md — no ledger inside, fresh start]
+[Read plan body once: scripts/task-brief-html --plan docs/mySuperpower/plans/feature-plan.html]
+[Resolve workspace: scripts/sdd-workspace docs/mySuperpower/plans/feature-plan.html — no ledger inside, fresh start]
 [Create todos for all tasks]
 
 Task 1: Hook installation script
@@ -618,3 +620,42 @@ mid-write never shows a truncated document.
 
 Commit cadence: rewrite the file on disk at every step above, but **commit only the finalized
 document once**, in step 5 — keep the run's transient states out of git history.
+
+## mySuperpower additions - HTML plans
+
+The fork's `writing-plans` skill saves implementation plans as self-contained
+HTML under `docs/mySuperpower/plans/`. **When `PLAN_FILE` ends in `.html`, use
+`scripts/task-brief-html` everywhere this skill says `scripts/task-brief`.** A
+markdown plan still follows the instructions above exactly - this override is
+scoped to HTML plans only.
+
+`scripts/task-brief-html` takes the same arguments, writes to the same workspace,
+and exits with the same codes as `scripts/task-brief`:
+
+```
+scripts/task-brief-html PLAN_FILE TASK_NUMBER   # -> <workspace>/task-N-brief.md
+scripts/task-brief-html --plan PLAN_FILE        # -> <workspace>/plan-body.md
+```
+
+**At setup, do not open the `.html` plan directly.** Run
+`scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. That is
+the whole plan body - Overview, Global Constraints, and every task in full, with
+the stylesheet and presentational markup removed. It is not a summary: the
+pre-flight conflict scan needs every task's full text to produce its per-pair
+rows, and a scan run on missing input looks exactly like a clean scan.
+
+Read the Spec the same way when the plan names one and it is also `.html`.
+
+Two failure modes are worth recognizing, because both mean the plan is wrong
+rather than the tool:
+
+- **Exit 3, "section N is headed Task M"** - the plan's task sections are
+  numbered inconsistently with their order. Fix the plan; do not guess which
+  numbering was meant.
+- **Exit 3, "task N not found"** - there is no Nth `<section class="task">` and
+  no heading naming that task. Any brief previously written at the default path
+  has been deleted, so there is no stale brief to mistake for a current one.
+
+Warnings on stderr about undecoded entities are not failures - the brief is
+still written. Report them, because they mean the plan template has grown an
+entity the extractor does not know yet.
