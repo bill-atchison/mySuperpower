@@ -159,7 +159,7 @@ New-Item -ItemType Directory -Force -Path $dist | Out-Null
 # The resolved-path test then covers the case no name-based exclusion can
 # express: a custom $OutDir that IS inside the repo. $distFull, $sep and $cmp
 # were computed during validation above.
-$exclude = @('overlays', 'branding', 'scripts', 'docs', 'tests', '.git', '.github', '.baseline-skills', 'dist')
+$exclude = @('overlays', 'branding', 'scripts', 'docs', 'tests', '.git', '.github', '.baseline-skills', 'dist', '.superpowers')
 Get-ChildItem -Force -Path $root |
   Where-Object {
     $exclude -notcontains $_.Name -and
