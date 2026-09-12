@@ -45,7 +45,15 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--paper);color:var(--ink);
        font-family:var(--serif);padding:3.5rem 2rem;}
-  .wrap{max-width:1040px;margin:0 auto;}
+  .wrap{max-width:880px;margin:0 auto;}
+
+  /* ---- ONE MEASURE (do not narrow, do not widen past the wrap) ----
+     Full-width blocks (table, pre, callouts) fill the 880px wrap; body text sits
+     just under it, so the right edge varies by tens of pixels, not hundreds.
+     A code line wider than ~105 chars needs a wider wrap, and this measure moves
+     with it. ---- */
+  main p,main ul,main ol{max-width:84ch;}
+  main pre{max-width:100%;overflow-x:auto;}
 
   /* ---- FIXED masthead (do not restyle) ---- */
   .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
