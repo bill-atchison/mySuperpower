@@ -8,6 +8,32 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.3.0+fork.3 — 2026-09-11
+
+- **Spec, plan and execution guidance folded into the overlays.** The rules that lived
+  in a per-project `specs-and-plans.md` now ship with the skills, so every repo using the
+  fork gets them without a local copy.
+  - `brainstorming` and `writing-plans` gain Format rules (one self-contained `.html`,
+    inline style, no CDN, renders offline; keep the markdown structure of problem,
+    design or task breakdown, risk assessment, verification, self-review; new documents
+    only) and an ordered gate list. The spec now STOPs for owner sign-off after its Codex
+    review and browser preview instead of auto-proceeding to the plan; the plan gains its
+    own Codex review loop (≤3 rounds) before the browser preview that is the last gate
+    before coding. `writing-plans` also states the implementation kickoff prompt and the
+    notes filename rule (do not repeat "implementation-notes" in the filename).
+  - **One reading measure in the templates.** Both HTML templates capped body text far
+    short of their full-width blocks (a ~70ch paragraph inside a 1040px wrap), so the
+    right edge of every generated document varied by hundreds of pixels. The wrap is now
+    880px and `main p/ul/ol` sit at 84ch, measured at 825px vs 880px for tables and code
+    at a 1254px viewport, with a 105-character code line fitting without scroll. The
+    overlays tell `frontend-design` not to narrow the measure and give the two sign-off
+    greps (last-wins `grid-template-columns`, widest `<pre>` line).
+  - `executing-plans` and `subagent-driven-development` gain the execution rules: open
+    every file the plan names before acting on it, watch a supplied test fail before
+    recording a pass, and record every plan-vs-repo mismatch in the notes rather than
+    working around it. The SDD controller carries the two rules into each implementer
+    dispatch, since overlays cannot reach the implementer prompt template.
+
 ## 6.3.0+fork.2 — 2026-08-30
 
 - **HTML task briefs for subagent-driven-development.** The fork's `writing-plans` skill
