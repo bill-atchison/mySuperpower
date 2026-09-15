@@ -106,7 +106,8 @@
       <section>
         <h2>Overview</h2>
         <p>The skills already hold the principle. Brainstorming says &ldquo;YAGNI ruthlessly&rdquo;, writing-plans says &ldquo;DRY. YAGNI. TDD.&rdquo; in its intro, and the subagent-driven implementer and reviewer prompts each carry an over-building check per task. What none of them has is a <em>procedure</em> run at the end, over the whole artifact, that asks a checkable question. The writing-plans Self-Review lists three concrete checks (spec coverage, placeholders, type consistency) and nothing about excess design. Executing-plans goes from &ldquo;all tasks verified&rdquo; straight to finishing-a-development-branch. Subagent-driven development checks each task in isolation and never looks at the branch as a whole, where scaffolding built for Task 2 and abandoned by Task 5 lives.</p>
-        <p>This spec adds one <strong>ablation pass</strong> to each of those three places. The pass is the same question asked at three points: for each abstraction introduced, remove it and name what fails. If nothing fails, it goes.</p>
+        <p>This spec adds one <strong>ablation pass</strong> to each of those three places. The pass is the same question asked at three points: for each abstraction introduced, replace it with the direct thing and name what fails. If nothing fails, it goes.</p>
+        <p><strong>&ldquo;Remove&rdquo; means replace indirection, not delete behavior.</strong> A single-use helper is inlined at its caller. An interface with one implementation is replaced by that implementation. A config knob for a value that never changes becomes the value. A wrapper that adds nothing becomes a call to what it wrapped. The behavior the abstraction carried survives; only the layer goes. The same definition applies in all three skills.</p>
       </section>
 
       <section>
@@ -136,7 +137,7 @@
 
         <h3>subagent-driven-development</h3>
         <div class="ledger">
-          <div class="row"><div class="k">Where</div><div class="v">After the last task&rsquo;s review passes and <strong>before</strong> the final code reviewer is dispatched, so the reviewer sees the ablated branch, not the pre-ablation one.</div></div>
+          <div class="row"><div class="k">Where</div><div class="v">After every task&rsquo;s ledger line reads <code>complete</code>, including <code>complete (&hellip; parked)</code> after a tripped breaker, and <strong>before</strong> the final review package is generated, so the final reviewer sees the ablated branch. The package script diffs <code>MERGE_BASE..HEAD</code>, so ablation commits must land first.</div></div>
           <div class="row"><div class="k">Who runs it</div><div class="v">The controller, directly. No new subagent. The implementer and task-reviewer prompts are unchanged.</div></div>
           <div class="row"><div class="k">What must survive</div><div class="v">Same as executing-plans. Each deletion becomes a decision card in the implementation notes and a <code>Ruling:</code> line in the ledger so it appears in the final &ldquo;Rulings I made&rdquo; roll-up.</div></div>
         </div>
@@ -154,8 +155,10 @@ Add this to the Self-Review checklist after type consistency:
 **4. Ablation:** For each abstraction the plan introduces — a helper,
 interface, base class, config knob, wrapper, or layer — name the task that
 cannot be completed without it. If no task needs it, or one direct call
-site would do, cut it from the plan. A plan gets no credit for structure
-it will not use.</code></pre>
+site would do, replace it in the plan with the direct thing: inline the
+helper's body at its one caller, name the one implementation instead of
+the interface, write the value instead of the knob. The plan still shows
+that concrete code. A plan gets no credit for structure it will not use.</code></pre>
 
         <h3>overlays/executing-plans/additions.md</h3>
 <pre><code>## mySuperpower additions — ablation pass before finishing
@@ -165,40 +168,49 @@ finishing-a-development-branch, run one ablation pass over the branch:
 
 1. List every abstraction the branch added: helpers, interfaces, base
    classes, config knobs, wrappers, layers, indirection of any kind.
-2. For each one, remove it and name what fails: a test, a spec
-   requirement, or a second caller. "It might be useful later" is not a
-   failure.
-3. If nothing fails, delete it for real and re-run the full test suite.
-4. Record each deletion as a decision card in the implementation notes.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes.
 
 Run this once, at the end. Earlier tasks build scaffolding that later
-tasks consume; ablating per task deletes it before its consumer exists.</code></pre>
+tasks consume; ablating per task removes it before its consumer exists.</code></pre>
 
         <h3>overlays/subagent-driven-development/additions.md</h3>
 <pre><code>## mySuperpower additions — ablation pass before the final review
 
-After the last task's review passes and before dispatching the final code
-reviewer, the controller runs one ablation pass over the branch itself —
-no subagent:
+Once every task's ledger line reads `complete` — including
+`complete (... parked)` after a tripped breaker — and before running
+`scripts/review-package` for the final review, the controller runs one
+ablation pass over the branch itself. No subagent:
 
 1. List every abstraction the branch added: helpers, interfaces, base
    classes, config knobs, wrappers, layers, indirection of any kind.
-2. For each one, remove it and name what fails: a test, a spec
-   requirement, or a second caller. "It might be useful later" is not a
-   failure.
-3. If nothing fails, delete it for real and re-run the full test suite.
-4. Record each deletion as a decision card in the implementation notes and
-   a `Ruling:` line in the ledger.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal. The review package diffs MERGE_BASE..HEAD,
+   so an uncommitted removal is invisible to the final reviewer.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes and a `Ruling:` line in the ledger.
 
 The final reviewer then reviews the ablated branch. Run this once, at the
-end; per-task ablation deletes scaffolding before its consumer exists.</code></pre>
+end; per-task ablation removes scaffolding before its consumer exists.</code></pre>
       </section>
 
       <section>
         <h2>Error Handling</h2>
         <div class="hazard">
           <p class="cap">Deleting something that was needed</p>
-          <p>The pass is guarded by the test suite. A deletion that turns a test red is reverted, and the abstraction is kept with its reason now known. A deletion that stays green but breaks an untested requirement is the same class of bug as any other untested requirement, and the existing rule that a supplied test must be watched failing already covers it.</p>
+          <p>The pass is guarded by the test suite, and the restore branch is in the published text (step 4), not only here. A removal that turns a test red is restored, and the abstraction is kept with its reason recorded. A removal that stays green but breaks an untested requirement is not caught by this pass. The existing watch-it-fail rule proves a supplied test is sensitive to its implementation; it does not prove every requirement has a test. That gap is the same one every other change on the branch already lives with, and step 3 asks for a spec requirement by name so the controller checks the spec, not only the suite.</p>
         </div>
         <div class="hazard">
           <p class="cap">Ablating the plan into vagueness</p>
@@ -220,7 +232,10 @@ end; per-task ablation deletes scaffolding before its consumer exists.</code></p
           <tr><td>Nothing else changed</td><td><code>git diff --stat</code></td><td>Exactly the three <code>additions.md</code> files plus this spec and its plan.</td></tr>
         </table>
         </div>
-        <p>No behavioral eval is run. The change is fork-local, adds a step rather than rewording a tuned one, and the owner requested it from a real gap rather than a theoretical one.</p>
+        <div class="hazard">
+          <p class="cap">Owner decision: no behavioral eval</p>
+          <p>The project guidelines require adversarial pressure testing for skill-content changes. That rule is written for pull requests to upstream. This change is fork-local, lives only in overlays, adds a step rather than rewording tuned content, and the owner requested it from a gap they hit. Prior fork overlay changes have shipped on the same basis. <strong>This is an explicit owner override, confirmed at spec sign-off</strong>, not an oversight. If the owner wants an eval, the plan adds one Drill scenario per skill in <code>evals/</code> before the overlay edits.</p>
+        </div>
       </section>
 
       <section>
@@ -240,7 +255,7 @@ end; per-task ablation deletes scaffolding before its consumer exists.</code></p
           <li><strong>Placeholders:</strong> none. The three text blocks are final wording.</li>
           <li><strong>Consistency:</strong> all three blocks share the same four-step procedure and the same &ldquo;name what fails&rdquo; test. The SDD block adds only the ledger line, which matches that skill&rsquo;s existing Rulings roll-up.</li>
           <li><strong>Scope:</strong> three files, one plan.</li>
-          <li><strong>Ambiguity:</strong> &ldquo;before the final code reviewer&rdquo; was the one open reading for SDD and is now fixed.</li>
+          <li><strong>Ambiguity:</strong> Codex round 1 found five: &ldquo;remove&rdquo; undefined, no restore branch in the published text, no commit step before the SDD review package, an SDD trigger that skipped parked-finding completions, and an eval exemption stated as fact rather than as an owner decision. All five are fixed above.</li>
         </ul>
       </section>
     </main>
