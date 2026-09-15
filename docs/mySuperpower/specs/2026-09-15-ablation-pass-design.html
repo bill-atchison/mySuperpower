@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ablation Pass for Plans and Implementation</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:880px;margin:0 auto;}
+  main p,main ul,main ol{max-width:84ch;}
+  main pre{max-width:100%;overflow-x:auto;}
+
+  /* ---- FIXED masthead (do not restyle) ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:46ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .status-pill{display:inline-block;border:1px solid var(--amber);color:var(--amber);
+               border-radius:999px;padding:.12rem .75rem;font-size:.82rem;letter-spacing:.08em;
+               text-transform:uppercase;line-height:1.45;background:transparent;}
+
+  /* ---- BODY ---- */
+  main{margin-top:3.25rem;}
+  main section{margin:0 0 3.25rem;}
+  main h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.15rem);font-weight:700;
+          line-height:1.15;margin:0 0 1.15rem;padding-left:1rem;
+          border-left:4px solid var(--maroon);}
+  main h3{font-family:var(--mono);font-size:1rem;font-weight:700;letter-spacing:.02em;
+          color:var(--maroon);margin:2.1rem 0 .7rem;}
+  main p{font-size:1.08rem;line-height:1.68;margin:0 0 1.05rem;}
+  main ul,main ol{font-size:1.08rem;line-height:1.66;margin:0 0 1.15rem;padding-left:1.4rem;}
+  main li{margin:0 0 .5rem;}
+  main li::marker{color:var(--maroon);}
+  code{font-family:var(--mono);font-size:.9em;background:var(--meta-bg);
+       padding:.08em .34em;border-radius:4px;color:var(--value);}
+  pre{font-family:var(--mono);background:var(--meta-bg);border-left:4px solid var(--maroon);
+      border-radius:0 10px 10px 0;padding:1.1rem 1.35rem;overflow-x:auto;
+      font-size:.9rem;line-height:1.55;margin:0 0 1.35rem;white-space:pre-wrap;}
+  pre code{background:none;padding:0;font-size:inherit;}
+
+  /* Signature: the ablation ledger. The whole spec is one question asked three
+     times — "delete it; what fails?" — so each skill's placement is shown as a
+     ledger row: where the pass sits, what it deletes, what must stay green. */
+  .ledger{border-top:1px solid rgba(138,43,39,.28);margin:0 0 1.4rem;}
+  .ledger .row{display:grid;grid-template-columns:11rem 1fr;gap:.9rem;align-items:baseline;
+               border-bottom:1px solid rgba(138,43,39,.28);padding:.72rem .2rem;}
+  .ledger .k{font-family:var(--mono);font-size:.82rem;letter-spacing:.08em;
+             text-transform:uppercase;color:var(--label);}
+  .ledger .v{font-size:1.02rem;line-height:1.55;}
+
+  .hazard{background:var(--meta-bg);border-left:6px solid var(--maroon);border-radius:0 12px 12px 0;
+          padding:1.15rem 1.5rem;margin:0 0 1.35rem;}
+  .hazard .cap{font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;
+               text-transform:uppercase;color:var(--maroon);font-weight:700;margin:0 0 .5rem;}
+  .hazard p{margin:0 0 .6rem;font-size:1.02rem;}
+  .hazard p:last-child{margin-bottom:0;}
+
+  .tablewrap{overflow-x:auto;margin:0 0 1.45rem;}
+  table{border-collapse:collapse;width:100%;font-size:.97rem;}
+  th,td{text-align:left;vertical-align:top;padding:.62rem .85rem;
+        border-bottom:1px solid rgba(138,43,39,.24);}
+  th{font-family:var(--mono);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--label);font-weight:700;border-bottom:1.5px solid var(--maroon);}
+
+  @media (max-width:720px){
+    body{padding:2.25rem 1.15rem;}
+    .ledger .row{grid-template-columns:1fr;gap:.25rem;}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .ledger .row{transition:background .18s ease;}
+    .ledger .row:hover{background:rgba(233,225,205,.55);}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Spec &middot; Design</p>
+      <h1>Ablation Pass for Plans and Implementation</h1>
+      <p class="subtitle">Turn &ldquo;YAGNI&rdquo; from a value into a step: delete each abstraction, see what fails, keep only what something needs.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-09-15</dd>
+        <dt>Branch</dt><dd>feature/ablation-pass</dd>
+        <dt>Status</dt><dd><span class="status-pill">Design &mdash; Awaiting Plan + Impl</span></dd>
+        <dt>Source</dt><dd>Owner proposal: &ldquo;after finishing the design or implementation each time, conduct an ablation experiment, removing unnecessary abstractions and designs.&rdquo;</dd>
+      </dl>
+    </header>
+
+    <main>
+      <section>
+        <h2>Overview</h2>
+        <p>The skills already hold the principle. Brainstorming says &ldquo;YAGNI ruthlessly&rdquo;, writing-plans says &ldquo;DRY. YAGNI. TDD.&rdquo; in its intro, and the subagent-driven implementer and reviewer prompts each carry an over-building check per task. What none of them has is a <em>procedure</em> run at the end, over the whole artifact, that asks a checkable question. The writing-plans Self-Review lists three concrete checks (spec coverage, placeholders, type consistency) and nothing about excess design. Executing-plans goes from &ldquo;all tasks verified&rdquo; straight to finishing-a-development-branch. Subagent-driven development checks each task in isolation and never looks at the branch as a whole, where scaffolding built for Task 2 and abandoned by Task 5 lives.</p>
+        <p>This spec adds one <strong>ablation pass</strong> to each of those three places. The pass is the same question asked at three points: for each abstraction introduced, replace it with the direct thing and name what fails. If nothing fails, it goes.</p>
+        <p><strong>&ldquo;Remove&rdquo; means replace indirection, not delete behavior.</strong> A single-use helper is inlined at its caller. An interface with one implementation is replaced by that implementation. A config knob for a value that never changes becomes the value. A wrapper that adds nothing becomes a call to what it wrapped. The behavior the abstraction carried survives; only the layer goes. The same definition applies in all three skills.</p>
+      </section>
+
+      <section>
+        <h2>Chosen Approach</h2>
+        <p><strong>Inline text in the three fork overlays.</strong> Each of <code>overlays/writing-plans/additions.md</code>, <code>overlays/executing-plans/additions.md</code> and <code>overlays/subagent-driven-development/additions.md</code> gains a short section, worded for that skill&rsquo;s position in the flow. The build script already appends these files to the published skills, so nothing in <code>scripts/</code>, <code>overlay.json</code> or <code>tests/</code> needs to change.</p>
+        <p>Rejected: a single shared <code>ablation-pass.md</code> copied into all three skills. It removes about twenty lines of duplication at the cost of a build-script change and a fork-owned-file entry in three manifests. Not worth it.</p>
+        <p>Rejected: editing the upstream files under <code>skills/</code>. The project guidelines require eval evidence for behavior-shaping changes to upstream skill content, and the fork keeps its changes in overlays so upstream merges stay clean.</p>
+      </section>
+
+      <section>
+        <h2>Placement</h2>
+        <p>The pass runs <strong>once, at the end</strong>, in every skill. Per-task ablation was considered and rejected: early tasks in a plan build helpers and types that later tasks consume, and a per-task pass would delete them before their consumer exists.</p>
+
+        <h3>writing-plans</h3>
+        <div class="ledger">
+          <div class="row"><div class="k">Where</div><div class="v">Fourth item in the existing Self-Review checklist, after Type consistency, before Execution Handoff.</div></div>
+          <div class="row"><div class="k">What it deletes</div><div class="v">Abstractions the plan introduces that no task requires: helpers, interfaces, base classes, config knobs, wrappers, layers.</div></div>
+          <div class="row"><div class="k">What must survive</div><div class="v">Every spec requirement still maps to a task. The plan still names concrete files and code.</div></div>
+        </div>
+
+        <h3>executing-plans</h3>
+        <div class="ledger">
+          <div class="row"><div class="k">Where</div><div class="v">Between &ldquo;all tasks complete and verified&rdquo; (Step 3) and the finishing-a-development-branch handoff.</div></div>
+          <div class="row"><div class="k">What it deletes</div><div class="v">Abstractions the branch added that no test, spec requirement, or second caller depends on.</div></div>
+          <div class="row"><div class="k">What must survive</div><div class="v">The full test suite, green, after each deletion. Each deletion recorded as a decision card in the live implementation notes.</div></div>
+        </div>
+
+        <h3>subagent-driven-development</h3>
+        <div class="ledger">
+          <div class="row"><div class="k">Where</div><div class="v">After every task&rsquo;s ledger line reads <code>complete</code>, including <code>complete (&hellip; parked)</code> after a tripped breaker, and <strong>before</strong> the final review package is generated, so the final reviewer sees the ablated branch. The package script diffs <code>MERGE_BASE..HEAD</code>, so ablation commits must land first.</div></div>
+          <div class="row"><div class="k">Who runs it</div><div class="v">The controller, directly. No new subagent. The implementer and task-reviewer prompts are unchanged.</div></div>
+          <div class="row"><div class="k">What must survive</div><div class="v">Same as executing-plans. Each deletion becomes a decision card in the implementation notes and a <code>Ruling:</code> line in the ledger so it appears in the final &ldquo;Rulings I made&rdquo; roll-up.</div></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>The Text</h2>
+        <p>The wording below is the deliverable. The plan may tighten phrasing but not change the procedure, the placement, or the &ldquo;name what fails&rdquo; test.</p>
+
+        <h3>overlays/writing-plans/additions.md</h3>
+<pre><code>## mySuperpower additions — Self-Review, item 4
+
+Add this to the Self-Review checklist after type consistency:
+
+**4. Ablation:** For each abstraction the plan introduces — a helper,
+interface, base class, config knob, wrapper, or layer — name the task that
+cannot be completed without it. If no task needs it, or one direct call
+site would do, replace it in the plan with the direct thing: inline the
+helper's body at its one caller, name the one implementation instead of
+the interface, write the value instead of the knob. The plan still shows
+that concrete code. A plan gets no credit for structure it will not use.</code></pre>
+
+        <h3>overlays/executing-plans/additions.md</h3>
+<pre><code>## mySuperpower additions — ablation pass before finishing
+
+After all tasks are complete and verified, and before invoking
+finishing-a-development-branch, run one ablation pass over the branch:
+
+1. List every abstraction the branch added: helpers, interfaces, base
+   classes, config knobs, wrappers, layers, indirection of any kind.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes.
+
+Run this once, at the end. Earlier tasks build scaffolding that later
+tasks consume; ablating per task removes it before its consumer exists.</code></pre>
+
+        <h3>overlays/subagent-driven-development/additions.md</h3>
+<pre><code>## mySuperpower additions — ablation pass before the final review
+
+Once every task's ledger line reads `complete` — including
+`complete (... parked)` after a tripped breaker — and before running
+`scripts/review-package` for the final review, the controller runs one
+ablation pass over the branch itself. No subagent:
+
+1. List every abstraction the branch added: helpers, interfaces, base
+   classes, config knobs, wrappers, layers, indirection of any kind.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal. The review package diffs MERGE_BASE..HEAD,
+   so an uncommitted removal is invisible to the final reviewer.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes and a `Ruling:` line in the ledger.
+
+The final reviewer then reviews the ablated branch. Run this once, at the
+end; per-task ablation removes scaffolding before its consumer exists.</code></pre>
+      </section>
+
+      <section>
+        <h2>Error Handling</h2>
+        <div class="hazard">
+          <p class="cap">Deleting something that was needed</p>
+          <p>The pass is guarded by the test suite, and the restore branch is in the published text (step 4), not only here. A removal that turns a test red is restored, and the abstraction is kept with its reason recorded. A removal that stays green but breaks an untested requirement is not caught by this pass. The existing watch-it-fail rule proves a supplied test is sensitive to its implementation; it does not prove every requirement has a test. That gap is the same one every other change on the branch already lives with, and step 3 asks for a spec requirement by name so the controller checks the spec, not only the suite.</p>
+        </div>
+        <div class="hazard">
+          <p class="cap">Ablating the plan into vagueness</p>
+          <p>Cutting an abstraction from a plan must not cut the concrete code that replaces it. The writing-plans item says &ldquo;one direct call site would do&rdquo;: the plan then shows that call site. The existing placeholder scan runs before this item and still applies after it.</p>
+        </div>
+        <div class="hazard">
+          <p class="cap">Overlay text drifting from the upstream section it targets</p>
+          <p>All three additions are appended, not spliced, so an upstream rename of &ldquo;Self-Review&rdquo; or &ldquo;Step 3&rdquo; leaves the text present but pointing at a stale name. The build&rsquo;s <code>replaces</code> entries with <code>required: true</code> are the existing mechanism for catching that, and no new required replace is added here because none of the three additions depends on a literal upstream string.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Testing</h2>
+        <div class="tablewrap">
+        <table>
+          <tr><th>Check</th><th>How</th><th>Pass when</th></tr>
+          <tr><td>Overlay mechanics still work</td><td><code>pwsh tests/mysuperpower/test-overlay-files.ps1</code></td><td>Exit 0, no FAIL lines.</td></tr>
+          <tr><td>Text reaches the published skills</td><td>Build, then grep <code>dist/</code> for the three section headings</td><td>One hit each in writing-plans, executing-plans, subagent-driven-development.</td></tr>
+          <tr><td>Nothing else changed</td><td><code>git diff --stat</code></td><td>Exactly the three <code>additions.md</code> files plus this spec and its plan.</td></tr>
+        </table>
+        </div>
+        <div class="hazard">
+          <p class="cap">Owner decision: no behavioral eval</p>
+          <p>The project guidelines require adversarial pressure testing for skill-content changes. That rule is written for pull requests to upstream. This change is fork-local, lives only in overlays, adds a step rather than rewording tuned content, and the owner requested it from a gap they hit. Prior fork overlay changes have shipped on the same basis. <strong>This is an explicit owner override, confirmed at spec sign-off</strong>, not an oversight. If the owner wants an eval, the plan adds one Drill scenario per skill in <code>evals/</code> before the overlay edits.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Non-Goals</h2>
+        <ul>
+          <li>No changes to files under <code>skills/</code>.</li>
+          <li>No per-task ablation.</li>
+          <li>No change to the implementer or task-reviewer prompt templates.</li>
+          <li>No mention of harness-specific commands such as <code>/simplify</code> in the skill text.</li>
+          <li>No ablation line for brainstorming. It already says &ldquo;YAGNI ruthlessly&rdquo; at design time.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Self-Review</h2>
+        <ul>
+          <li><strong>Placeholders:</strong> none. The three text blocks are final wording.</li>
+          <li><strong>Consistency:</strong> all three blocks share the same four-step procedure and the same &ldquo;name what fails&rdquo; test. The SDD block adds only the ledger line, which matches that skill&rsquo;s existing Rulings roll-up.</li>
+          <li><strong>Scope:</strong> three files, one plan.</li>
+          <li><strong>Ambiguity:</strong> Codex round 1 found five: &ldquo;remove&rdquo; undefined, no restore branch in the published text, no commit step before the SDD review package, an SDD trigger that skipped parked-finding completions, and an eval exemption stated as fact rather than as an owner decision. All five are fixed above.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

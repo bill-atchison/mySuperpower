@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ablation Pass Implementation Plan</title>
+<style>
+  :root{
+    --paper:#f4efe1; --ink:#221f18; --maroon:#8a2b27; --meta-bg:#e9e1cd;
+    --label:#6d5f4e; --value:#2b2820; --amber:#a8762b;
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'Cascadia Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);padding:3.5rem 2rem;}
+  .wrap{max-width:880px;margin:0 auto;}
+  main p,main ul,main ol{max-width:84ch;}
+  main pre{max-width:100%;overflow-x:auto;}
+
+  /* ---- FIXED masthead (do not restyle) ---- */
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.35em;
+           font-size:.8rem;font-weight:700;color:var(--maroon);margin:0 0 1.1rem;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(2.6rem,6vw,4rem);
+     line-height:1.04;letter-spacing:-.01em;margin:0 0 .9rem;}
+  .subtitle{font-family:var(--serif);font-style:italic;font-weight:700;
+            font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.3;
+            margin:0 0 1.9rem;max-width:52ch;}
+  .meta-card{display:grid;grid-template-columns:max-content 1fr;column-gap:1.75rem;
+             row-gap:.55rem;align-items:baseline;background:var(--meta-bg);
+             border-radius:14px;border-left:6px solid var(--maroon);padding:1.4rem 1.85rem;}
+  .meta-card dt{font-family:var(--mono);color:var(--label);font-size:.95rem;font-weight:400;}
+  .meta-card dd{font-family:var(--mono);color:var(--value);font-size:.95rem;margin:0;word-break:break-word;}
+  .agentic-note{background:var(--meta-bg);border-radius:14px;padding:1.25rem 1.85rem;
+                margin-top:1rem;font-family:var(--mono);color:var(--value);
+                font-size:.92rem;line-height:1.6;}
+
+  /* ---- BODY ---- */
+  main{margin-top:3.25rem;}
+  main > section{margin:0 0 3.25rem;}
+  main h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.15rem);font-weight:700;
+          line-height:1.15;margin:0 0 1.15rem;padding-left:1rem;
+          border-left:4px solid var(--maroon);}
+  main h3{font-family:var(--mono);font-size:1rem;font-weight:700;letter-spacing:.02em;
+          color:var(--maroon);margin:2.1rem 0 .7rem;}
+  main p{font-size:1.08rem;line-height:1.68;margin:0 0 1.05rem;}
+  main ul,main ol{font-size:1.08rem;line-height:1.66;margin:0 0 1.15rem;padding-left:1.4rem;}
+  main li{margin:0 0 .5rem;}
+  main li::marker{color:var(--maroon);}
+  code{font-family:var(--mono);font-size:.9em;background:var(--meta-bg);
+       padding:.08em .34em;border-radius:4px;color:var(--value);}
+  pre{font-family:var(--mono);background:var(--meta-bg);border-left:4px solid var(--maroon);
+      border-radius:0 10px 10px 0;padding:1.1rem 1.35rem;overflow-x:auto;
+      font-size:.9rem;line-height:1.55;margin:0 0 1.35rem;}
+  pre code{background:none;padding:0;font-size:inherit;}
+
+  /* Overview ledger: Goal / Architecture / Stack as a labelled grid. */
+  .kv{display:grid;grid-template-columns:9rem 1fr;gap:.6rem 1.2rem;margin:0 0 1.4rem;
+      border-top:1px solid rgba(138,43,39,.28);padding-top:.9rem;}
+  .kv dt{font-family:var(--mono);font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;
+         color:var(--label);}
+  .kv dd{margin:0;font-size:1.05rem;line-height:1.6;}
+
+  /* Task sections: a numbered card with a files strip and checkbox steps. */
+  section.task{background:rgba(233,225,205,.45);border-radius:14px;padding:1.6rem 1.85rem 1.2rem;
+               margin:0 0 2.4rem;border-left:6px solid var(--amber);}
+  section.task h2{border-left:none;padding-left:0;font-size:1.55rem;margin-bottom:.9rem;}
+  section.task h2 .n{font-family:var(--mono);color:var(--amber);font-size:.85rem;
+                     letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:.35rem;}
+  .files{font-family:var(--mono);font-size:.9rem;line-height:1.6;margin:0 0 1.2rem;
+         padding:.75rem 1rem;background:var(--paper);border-radius:8px;}
+  .files span{color:var(--label);}
+  ol.steps{list-style:none;padding-left:0;margin:0;}
+  li.step{position:relative;padding-left:2.1rem;margin:0 0 1.15rem;}
+  li.step::before{content:"";position:absolute;left:0;top:.28rem;width:1.05rem;height:1.05rem;
+                  border:2px solid var(--amber);border-radius:4px;background:var(--paper);}
+  li.step > strong{display:block;margin-bottom:.35rem;}
+  li.step pre{margin-top:.5rem;}
+  .expect{font-family:var(--mono);font-size:.88rem;color:var(--label);margin:.3rem 0 .6rem;}
+  .expect b{color:var(--maroon);font-weight:700;}
+
+  .tablewrap{overflow-x:auto;margin:0 0 1.45rem;}
+  table{border-collapse:collapse;width:100%;font-size:.97rem;}
+  th,td{text-align:left;vertical-align:top;padding:.62rem .85rem;
+        border-bottom:1px solid rgba(138,43,39,.24);}
+  th{font-family:var(--mono);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--label);font-weight:700;border-bottom:1.5px solid var(--maroon);}
+
+  @media (max-width:720px){
+    body{padding:2.25rem 1.15rem;}
+    .kv{grid-template-columns:1fr;gap:.2rem;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Plan &middot; Implementation</p>
+      <h1>Ablation Pass Implementation Plan</h1>
+      <p class="subtitle">Append one ablation-pass section to each of three fork overlays, proven through the build.</p>
+      <dl class="meta-card">
+        <dt>Date</dt><dd>2026-09-15</dd>
+        <dt>Branch</dt><dd>feature/ablation-pass</dd>
+        <dt>Spec</dt><dd>docs/mySuperpower/specs/2026-09-15-ablation-pass-design.html</dd>
+      </dl>
+      <p class="agentic-note">REQUIRED SUB-SKILL: execute task-by-task with TDD (red &rarr; green &rarr; commit) using subagent-driven-development (recommended) or executing-plans. Codex review of this plan + spec before implementation; per-task two-stage review. Steps are checkbox-styled; track progress with your task tools, not by editing this file.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Overview</h2>
+        <dl class="kv">
+          <dt>Goal</dt><dd>Add an end-of-artifact ablation pass to the writing-plans, executing-plans and subagent-driven-development skills, through the fork&rsquo;s overlay mechanism only.</dd>
+          <dt>Architecture</dt><dd>Each skill has an <code>overlays/&lt;skill&gt;/additions.md</code> that the build appends to the upstream <code>SKILL.md</code>. Three tasks, one per overlay, each appending a section whose wording is fixed in the spec. The build is the test harness: a section is present when its heading appears once in the built skill.</dd>
+          <dt>Tech Stack</dt><dd>Markdown, PowerShell 7 (<code>scripts/build-mysuperpower.ps1</code>), bash grep, git.</dd>
+        </dl>
+        <p>The text for each section is copied <strong>verbatim</strong> from the spec&rsquo;s &ldquo;The Text&rdquo; section. The spec says the plan may tighten phrasing but not change the procedure; this plan does not tighten it, so the spec and the shipped text stay identical and one grep checks both.</p>
+      </section>
+
+      <section>
+        <h2>Global Constraints</h2>
+        <ul>
+          <li>Touch only <code>overlays/writing-plans/additions.md</code>, <code>overlays/executing-plans/additions.md</code>, <code>overlays/subagent-driven-development/additions.md</code>. Nothing under <code>skills/</code>, no <code>overlay.json</code>, no <code>scripts/</code>.</li>
+          <li>Section headings use the fork&rsquo;s existing form: <code>## mySuperpower additions — &lt;topic&gt;</code> with an em dash, matching the headings already in each file.</li>
+          <li>Append at end of file, one blank line after the current last line. The build trims trailing whitespace and re-joins with a blank line, so file-end spacing does not affect output.</li>
+          <li>Files use LF line endings and no BOM, as the existing overlay files do. Write with a heredoc from bash, not from PowerShell, to keep that.</li>
+          <li>The <code>dist/</code> directory is gitignored. Never <code>git add</code> it.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How the build proves each task</h2>
+        <p>The build appends each overlay&rsquo;s <code>additions.md</code> to the matching <code>dist/skills/&lt;skill&gt;/SKILL.md</code>. So the red&ndash;green cycle for prose is: grep the built skill for the new heading, see zero, append, rebuild, see one. Rebuilding takes about two seconds. The overlay test suite takes about twenty seconds and runs once per task before commit.</p>
+<pre><code>pwsh -NoProfile -File scripts/build-mysuperpower.ps1
+grep -c "mySuperpower additions — &lt;heading topic&gt;" dist/skills/&lt;skill&gt;/SKILL.md
+pwsh -NoProfile -File tests/mysuperpower/test-overlay-files.ps1</code></pre>
+        <p>Baseline on this branch, measured before writing this plan: build exits 0 and prints <code>skills=14</code>; the grep returns <code>0</code> for all three skills; the overlay test prints <code>overlay files tests passed</code>.</p>
+      </section>
+
+      <section class="task">
+        <h2><span class="n">Task 1</span>writing-plans: Self-Review item 4</h2>
+        <div class="files">
+          <span>Modify:</span> overlays/writing-plans/additions.md <span>(currently 55 lines; append after line 55)</span><br>
+          <span>Test:</span> dist/skills/writing-plans/SKILL.md via build + grep
+        </div>
+        <p><strong>Interfaces.</strong> Consumes nothing. Produces the heading <code>## mySuperpower additions — Self-Review, item 4</code>, which Task 4&rsquo;s final grep counts.</p>
+        <ol class="steps">
+          <li class="step"><strong>Step 1: Confirm the heading is absent from the built skill</strong>
+<pre><code>cd "$(git rev-parse --show-toplevel)"
+pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — Self-Review, item 4" dist/skills/writing-plans/SKILL.md</code></pre>
+            <p class="expect">Expected: build line contains <b>skills=14</b>; grep prints <b>0</b>.</p>
+          </li>
+          <li class="step"><strong>Step 2: Append the section</strong>
+<pre><code>cat &gt;&gt; overlays/writing-plans/additions.md &lt;&lt;'EOF'
+
+## mySuperpower additions — Self-Review, item 4
+
+Add this to the Self-Review checklist after type consistency:
+
+**4. Ablation:** For each abstraction the plan introduces — a helper,
+interface, base class, config knob, wrapper, or layer — name the task that
+cannot be completed without it. If no task needs it, or one direct call
+site would do, replace it in the plan with the direct thing: inline the
+helper's body at its one caller, name the one implementation instead of
+the interface, write the value instead of the knob. The plan still shows
+that concrete code. A plan gets no credit for structure it will not use.
+EOF</code></pre>
+          </li>
+          <li class="step"><strong>Step 3: Rebuild and confirm the heading is present once</strong>
+<pre><code>pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — Self-Review, item 4" dist/skills/writing-plans/SKILL.md
+tail -12 dist/skills/writing-plans/SKILL.md</code></pre>
+            <p class="expect">Expected: build line contains <b>skills=14</b>; grep prints <b>1</b>; the tail shows the block above, ending with &ldquo;structure it will not use.&rdquo;</p>
+          </li>
+          <li class="step"><strong>Step 4: Run the overlay test suite</strong>
+<pre><code>pwsh -NoProfile -File tests/mysuperpower/test-overlay-files.ps1 | tail -1</code></pre>
+            <p class="expect">Expected: <b>overlay files tests passed</b>.</p>
+          </li>
+          <li class="step"><strong>Step 5: Commit</strong>
+<pre><code>git add overlays/writing-plans/additions.md
+git commit -m "feat(overlays): ablation item in writing-plans self-review"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h2><span class="n">Task 2</span>executing-plans: ablation pass before finishing</h2>
+        <div class="files">
+          <span>Modify:</span> overlays/executing-plans/additions.md <span>(currently 68 lines; append after line 68)</span><br>
+          <span>Test:</span> dist/skills/executing-plans/SKILL.md via build + grep
+        </div>
+        <p><strong>Interfaces.</strong> Consumes nothing. Produces the heading <code>## mySuperpower additions — ablation pass before finishing</code>.</p>
+        <ol class="steps">
+          <li class="step"><strong>Step 1: Confirm the heading is absent from the built skill</strong>
+<pre><code>cd "$(git rev-parse --show-toplevel)"
+pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — ablation" dist/skills/executing-plans/SKILL.md</code></pre>
+            <p class="expect">Expected: build line contains <b>skills=14</b>; grep prints <b>0</b>.</p>
+          </li>
+          <li class="step"><strong>Step 2: Append the section</strong>
+<pre><code>cat &gt;&gt; overlays/executing-plans/additions.md &lt;&lt;'EOF'
+
+## mySuperpower additions — ablation pass before finishing
+
+After all tasks are complete and verified, and before invoking
+finishing-a-development-branch, run one ablation pass over the branch:
+
+1. List every abstraction the branch added: helpers, interfaces, base
+   classes, config knobs, wrappers, layers, indirection of any kind.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes.
+
+Run this once, at the end. Earlier tasks build scaffolding that later
+tasks consume; ablating per task removes it before its consumer exists.
+EOF</code></pre>
+          </li>
+          <li class="step"><strong>Step 3: Rebuild and confirm the heading is present once</strong>
+<pre><code>pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — ablation" dist/skills/executing-plans/SKILL.md
+tail -20 dist/skills/executing-plans/SKILL.md</code></pre>
+            <p class="expect">Expected: build line contains <b>skills=14</b>; grep prints <b>1</b>; the tail ends with &ldquo;before its consumer exists.&rdquo;</p>
+          </li>
+          <li class="step"><strong>Step 4: Run the overlay test suite</strong>
+<pre><code>pwsh -NoProfile -File tests/mysuperpower/test-overlay-files.ps1 | tail -1</code></pre>
+            <p class="expect">Expected: <b>overlay files tests passed</b>.</p>
+          </li>
+          <li class="step"><strong>Step 5: Commit</strong>
+<pre><code>git add overlays/executing-plans/additions.md
+git commit -m "feat(overlays): ablation pass before finishing in executing-plans"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h2><span class="n">Task 3</span>subagent-driven-development: ablation pass before the final review</h2>
+        <div class="files">
+          <span>Modify:</span> overlays/subagent-driven-development/additions.md <span>(currently 122 lines; append after line 122)</span><br>
+          <span>Test:</span> dist/skills/subagent-driven-development/SKILL.md via build + grep
+        </div>
+        <p><strong>Interfaces.</strong> Consumes nothing. Produces the heading <code>## mySuperpower additions — ablation pass before the final review</code>. The text names <code>scripts/review-package</code>, which is upstream&rsquo;s <code>skills/subagent-driven-development/scripts/review-package</code>, already shipped in dist, and the <code>Ruling:</code> ledger convention from the same skill&rsquo;s Finish section.</p>
+        <ol class="steps">
+          <li class="step"><strong>Step 1: Confirm the heading is absent from the built skill</strong>
+<pre><code>cd "$(git rev-parse --show-toplevel)"
+pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — ablation" \
+  dist/skills/subagent-driven-development/SKILL.md</code></pre>
+            <p class="expect">Expected: build line contains <b>skills=14</b>; grep prints <b>0</b>.</p>
+          </li>
+          <li class="step"><strong>Step 2: Append the section</strong>
+<pre><code>cat &gt;&gt; overlays/subagent-driven-development/additions.md &lt;&lt;'EOF'
+
+## mySuperpower additions — ablation pass before the final review
+
+Once every task's ledger line reads `complete` — including
+`complete (... parked)` after a tripped breaker — and before running
+`scripts/review-package` for the final review, the controller runs one
+ablation pass over the branch itself. No subagent:
+
+1. List every abstraction the branch added: helpers, interfaces, base
+   classes, config knobs, wrappers, layers, indirection of any kind.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal. The review package diffs MERGE_BASE..HEAD,
+   so an uncommitted removal is invisible to the final reviewer.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes and a `Ruling:` line in the ledger.
+
+The final reviewer then reviews the ablated branch. Run this once, at the
+end; per-task ablation removes scaffolding before its consumer exists.
+EOF</code></pre>
+          </li>
+          <li class="step"><strong>Step 3: Rebuild and confirm the heading is present once</strong>
+<pre><code>pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — ablation" dist/skills/subagent-driven-development/SKILL.md
+tail -22 dist/skills/subagent-driven-development/SKILL.md</code></pre>
+            <p class="expect">Expected: build line contains <b>skills=14</b>; grep prints <b>1</b>; the tail ends with &ldquo;before its consumer exists.&rdquo;</p>
+          </li>
+          <li class="step"><strong>Step 4: Run the overlay test suite</strong>
+<pre><code>pwsh -NoProfile -File tests/mysuperpower/test-overlay-files.ps1 | tail -1</code></pre>
+            <p class="expect">Expected: <b>overlay files tests passed</b>.</p>
+          </li>
+          <li class="step"><strong>Step 5: Commit</strong>
+<pre><code>git add overlays/subagent-driven-development/additions.md
+git commit -m "feat(overlays): ablation pass before final review in SDD"</code></pre>
+          </li>
+        </ol>
+      </section>
+
+      <section class="task">
+        <h2><span class="n">Task 4</span>Whole-branch check, ablation, final commit</h2>
+        <div class="files">
+          <span>Modify:</span> none expected<br>
+          <span>Test:</span> dist/skills/*/SKILL.md, git diff --stat, tests/mysuperpower/test-dist-call-sites.sh
+        </div>
+        <p><strong>Interfaces.</strong> Consumes the three headings produced by Tasks 1&ndash;3. Produces nothing new. This task is the plan applying its own rule to itself: run the ablation pass on the three sections just written, then verify the branch matches the spec&rsquo;s Testing table.</p>
+        <ol class="steps">
+          <li class="step"><strong>Step 1: Rebuild and count every heading</strong>
+<pre><code>cd "$(git rev-parse --show-toplevel)"
+pwsh -NoProfile -File scripts/build-mysuperpower.ps1 | tail -1
+grep -c "mySuperpower additions — Self-Review, item 4" dist/skills/writing-plans/SKILL.md
+grep -c "mySuperpower additions — ablation pass before finishing" dist/skills/executing-plans/SKILL.md
+grep -c "mySuperpower additions — ablation pass before the final review" \
+  dist/skills/subagent-driven-development/SKILL.md
+grep -rlE "additions — (Self-Review, item 4|ablation pass)" dist/skills | wc -l</code></pre>
+            <p class="expect">Expected: each grep prints <b>1</b>; the file count prints <b>3</b>. A count above 3 means a section leaked into a fourth skill.</p>
+          </li>
+          <li class="step"><strong>Step 2: Confirm the shipped text matches the spec verbatim</strong>
+            <p>The spec&rsquo;s three <code>&lt;pre&gt;&lt;code&gt;</code> blocks are the source of truth. Extract each block from the spec, unescape HTML entities, and diff it against the tail of the <strong>built</strong> skill in <code>dist/</code>, which is what ships. Diffing the built file rather than the overlay source also proves the build&rsquo;s rebrand cascade left the text alone. Zero diff lines means the plan changed nothing.</p>
+<pre><code>SPEC=docs/mySuperpower/specs/2026-09-15-ablation-pass-design.html
+unesc() { sed -e 's/&amp;lt;/&lt;/g' -e 's/&amp;gt;/&gt;/g' -e 's/&amp;amp;/\&amp;/g' \
+              -e 's/&amp;ldquo;/"/g' -e 's/&amp;rdquo;/"/g' -e "s/&amp;rsquo;/'/g" -e 's/&amp;hellip;/.../g'; }
+block() { awk -v n="$1" '/&lt;pre&gt;&lt;code&gt;/{c++} c==n{print} /&lt;\/code&gt;&lt;\/pre&gt;/{if(c==n)exit}' "$SPEC" \
+  | sed -e '1s/^&lt;pre&gt;&lt;code&gt;//' -e '$s/&lt;\/code&gt;&lt;\/pre&gt;$//' | unesc; }
+shipped() { sed -n "/^## mySuperpower additions — $2/,\$p" "dist/skills/$1/SKILL.md"; }
+diff &lt;(block 1) &lt;(shipped writing-plans "Self-Review, item 4") &amp;&amp; echo WP-OK
+diff &lt;(block 2) &lt;(shipped executing-plans "ablation pass before finishing") &amp;&amp; echo EP-OK
+diff &lt;(block 3) &lt;(shipped subagent-driven-development "ablation pass before the final review") \
+  &amp;&amp; echo SDD-OK</code></pre>
+            <p class="expect">Expected: <b>WP-OK</b>, <b>EP-OK</b>, <b>SDD-OK</b>, no diff output. If a diff appears, the overlay is wrong, not the spec: fix the overlay, rebuild, and rerun. The build writes the appended section as the last thing in each file, so the sed range runs to end of file.</p>
+          </li>
+          <li class="step"><strong>Step 3: Run every fork test that touches dist</strong>
+<pre><code>pwsh -NoProfile -File tests/mysuperpower/test-overlay-files.ps1 | tail -1
+bash tests/mysuperpower/test-dist-call-sites.sh</code></pre>
+            <p class="expect">Expected: <b>overlay files tests passed</b>; <b>dist call-site check passed</b>.</p>
+          </li>
+          <li class="step"><strong>Step 4: Ablation pass on the branch</strong>
+            <p>List every abstraction the branch added. Expected answer: none. The branch adds prose to three files and no helper, script, config or manifest entry. If the implementer added anything beyond the three appended sections, this is where it comes out: replace it with the direct thing, rebuild, rerun Step 1, and record the removal as a decision card in the implementation notes.</p>
+<pre><code>git diff --stat mysuperpower..HEAD</code></pre>
+            <p class="expect">Expected: exactly five committed paths: the three <b>additions.md</b> files, the spec, and this plan. The live implementation notes at <b>docs/mySuperpower/implementation-notes/2026-09-15-ablation-pass.html</b> are still uncommitted at this point, by design, and do not appear in this diff. Any other committed path is a candidate for removal.</p>
+          </li>
+          <li class="step"><strong>Step 5: Confirm the branch state and hand back</strong>
+<pre><code>git status --short
+git log --oneline mysuperpower..HEAD</code></pre>
+            <p class="expect">Expected: status shows only the uncommitted implementation-notes file; log shows the two spec commits, the plan commit, three overlay commits, plus any ablation commit from Step 4.</p>
+            <p>Do not finalize or commit the notes here. The executing skill owns that: executing-plans finalizes them at its end step, and subagent-driven-development finalizes them after the final whole-branch review. Each then hands off to finishing-a-development-branch.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Risks</h2>
+        <div class="tablewrap">
+        <table>
+          <tr><th>Risk</th><th>Mitigation</th></tr>
+          <tr><td>Heredoc written from PowerShell adds CRLF or a BOM, and the built skill ships mixed line endings.</td><td>Global constraint: use bash heredocs. Task 4 Step 2 diffs the overlay tail against the spec, and CRLF shows as a diff.</td></tr>
+          <tr><td>Em dash in the heading typed as a hyphen, so the grep pattern misses it.</td><td>The heredocs carry the em dash literally. The grep pattern in every step uses the same character. A <code>0</code> in Step 3 of any task means the heading is wrong.</td></tr>
+          <tr><td>Section appended to the wrong overlay.</td><td>Task 4 Step 1 counts per-file and total. A file at <code>2</code> or a total above <code>3</code> fails.</td></tr>
+          <tr><td>The build&rsquo;s rebrand cascade rewrites a word inside the new text.</td><td>The cascade rewrites <code>superpowers:</code> namespaces and <code>docs/superpowers/</code> paths. The new text contains neither. Task 4 Step 2 diffs the built skill against the spec, so any rewrite shows as a diff.</td></tr>
+        </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Self-Review</h2>
+        <ul>
+          <li><strong>Spec coverage:</strong> Placement section, three rows, maps to Tasks 1&ndash;3. &ldquo;The Text&rdquo; is copied verbatim into each Step 2 and checked by Task 4 Step 2. Testing table maps to Task 4 Steps 1, 3 and 4. Non-goals are enforced by the Global Constraints file list. The owner override on evals is a spec decision, not a plan task.</li>
+          <li><strong>Placeholders:</strong> none. Every code step shows the full command or full text.</li>
+          <li><strong>Type consistency:</strong> the three headings in Tasks 1&ndash;3 match the grep patterns in each task’s Steps 1 and 3, the sed patterns in Task 4 Step 2, and the spec’s three code blocks.</li>
+          <li><strong>Ablation:</strong> the plan introduces no helper, script, or manifest change. Task 4 Step 2 defines two shell functions inside one step because the same extraction runs three times; that is a plan-internal check, not shipped code.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
