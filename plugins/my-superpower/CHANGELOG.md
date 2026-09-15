@@ -8,6 +8,26 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.3.0+fork.4 — 2026-09-15
+
+- **Ablation pass in plans and implementation.** YAGNI was a value the skills stated;
+  it is now a step they run. Each pass asks the same question once, at the end: for
+  every abstraction introduced, replace it with the direct thing and name what fails.
+  "Remove" means replacing indirection, never deleting behavior: inline the single-use
+  helper, call the one implementation, write the never-changing value.
+  - `writing-plans` gains Self-Review item 4: name the task that needs each helper,
+    interface, base class, config knob, wrapper or layer; none needs it, cut it from the
+    plan and show the direct code instead.
+  - `executing-plans` runs the pass after all tasks are verified and before
+    finishing-a-development-branch: replace, run the suite, name the failure, restore or
+    commit, record each removal and each restore in the implementation notes.
+  - `subagent-driven-development` runs the same pass in the controller once every
+    ledger line reads `complete` (parked completions included) and before
+    `scripts/review-package`, committing removals so the final reviewer sees the ablated
+    branch; each becomes a decision card and a `Ruling:` line.
+  - Shipped through the overlays only; nothing under `skills/` changes. Spec, plan and
+    live implementation notes are under `docs/mySuperpower/`.
+
 ## 6.3.0+fork.3 — 2026-09-11
 
 - **Spec, plan and execution guidance folded into the overlays.** The rules that lived

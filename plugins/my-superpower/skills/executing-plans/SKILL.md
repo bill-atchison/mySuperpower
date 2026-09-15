@@ -131,3 +131,23 @@ Mutate the implementation and watch it go red before recording a pass.
 When you find a mismatch: fix it, and record it in the implementation notes as a decision
 card. Do not work around it silently, and do not adjust an assertion to make it green
 without first establishing which behaviour is correct.
+
+## mySuperpower additions — ablation pass before finishing
+
+After all tasks are complete and verified, and before invoking
+finishing-a-development-branch, run one ablation pass over the branch:
+
+1. List every abstraction the branch added: helpers, interfaces, base
+   classes, config knobs, wrappers, layers, indirection of any kind.
+2. For each one, replace it with the direct thing — inline the single-use
+   helper, call the one implementation, write the never-changing value —
+   and run the full test suite. Behavior stays; only the layer goes.
+3. Name what failed: a test, a spec requirement, or a second caller that
+   now has nothing to call. "It might be useful later" is not a failure.
+4. If something failed, restore the abstraction and move on. If nothing
+   failed, commit the removal.
+5. Record each removal, and each restore with its reason, as a decision
+   card in the implementation notes.
+
+Run this once, at the end. Earlier tasks build scaffolding that later
+tasks consume; ablating per task removes it before its consumer exists.
