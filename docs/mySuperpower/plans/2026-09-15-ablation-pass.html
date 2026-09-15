@@ -338,13 +338,13 @@ bash tests/mysuperpower/test-dist-call-sites.sh</code></pre>
           <li class="step"><strong>Step 4: Ablation pass on the branch</strong>
             <p>List every abstraction the branch added. Expected answer: none. The branch adds prose to three files and no helper, script, config or manifest entry. If the implementer added anything beyond the three appended sections, this is where it comes out: replace it with the direct thing, rebuild, rerun Step 1, and record the removal as a decision card in the implementation notes.</p>
 <pre><code>git diff --stat mysuperpower..HEAD</code></pre>
-            <p class="expect">Expected: exactly six paths: the three <b>additions.md</b> files, the spec, this plan, and the live implementation notes at <b>docs/mySuperpower/implementation-notes/2026-09-15-ablation-pass.html</b> that the executing skill keeps. Any other path is a candidate for removal.</p>
+            <p class="expect">Expected: exactly five committed paths: the three <b>additions.md</b> files, the spec, and this plan. The live implementation notes at <b>docs/mySuperpower/implementation-notes/2026-09-15-ablation-pass.html</b> are still uncommitted at this point, by design, and do not appear in this diff. Any other committed path is a candidate for removal.</p>
           </li>
-          <li class="step"><strong>Step 5: Finalize the notes, confirm the tree is clean</strong>
-            <p>Finalize the implementation notes as the executing skill&rsquo;s overlay instructs: flip the status pill to complete, remove the refresh meta tag, commit once. Then:</p>
+          <li class="step"><strong>Step 5: Confirm the branch state and hand back</strong>
 <pre><code>git status --short
 git log --oneline mysuperpower..HEAD</code></pre>
-            <p class="expect">Expected: empty status; log shows the two spec commits, the plan commit, three overlay commits, the notes commit, plus any ablation commit from Step 4. Then hand off to finishing-a-development-branch.</p>
+            <p class="expect">Expected: status shows only the uncommitted implementation-notes file; log shows the two spec commits, the plan commit, three overlay commits, plus any ablation commit from Step 4.</p>
+            <p>Do not finalize or commit the notes here. The executing skill owns that: executing-plans finalizes them at its end step, and subagent-driven-development finalizes them after the final whole-branch review. Each then hands off to finishing-a-development-branch.</p>
           </li>
         </ol>
       </section>
