@@ -26,19 +26,20 @@ Here there is no implementer subagent — **you update the document yourself**, 
      open, print the path and continue. Keep that tab visible; the refresh pauses on background tabs.
 
 2. **As you work each task:** flip its row to `in progress`, then to `done · <sha>` once the
-   task is complete and committed — within the batch, not deferred to the checkpoint. At most
+   task is complete and committed — in the same call as `task-done`, never deferred. At most
    one task row is `in progress` at a time. Append the task's log group at the `TASK_LOG`
    marker: its `h3.tglabel` heading (task number, title, `· <sha>`), a decision card for any
    substantive decision, deviation, important fix, or tradeoff, and one `.cc` before→after
    code card per change (minimal excerpts; elide unchanged runs with `...`).
 
-3. **At each checkpoint:** the doc already reflects the completed batch — the checkpoint is for
-   review, not for catching the doc up.
+3. **Rulings and final-review fixes** go in the doc as well as the ledger: every
+   `Ruling:` line becomes a decision card in its task's log group, and each fix from the
+   final review's fix pass gets a `.cc` code card under a final group.
 
-4. **At the end:** flip the status pill to `Implementation — Complete`, add any final roll-up
-   card, **remove the `<meta ... refresh>` tag**, and commit the finalized document once
-   (keep transient states out of history). Then open it for the acceptance gate before finishing
-   the branch.
+4. **At the end (after the final whole-branch review):** flip the status pill to
+   `Implementation — Complete`, add any deferred-minors roll-up as a final card, **remove
+   the `<meta ... refresh>` tag**, and commit the finalized document once (keep transient
+   states out of history). Then open it for the acceptance gate before finishing the branch.
 
 ## mySuperpower additions — executing a plan
 
@@ -67,10 +68,10 @@ When you find a mismatch: fix it, and record it in the implementation notes as a
 card. Do not work around it silently, and do not adjust an assertion to make it green
 without first establishing which behaviour is correct.
 
-## mySuperpower additions — ablation pass before finishing
+## mySuperpower additions — ablation pass before the final review
 
-After all tasks are complete and verified, and before invoking
-finishing-a-development-branch, run one ablation pass over the branch:
+Once every task has its `Task <N>: complete` ledger line, and before running
+`review-package` for the final review, run one ablation pass over the branch:
 
 1. List every abstraction the branch added: helpers, interfaces, base
    classes, config knobs, wrappers, layers, indirection of any kind.
@@ -82,7 +83,7 @@ finishing-a-development-branch, run one ablation pass over the branch:
 4. If something failed, restore the abstraction and move on. If nothing
    failed, commit the removal.
 5. Record each removal, and each restore with its reason, as a decision
-   card in the implementation notes.
+   card in the implementation notes and a `Ruling:` line in the ledger.
 
-Run this once, at the end. Earlier tasks build scaffolding that later
-tasks consume; ablating per task removes it before its consumer exists.
+The final reviewer then reviews the ablated branch. Run this once, at the
+end; per-task ablation removes scaffolding before its consumer exists.

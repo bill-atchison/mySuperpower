@@ -47,7 +47,9 @@ if [ -n "$explicit_out" ]; then
   out=$explicit_out
   owns_out=0
 else
-  dir=$("$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
+  # Invoke via bash rather than direct exec, as upstream task-brief does: some
+  # extractors strip Unix exec bits when unpacking marketplace packages (#2040).
+  dir=$("${BASH:-bash}" "$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
   if [ "$mode" = plan ]; then out="$dir/plan-body.md"; else out="$dir/task-${n}-brief.md"; fi
   owns_out=1
 fi

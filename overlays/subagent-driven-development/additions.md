@@ -62,12 +62,12 @@ scoped to HTML plans only.
 and exits with the same codes as `scripts/task-brief`:
 
 ```
-scripts/task-brief-html PLAN_FILE TASK_NUMBER   # -> <workspace>/task-N-brief.md
-scripts/task-brief-html --plan PLAN_FILE        # -> <workspace>/plan-body.md
+bash scripts/task-brief-html PLAN_FILE TASK_NUMBER   # -> <workspace>/task-N-brief.md
+bash scripts/task-brief-html --plan PLAN_FILE        # -> <workspace>/plan-body.md
 ```
 
 **At setup, do not open the `.html` plan directly.** Run
-`scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. That is
+`bash scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. That is
 the whole plan body - Overview, Global Constraints, and every task in full, with
 the stylesheet and presentational markup removed. It is not a summary: the
 pre-flight conflict scan needs every task's full text to produce its per-pair
