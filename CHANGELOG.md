@@ -8,6 +8,39 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.4.1+fork.1 — 2026-09-21
+
+- **Synced to upstream superpowers 6.4.1** (from base 6.3.0). Merged 1 upstream release
+  commit (80 files). Notable upstream changes now in the fork:
+  - **`executing-plans` rewritten as native inline execution** — the executor works the
+    plan itself with the same workspace and ledger as SDD, taking each task with
+    `scripts/task-start` (brief + BASE in one call) and closing it with
+    `scripts/task-done` (runs the tests, ledgers the result only on green), then one
+    fresh whole-branch review. `writing-plans` offers *Subagent-driven* or *Native*.
+  - **Plans carry a `Review Focus` section** — the five uncovered input classes most
+    likely to bite; the final reviewer checks each.
+  - **Brainstorming writes back its understanding** before designing, and the HARD-GATE
+    now names each path's prerequisite approvals.
+  - **New `diagnosing-superpowers` skill** (15 skills total), plus Muse harness
+    manifests (`.muse-plugin/`) and OpenCode 2.0 support.
+  - **SDD script calls are prefixed `bash `** (Windows hook dispatch fix), and
+    `sdd-workspace` records a `plan-path` marker so same-basename plans no longer share
+    a workspace.
+- **Fork overlays re-anchored to the new upstream text**; nothing under `skills/` changes.
+  - `subagent-driven-development`: the `task-brief` anchor now matches upstream's
+    `bash scripts/task-brief` and the fork's `task-brief-html` mentions carry the same
+    prefix. `task-brief-html` invokes `sdd-workspace` via `${BASH:-bash}` as upstream
+    `task-brief` now does (#2040).
+  - `executing-plans`: upstream's `task-start` wraps the markdown `task-brief`, so an
+    HTML plan routes to `bash ../subagent-driven-development/scripts/task-brief-html
+    PLAN_FILE N && git rev-parse HEAD` (same brief path, same BASE; `task-done` needs no
+    change). The worked example runs on an `.html` plan. The live-notes additions drop
+    the old checkpoint language: rulings and final-review fixes become cards, and the
+    ablation pass moves to before the final review — matching SDD — so the reviewer sees
+    the ablated branch.
+  - Unbranded manifests (devin, hermes, kimi, muse) keep upstream's `superpowers` name,
+    as before.
+
 ## 6.3.0+fork.4 — 2026-09-15
 
 - **Ablation pass in plans and implementation.** YAGNI was a value the skills stated;
