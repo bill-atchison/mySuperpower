@@ -8,6 +8,26 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 6.4.2+fork.1 — 2026-09-27
+
+- **Synced to upstream superpowers 6.4.2** (from base 6.4.1). One upstream release
+  commit, all of it in `writing-plans`:
+  - **Leaner plans.** A step now carries only what makes it unambiguous — for a code
+    step that is the exact signature, file, and spec-pinned values, not the body; the
+    engineer writes the body. "Bite-Sized Task Granularity" becomes "Step Granularity"
+    (a checkable result, not a 2-5 minute clock), "No Placeholders" becomes "What a Step
+    Contains", and self-review gains item 5, **Proportion** — a plan several times
+    longer than its spec is a transcript of the program.
+  - `skills/writing-plans/plan-document-reviewer-prompt.md` is gone (the subagent
+    fallback for Codex review); the root `CLAUDE.md` pointer file is gone too, since
+    `AGENTS.md` is canonical. The fork's shipped `CLAUDE.md` comes from
+    `branding/CLAUDE.md` at build time, so the plugin is unaffected.
+- **Fork overlays unchanged** — both `writing-plans` anchors still match, and the HTML
+  additions are independent of the reworded sections.
+  - The ablation item in `overlays/writing-plans/additions.md` is renumbered **6** and
+    now says "after the items above": upstream's self-review has grown to five items, so
+    the fork's hard-coded "item 4" collided with upstream's *Review Focus*.
+
 ## 6.4.1+fork.1 — 2026-09-21
 
 - **Synced to upstream superpowers 6.4.1** (from base 6.3.0). Merged 1 upstream release
