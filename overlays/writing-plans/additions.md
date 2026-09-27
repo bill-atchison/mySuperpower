@@ -54,11 +54,11 @@ filename. The kickoff prompt, honored whether or not your human partner types it
 > file with decisions you had to make that weren't in the spec, things you had to
 > change, tradeoffs you had to make, or anything else I should know
 
-## mySuperpower additions — Self-Review, item 4
+## mySuperpower additions — Self-Review, ablation item
 
-Add this to the Self-Review checklist after type consistency:
+Add this to the Self-Review checklist after the items above:
 
-**4. Ablation:** For each abstraction the plan introduces — a helper,
+**6. Ablation:** For each abstraction the plan introduces — a helper,
 interface, base class, config knob, wrapper, or layer — name the task that
 cannot be completed without it. If no task needs it, or one direct call
 site would do, replace it in the plan with the direct thing: inline the
