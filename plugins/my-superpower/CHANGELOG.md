@@ -8,6 +8,26 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 7.0.0+fork.1 — 2026-10-18
+
+- **Synced to upstream superpowers 7.0.0** (from base 6.4.2). One upstream release
+  commit:
+  - **Brainstorming rebuilt.** It draws out what you want and plays it back before
+    proposing anything, then sizes the work (quick task / small change in chat /
+    project with a written design). A **builder check** subagent
+    (`builder-check-prompt.md`) replaces `spec-document-reviewer-prompt.md`.
+  - **Antigravity Marketplace manifest** (`.antigravity-plugin/plugin.json`, now one of
+    the manifests `bump-version.sh` manages); Windows `run-hook.cmd` and SessionStart
+    hook fixes; smaller fixes in `sdd-workspace`, `task-done`, requesting-code-review,
+    systematic-debugging, and Hermes.
+- **Brainstorming overlay realigned to the rebuild.** `overlays/brainstorming/additions.md`
+  now scopes the HTML output to "a project with a written design" (replacing the old
+  architectural-path / bounded-task wording), lists upstream's new document contents
+  (intent and why; goals, non-goals, anti-goals; constraints; decided how; left to the
+  builder), and puts the builder check first in the gates, ahead of Codex review,
+  browser preview, and sign-off. `templates/design-doc-template.html` lists the same
+  sections. The optional title anchor now matches upstream's bare `# Brainstorming`.
+
 ## 6.4.2+fork.1 — 2026-09-27
 
 - **Synced to upstream superpowers 6.4.2** (from base 6.4.1). One upstream release
