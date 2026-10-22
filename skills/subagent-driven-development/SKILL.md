@@ -127,8 +127,7 @@ a ledger file, not only in todos.
   that happens, recover from `git log`.
 
 Read the plan once, note its context and Global Constraints, and create a
-todo per task. **If PLAN_FILE ends in `.html`, do not open it directly** —
-run `bash scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. If the plan names a Spec, read that too: the spec is the
+todo per task. **An `.html` plan: read `references/mysuperpower-html-plans.md` first.** If the plan names a Spec, read that too: the spec is the
 authority the plan argues from, and conflicts inside the plan resolve
 against it. A plan with no reachable spec gets a ledger note saying so —
 rulings made without one are provisional.
@@ -201,8 +200,7 @@ Record BASE (`git rev-parse HEAD`) before dispatching — the review package
 and fix-round diffs need it.
 
 - **Task brief:** before dispatching an implementer, run this skill's
-  `bash scripts/task-brief PLAN_FILE N` — or `bash scripts/task-brief-html PLAN_FILE N`
-  when PLAN_FILE ends in `.html` — it extracts the task's full text to a
+  `bash scripts/task-brief PLAN_FILE N` (`task-brief-html` for `.html`) — it extracts the task's full text to a
   uniquely named file and prints the path. Compose the dispatch so the
   brief stays the single source of
   requirements. Your dispatch should contain: (1) one line on where this
@@ -338,147 +336,9 @@ covers the whole-branch review, its single fix wave, and how you finish.
 | "The implementer spawned its own reviewer — free extra assurance" | It's a duplicate seat reviewing the same diff; the task review is the gate. A worker-spawned reviewer is a defect to flag, not rigor. |
 
 
-## mySuperpower additions — live HTML implementation notes
+## mySuperpower additions
 
-The implementation-notes document is a **live artifact**: create it at the start of
-execution, keep it current as tasks run, and finalize it at the end. Use the template at
-`skills/subagent-driven-development/templates/implementation-notes-template.html` — it
-already carries the auto-refresh, the task/subtask status table, and the unified
-**Implementation Log · By Task** (per-task `h3.tglabel` group headings, `dd-card` decision
-cards, and `.cc` before→after code-change cards, appended at the `TASK_LOG` comment marker
-so each task's rationale and code stay co-located). Save to
-`docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`,
-rooted at the repo root (`$(git rev-parse --show-toplevel)/docs/mySuperpower/implementation-notes/...`)
-— never relative to the current working directory.
-
-**The controller owns every write to this document.** Implementer subagents stay
-report-only — never hand the notes file to a subagent. You already hold the per-task
-results (each implementer's report plus the progress ledger) needed to update it. Write
-**atomically**: render to a temp file and rename it into place, so a refresh that lands
-mid-write never shows a truncated document.
-
-1. **At execution start (before Task 1):**
-   - *Repair pass:* if a notes file for this branch already exists and still contains the
-     `<meta ... refresh>` tag, it was left by a crashed run — strip that tag before continuing.
-   - Render the template with one task row per plan task (plus its TDD subtask rows), all
-     pills `pending`; fill the SPEC / PLAN / BRANCH / DATE fields.
-   - **Open it once in the default browser** (Windows PowerShell `Start-Process <file>`, or
-     `cmd /c start "" "<file>"`; macOS `open <file>`; Linux `xdg-open <file>`). If it can't
-     open, print the path and continue — never block on the viewer. Tell your human partner
-     to keep that tab visible; the refresh pauses on background tabs.
-
-2. **Before dispatching each task's implementer:** flip that task's row to `in progress`.
-
-3. **When that task's review comes back clean** (same step as the ledger line): flip the
-   task row and its subtask rows to `done · <sha>` from the implementer's report, and append
-   the task's log group at the `TASK_LOG` marker: its `h3.tglabel` heading (task number,
-   title, `· <sha>` in the `st-mini` span), a decision card for any substantive off-spec
-   decision, deviation, important fix, cross-task interaction, or tradeoff the report
-   surfaced, and one `.cc` before→after code card per applied change (minimal excerpts from
-   the implementer's report; elide unchanged runs with `...`). Routine progress gets no
-   decision card, but every applied code change gets its code card.
-
-4. **If a task is BLOCKED:** leave its row `in progress` and append a card naming the blocker,
-   so the doc shows the stall instead of going silent.
-
-5. **At the end (after the final whole-branch review):** flip the status pill to
-   `Implementation — Complete`, add any minor-findings roll-up as a final card, **remove the
-   `<meta ... refresh>` tag**, commit the finalized document once, then proceed to
-   `my-superpower:finishing-a-development-branch`.
-
-Commit cadence: rewrite the file on disk at every step above, but **commit only the finalized
-document once**, in step 5 — keep the run's transient states out of git history.
-
-## mySuperpower additions - HTML plans
-
-The fork's `writing-plans` skill saves implementation plans as self-contained
-HTML under `docs/mySuperpower/plans/`. **When `PLAN_FILE` ends in `.html`, use
-`scripts/task-brief-html` everywhere this skill says `scripts/task-brief`.** A
-markdown plan still follows the instructions above exactly - this override is
-scoped to HTML plans only.
-
-`scripts/task-brief-html` takes the same arguments, writes to the same workspace,
-and exits with the same codes as `scripts/task-brief`:
-
-```
-bash scripts/task-brief-html PLAN_FILE TASK_NUMBER   # -> <workspace>/task-N-brief.md
-bash scripts/task-brief-html --plan PLAN_FILE        # -> <workspace>/plan-body.md
-```
-
-**At setup, do not open the `.html` plan directly.** Run
-`bash scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. That is
-the whole plan body - Overview, Global Constraints, and every task in full, with
-the stylesheet and presentational markup removed. It is not a summary: the
-pre-flight conflict scan needs every task's full text to produce its per-pair
-rows, and a scan run on missing input looks exactly like a clean scan.
-
-Read the Spec the same way when the plan names one and it is also `.html`.
-
-Two failure modes are worth recognizing, because both mean the plan is wrong
-rather than the tool:
-
-- **Exit 3, "section N is headed Task M"** - the plan's task sections are
-  numbered inconsistently with their order. Fix the plan; do not guess which
-  numbering was meant.
-- **Exit 3, "task N not found"** - there is no Nth `<section class="task">` and
-  no heading naming that task. Any brief previously written at the default path
-  has been deleted, so there is no stale brief to mistake for a current one.
-
-Warnings on stderr about undecoded entities are not failures - the brief is
-still written. Report them, because they mean the plan template has grown an
-entity the extractor does not know yet.
-
-## mySuperpower additions — executing a plan
-
-The plan's kickoff prompt is honored whether or not your human partner types it verbatim:
-*"implement &lt;SPEC&gt; and while you do, keep a running implementation-notes.html file
-with decisions you had to make that weren't in the spec, things you had to change,
-tradeoffs you had to make, or anything else I should know."* The folder already says what
-the notes are — do not repeat "implementation-notes" in the filename.
-
-Two rules govern every task, and the overlay cannot reach the implementer prompt
-template — so **the controller carries them into every implementer dispatch**, verbatim,
-under the prompt's "Your Job" section:
-
-1. **Open every file the plan names before acting on the instruction that names it.**
-   This is measured, not theoretical: across one six-task plan, roughly fifteen claims
-   about the repository did not match it — an import alias that did not exist (hit
-   independently by three tasks), a settings builder that did not exist, a function
-   asserted to be module-level that was imported function-locally, three wrong line
-   numbers inside docstrings shipped *as code*, and a shared helper hardcoded to one
-   resolution with no geometry parameter. Six spec reviews and three plan reviews missed
-   all of them; opening the file caught them every time.
-2. **A supplied test is not a passing test until you have watched it fail.**
-   Plan-supplied test bodies have shipped that could not fail — one parametrised an
-   expected value and never asserted on it, one asserted only the last element of a
-   sequence too short to exercise the rule, and one patched an attribute the function
-   under test never reads. Mutate the implementation and watch it go red before
-   recording a pass.
-
-When an implementer finds a mismatch: it fixes it and reports it. Do not let it work
-around the mismatch silently, and do not accept an assertion adjusted to green without
-the report first establishing which behaviour is correct. Every reported mismatch
-becomes a decision card in that task's log group in the live implementation notes.
-
-## mySuperpower additions — ablation pass before the final review
-
-Once every task's ledger line reads `complete` — including
-`complete (... parked)` after a tripped breaker — and before running
-`scripts/review-package` for the final review, the controller runs one
-ablation pass over the branch itself. No subagent:
-
-1. List every abstraction the branch added: helpers, interfaces, base
-   classes, config knobs, wrappers, layers, indirection of any kind.
-2. For each one, replace it with the direct thing — inline the single-use
-   helper, call the one implementation, write the never-changing value —
-   and run the full test suite. Behavior stays; only the layer goes.
-3. Name what failed: a test, a spec requirement, or a second caller that
-   now has nothing to call. "It might be useful later" is not a failure.
-4. If something failed, restore the abstraction and move on. If nothing
-   failed, commit the removal. The review package diffs MERGE_BASE..HEAD,
-   so an uncommitted removal is invisible to the final reviewer.
-5. Record each removal, and each restore with its reason, as a decision
-   card in the implementation notes and a `Ruling:` line in the ledger.
-
-The final reviewer then reviews the ablated branch. Run this once, at the
-end; per-task ablation removes scaffolding before its consumer exists.
+Read these from `references/` at their moment: before Task 1,
+`mysuperpower-notes.md` (live HTML notes, kept current every task); before
+each implementer dispatch, `mysuperpower-dispatch.md`; before the final
+review, `mysuperpower-ablation.md`.

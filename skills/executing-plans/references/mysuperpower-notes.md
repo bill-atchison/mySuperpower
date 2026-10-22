@@ -1,0 +1,41 @@
+# mySuperpower: Live HTML implementation notes
+
+The implementation-notes document is a **live artifact**: create it at the start of
+execution, keep it current as you work, and finalize it at the end. Use the template at
+`skills/executing-plans/templates/implementation-notes-template.html` — it already carries
+the auto-refresh, the task/subtask status table, and the unified **Implementation Log ·
+By Task** (per-task `h3.tglabel` group headings, `dd-card` decision cards, and `.cc`
+before→after code-change cards, appended at the `TASK_LOG` comment marker so each task's
+rationale and code stay co-located). Save
+to `docs/mySuperpower/implementation-notes/YYYY-MM-DD-<feature>.html`, rooted at the repo root
+(`$(git rev-parse --show-toplevel)/docs/mySuperpower/implementation-notes/...`) — never relative
+to the current working directory.
+
+Here there is no implementer subagent — **you update the document yourself**, live. Write
+**atomically**: render to a temp file and rename it into place.
+
+1. **At execution start (or on resume):**
+   - *Repair pass:* if a notes file for this branch already exists with a `<meta ... refresh>`
+     tag from a crashed run, strip that tag first.
+   - **Rebuild the table from the progress ledger**, not from memory: every task the ledger
+     marks complete renders `done`, the first unfinished task becomes the next `in progress`,
+     the rest `pending`. On a fresh branch all rows start `pending`.
+   - **Open it once in the default browser** (Windows PowerShell `Start-Process <file>`, or
+     `cmd /c start "" "<file>"`; macOS `open <file>`; Linux `xdg-open <file>`). If it can't
+     open, print the path and continue. Keep that tab visible; the refresh pauses on background tabs.
+
+2. **As you work each task:** flip its row to `in progress`, then to `done · <sha>` once the
+   task is complete and committed — in the same call as `task-done`, never deferred. At most
+   one task row is `in progress` at a time. Append the task's log group at the `TASK_LOG`
+   marker: its `h3.tglabel` heading (task number, title, `· <sha>`), a decision card for any
+   substantive decision, deviation, important fix, or tradeoff, and one `.cc` before→after
+   code card per change (minimal excerpts; elide unchanged runs with `...`).
+
+3. **Rulings and final-review fixes** go in the doc as well as the ledger: every
+   `Ruling:` line becomes a decision card in its task's log group, and each fix from the
+   final review's fix pass gets a `.cc` code card under a final group.
+
+4. **At the end (after the final whole-branch review):** flip the status pill to
+   `Implementation — Complete`, add any deferred-minors roll-up as a final card, **remove
+   the `<meta ... refresh>` tag**, and commit the finalized document once (keep transient
+   states out of history). Then open it for the acceptance gate before finishing the branch.

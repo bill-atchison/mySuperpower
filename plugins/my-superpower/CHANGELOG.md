@@ -8,6 +8,19 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 7.0.1+fork.2 — 2026-10-21
+
+- **executing-plans and subagent-driven-development fit upstream's 20000-byte skill
+  limit again.** 7.0.1 added `tests/skill-size`; the source passed, but the overlays
+  appended to `SKILL.md` at build time (built SDD was 28545 B, executing-plans 24351 B).
+  Following upstream's own 7.0.1 pattern, each overlay's additions moved verbatim into
+  overlay-supplied `references/mysuperpower-*.md` files (notes, HTML plans, dispatch
+  rules or execution rules, ablation), and `additions.md` became a short block naming
+  which file to read at which moment. Built sizes: SDD 19891 B, executing-plans 18886 B.
+- **New `tests/mysuperpower/test-dist-skill-size.sh`** runs the same limit against
+  `dist/skills`. SDD has about 100 bytes of headroom (upstream's own file is 19506 B), so
+  an upstream release that grows it will fail this check first.
+
 ## 7.0.1+fork.1 — 2026-10-21
 
 - **Synced to upstream superpowers 7.0.1** (from base 7.0.0):
