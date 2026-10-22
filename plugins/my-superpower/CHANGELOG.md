@@ -8,6 +8,26 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 7.0.1+fork.1 — 2026-10-21
+
+- **Synced to upstream superpowers 7.0.1** (from base 7.0.0):
+  - **Brainstorming retuned.** Look before you ask; the first message echoes the
+    request back; approaches are laid out in a message of their own before any write-up.
+    Sizing is now small change (a short design doc) or project (the full written design),
+    and every design doc carries an **Approaches** part.
+  - **Skills that better survive compaction.** subagent-driven-development and
+    writing-skills move detail into `references/` (SDD gains a resume-based fix loop
+    with a five-round breaker); the Example Workflow sections in executing-plans and SDD
+    are gone.
+  - Contribution templates, a `tests/skill-size` check, and small fixes.
+- **Brainstorming overlay realigned.** HTML output now covers every design doc, short
+  or full; the content list adds approaches; the builder check and Codex review gates
+  are project-only, matching upstream's builder check. `design-doc-template.html` lists
+  the Approaches section.
+- **executing-plans / SDD overlays:** dropped the six replacements that rewrote the deleted
+  Example Workflow blocks. The HTML-plan anchors on the live instructions are unchanged.
+- The Antigravity manifest keeps upstream branding, as it did in 7.0.0+fork.1.
+
 ## 7.0.0+fork.1 — 2026-10-18
 
 - **Synced to upstream superpowers 7.0.0** (from base 6.4.2). One upstream release
