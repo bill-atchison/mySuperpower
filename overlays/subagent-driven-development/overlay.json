@@ -3,12 +3,12 @@
   "replaces": [
     {
       "find": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task.",
-      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **If PLAN_FILE ends in `.html`, do not open it directly** —\nrun `bash scripts/task-brief-html --plan PLAN_FILE` and read the file it writes.",
+      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **An `.html` plan: read `references/mysuperpower-html-plans.md` first.**",
       "required": true
     },
     {
       "find": "  `bash scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a",
-      "replace": "  `bash scripts/task-brief PLAN_FILE N` — or `bash scripts/task-brief-html PLAN_FILE N`\n  when PLAN_FILE ends in `.html` — it extracts the task's full text to a",
+      "replace": "  `bash scripts/task-brief PLAN_FILE N` (`task-brief-html` for `.html`) — it extracts the task's full text to a",
       "required": true
     }
   ],
@@ -18,6 +18,22 @@
       "from": "scripts/task-brief-html",
       "to": "scripts/task-brief-html",
       "exec": true
+    },
+    {
+      "from": "references/mysuperpower-notes.md",
+      "to": "references/mysuperpower-notes.md"
+    },
+    {
+      "from": "references/mysuperpower-html-plans.md",
+      "to": "references/mysuperpower-html-plans.md"
+    },
+    {
+      "from": "references/mysuperpower-dispatch.md",
+      "to": "references/mysuperpower-dispatch.md"
+    },
+    {
+      "from": "references/mysuperpower-ablation.md",
+      "to": "references/mysuperpower-ablation.md"
     }
   ]
 }

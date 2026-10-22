@@ -12,5 +12,19 @@
       "required": true
     }
   ],
-  "append": "additions.md"
+  "append": "additions.md",
+  "files": [
+    {
+      "from": "references/mysuperpower-notes.md",
+      "to": "references/mysuperpower-notes.md"
+    },
+    {
+      "from": "references/mysuperpower-execution.md",
+      "to": "references/mysuperpower-execution.md"
+    },
+    {
+      "from": "references/mysuperpower-ablation.md",
+      "to": "references/mysuperpower-ablation.md"
+    }
+  ]
 }
