@@ -2,12 +2,14 @@
 
 The fork's `writing-plans` skill saves implementation plans as self-contained
 HTML under `docs/mySuperpower/plans/`. **When `PLAN_FILE` ends in `.html`, use
-`scripts/task-brief-html` everywhere this skill says `scripts/task-brief`.** A
+`scripts/task-brief-html` by its absolute path, from the working tree you're
+executing in, everywhere this skill says `task-brief`.** A
 markdown plan still follows SKILL.md's instructions exactly - this override is
 scoped to HTML plans only.
 
-`scripts/task-brief-html` takes the same arguments, writes to the same workspace,
-and exits with the same codes as `scripts/task-brief`:
+`scripts/task-brief-html` by its absolute path takes the same arguments, including
+`-C DIR`, writes to the same workspace,
+and exits with the same codes as upstream's brief helper:
 
 ```
 bash scripts/task-brief-html PLAN_FILE TASK_NUMBER   # -> <workspace>/task-N-brief.md
@@ -15,7 +17,7 @@ bash scripts/task-brief-html --plan PLAN_FILE        # -> <workspace>/plan-body.
 ```
 
 **At setup, do not open the `.html` plan directly.** Run
-`bash scripts/task-brief-html --plan PLAN_FILE` and read the file it writes. That is
+`bash scripts/task-brief-html --plan PLAN_FILE` by its absolute path and read the file it writes. That is
 the whole plan body - Overview, Global Constraints, and every task in full, with
 the stylesheet and presentational markup removed. It is not a summary: the
 pre-flight conflict scan needs every task's full text to produce its per-pair

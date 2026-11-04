@@ -8,6 +8,15 @@ resetting to `fork.1` on each upstream merge. Manage it with `scripts/bump-versi
 (`--fork-bump`, `--sync <base>`). Both Claude Code and Codex detect updates by comparing
 the version **string**, so every release bumps it.
 
+## 7.0.2+fork.1 — 2026-11-03
+
+Merged upstream superpowers v7.0.2 (brainstorming question tuning, bootstrap fixes on six harnesses, SDD and executing-plans helpers that act on the current repository and take `-C DIR`).
+
+- **Executing-plans and SDD overlays:** realigned to upstream's reworded helper lines and its "by its absolute path" rule, including the fork's `references/mysuperpower-*.md`.
+- **`task-brief-html`:** accepts `-C DIR`, matching upstream's `task-brief`; its test now stages upstream's new `sdd-repo` helper.
+- **SDD size:** upstream's SKILL.md grew, so the fork's inline text was cut to stay under the 20,000-byte limit. The per-task `task-brief-html` mention is gone; `references/mysuperpower-html-plans.md` still covers it.
+- **Brainstorming overlay:** when your human partner approves the short design in the first message, that approval counts as the owner sign-off; the document is still written and opened.
+
 ## 7.0.1+fork.2 — 2026-10-21
 
 - **executing-plans and subagent-driven-development fit upstream's 20000-byte skill

@@ -4,8 +4,8 @@
 # skill emits plans as self-contained HTML; upstream's task-brief only matches
 # markdown headings, so it exits 3 on every fork plan.
 #
-# Usage: task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]
-#        task-brief-html --plan PLAN_FILE [OUTFILE]
+# Usage: task-brief-html [-C DIR] PLAN_FILE TASK_NUMBER [OUTFILE]
+#        task-brief-html [-C DIR] --plan PLAN_FILE [OUTFILE]
 #
 # Default OUTFILE: <sdd-workspace>/task-<N>-brief.md  (task mode)
 #                  <sdd-workspace>/plan-body.md       (--plan mode)
@@ -15,9 +15,16 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: task-brief-html PLAN_FILE TASK_NUMBER [OUTFILE]" >&2
-  echo "       task-brief-html --plan PLAN_FILE [OUTFILE]" >&2
+  echo "usage: task-brief-html [-C DIR] PLAN_FILE TASK_NUMBER [OUTFILE]" >&2
+  echo "       task-brief-html [-C DIR] --plan PLAN_FILE [OUTFILE]" >&2
 }
+
+here=$(cd "$(dirname "$0")" && pwd)
+if [ "${1:-}" = "-C" ]; then
+  [ -d "${2:-}" ] || { echo "bad -C directory: ${2:-}" >&2; exit 2; }
+  cd "$2"
+  shift 2
+fi
 
 mode=task
 if [ "${1-}" = "--plan" ]; then
@@ -49,7 +56,7 @@ if [ -n "$explicit_out" ]; then
 else
   # Invoke via bash rather than direct exec, as upstream task-brief does: some
   # extractors strip Unix exec bits when unpacking marketplace packages (#2040).
-  dir=$("${BASH:-bash}" "$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
+  dir=$("${BASH:-bash}" "$here/sdd-workspace" "$plan")
   if [ "$mode" = plan ]; then out="$dir/plan-body.md"; else out="$dir/task-${n}-brief.md"; fi
   owns_out=1
 fi
