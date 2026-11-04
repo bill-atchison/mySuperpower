@@ -2,7 +2,7 @@
 
 Once every task's ledger line reads `complete` — including
 `complete (... parked)` after a tripped breaker — and before running
-`scripts/review-package` for the final review, the controller runs one
+`scripts/review-package` by its absolute path for the final review, the controller runs one
 ablation pass over the branch itself. No subagent:
 
 1. List every abstraction the branch added: helpers, interfaces, base

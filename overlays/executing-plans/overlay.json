@@ -3,12 +3,12 @@
   "replaces": [
     {
       "find": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task.",
-      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **If PLAN_FILE ends in `.html`, do not open it directly** —\nrun `bash ../subagent-driven-development/scripts/task-brief-html --plan PLAN_FILE`\nand read the file it writes.",
+      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **If PLAN_FILE ends in `.html`, do not open it directly** —\nrun `bash ../subagent-driven-development/scripts/task-brief-html --plan PLAN_FILE`\nby its absolute path, from the working tree you're executing in, and read the\nfile it writes.",
       "required": true
     },
     {
-      "find": "- Run this skill's `scripts/task-start PLAN_FILE N`. It prints the brief\n  path and BASE (the commit the task's range is cut from) in one call.",
-      "replace": "- Run this skill's `scripts/task-start PLAN_FILE N`. It prints the brief\n  path and BASE (the commit the task's range is cut from) in one call.\n  **If PLAN_FILE ends in `.html`**, `task-start` cannot read it — run\n  `bash ../subagent-driven-development/scripts/task-brief-html PLAN_FILE N && git rev-parse HEAD`\n  instead: same brief path, same BASE, still one call. `task-done` works\n  unchanged for either format.",
+      "find": "- Run this skill's `scripts/task-start PLAN_FILE N` by its absolute path,\n  from the working tree you're executing in. It prints the brief\n  path and BASE (the commit the task's range is cut from) in one call.",
+      "replace": "- Run this skill's `scripts/task-start PLAN_FILE N` by its absolute path,\n  from the working tree you're executing in. It prints the brief\n  path and BASE (the commit the task's range is cut from) in one call.\n  **If PLAN_FILE ends in `.html`**, `task-start` cannot read it — run\n  `bash ../subagent-driven-development/scripts/task-brief-html PLAN_FILE N && git rev-parse HEAD`\n  by its absolute path instead: same brief path, same BASE, still one call. `task-done` works\n  unchanged for either format.",
       "required": true
     }
   ],

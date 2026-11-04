@@ -12,6 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SUT="$REPO_ROOT/overlays/subagent-driven-development/scripts/task-brief-html"
 WORKSPACE_SCRIPT="$REPO_ROOT/skills/subagent-driven-development/scripts/sdd-workspace"
+REPO_SCRIPT="$REPO_ROOT/skills/subagent-driven-development/scripts/sdd-repo"
 FIXTURES="$SCRIPT_DIR/fixtures"
 
 fails=0
@@ -38,7 +39,7 @@ REPO="$TEST_ROOT/repo"
 BIN="$REPO/skills/subagent-driven-development/scripts"
 mkdir -p "$BIN"
 git init -q "$REPO"
-cp "$SUT" "$WORKSPACE_SCRIPT" "$BIN/"
+cp "$SUT" "$WORKSPACE_SCRIPT" "$REPO_SCRIPT" "$BIN/"
 chmod +x "$BIN"/*
 cp "$FIXTURES"/*.html "$REPO/"
 TB="$BIN/task-brief-html"
@@ -50,6 +51,9 @@ echo "== argument and file handling =="
 "$TB" plan-sections.html 1 a b >/dev/null 2>&1; check "four args exits 2" 2 $?
 "$TB" missing.html 1 out.md >/dev/null 2>&1; check "missing plan exits 2" 2 $?
 "$TB" plan-sections.html zero out.md >/dev/null 2>&1; check "non-numeric task exits 2" 2 $?
+"$TB" -C "$TEST_ROOT/nowhere" plan-sections.html 1 >/dev/null 2>&1; check "bad -C directory exits 2" 2 $?
+(cd "$TEST_ROOT" && "$TB" -C "$REPO" plan-sections.html 2 >/dev/null 2>&1); check "-C DIR exits 0 from outside the repo" 0 $?
+if [ -s "$REPO/.superpowers/sdd/plan-sections.html/task-2-brief.md" ]; then pass "-C DIR writes to that repo's workspace"; else fail "-C DIR writes to that repo's workspace"; fi
 
 echo "== task selection: numbered sections =="
 "$TB" plan-sections.html 2 t2.md >/dev/null 2>&1

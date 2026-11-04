@@ -3,12 +3,7 @@
   "replaces": [
     {
       "find": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task.",
-      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **An `.html` plan: read `references/mysuperpower-html-plans.md` first.**",
-      "required": true
-    },
-    {
-      "find": "  `bash scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a",
-      "replace": "  `bash scripts/task-brief PLAN_FILE N` (`task-brief-html` for `.html`) — it extracts the task's full text to a",
+      "replace": "Read the plan once, note its context and Global Constraints, and create a\ntodo per task. **`.html` plan: read `references/mysuperpower-html-plans.md` first.**",
       "required": true
     }
   ],

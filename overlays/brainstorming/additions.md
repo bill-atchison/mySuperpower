@@ -50,4 +50,6 @@ Run these before invoking `my-superpower:writing-plans`:
    (Windows PowerShell `Start-Process "<path>.html"`; macOS `open`; Linux `xdg-open`).
 4. **Owner sign-off — STOP here.** Surface the spec and wait for explicit acceptance.
    Do NOT auto-proceed to the plan: changes are cheaper at the spec stage than derived
-   through a plan.
+   through a plan. The one exception: when they approved the short design in your first
+   message, that approval is this sign-off. Write the document as approved, open it, and
+   go on to the plan.

@@ -1,7 +1,5 @@
 
-## mySuperpower additions
+## mySuperpower
 
-Read these from `references/` at their moment: before Task 1,
-`mysuperpower-notes.md` (live HTML notes, kept current every task); before
-each implementer dispatch, `mysuperpower-dispatch.md`; before the final
-review, `mysuperpower-ablation.md`.
+Read `references/mysuperpower-<name>.md`: `notes` before Task 1,
+`dispatch` before each implementer dispatch, `ablation` before the final review.
