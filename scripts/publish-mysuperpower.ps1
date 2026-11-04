@@ -181,7 +181,11 @@ if (@(git status --porcelain).Count -eq 0) {
   git commit -m "Publish mySuperpower $version" | Out-Null
   Write-Host "publish-mysuperpower: committed release $version"
 }
-if ($Push) { git push -u origin $Branch | Out-Null; Write-Host "publish-mysuperpower: pushed origin/$Branch" }
+if ($Push) {
+  git push -u origin $Branch | Out-Null
+  if ($LASTEXITCODE -ne 0) { Fail "push of origin/$Branch failed" }
+  Write-Host "publish-mysuperpower: pushed origin/$Branch"
+}
 Pop-Location
 
 # --- 6. Clean up the worktree ---
